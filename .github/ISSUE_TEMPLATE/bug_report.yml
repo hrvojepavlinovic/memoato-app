@@ -1,0 +1,33 @@
+name: Bug report
+description: Something isn’t working
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect to happen vs what happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "OS, browser, device (e.g. iPhone 13 Safari)"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Paste console logs or screenshots if relevant.
+

@@ -1,0 +1,73 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import StatsRow from "../components/StatsRow.astro";
+---
+
+<BaseLayout
+  title="memoato: minimal habit tracking"
+  description="A fast, minimal habit tracker for ADHD brains: quick input, clear progress, fewer decisions."
+  canonicalPath="/"
+>
+  <section class="container hero">
+    <div class="hero-grid">
+      <div>
+        <div class="pill">Minimal tracking · Built for consistency</div>
+        <h1 class="h1" style="margin-top: 1rem">Track what matters. Move on.</h1>
+        <p class="lead">
+          memoato is a lightweight tracker for people who want results without overhead. Log quickly, see progress,
+          and adapt when routines change.
+        </p>
+        <div class="hero-actions">
+          <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
+            Open app
+          </a>
+          <a class="btn" href="/blog/why-memoato">Read the story</a>
+        </div>
+        <StatsRow />
+      </div>
+      <div class="card">
+        <div class="h2">A tiny loop</div>
+        <ol class="steps prose">
+          <li><strong>Log in seconds.</strong> One number, one tap, done.</li>
+          <li><strong>See progress.</strong> Weekly goals and trends that fit your brain.</li>
+          <li><strong>Adjust.</strong> When routines expire, update categories and keep going.</li>
+        </ol>
+
+        <div class="h2" style="margin-top: 1.25rem">What you get</div>
+        <div class="feature-list">
+          <div class="feature">
+            <div class="feature-title">Fast capture</div>
+            <div class="muted">No project setup, no fiddling, just log.</div>
+          </div>
+          <div class="feature">
+            <div class="feature-title">Readable charts</div>
+            <div class="muted">Goals and trends that are obvious at a glance.</div>
+          </div>
+          <div class="feature">
+            <div class="feature-title">Edit history</div>
+            <div class="muted">Fix mistakes and add notes without friction.</div>
+          </div>
+        </div>
+
+        <div class="hero-actions" style="margin-top: 1.25rem">
+          <a class="btn" href="/help">How it works</a>
+          <a class="btn" href="/open-source">Open source</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="card">
+        <div class="h2">Donate</div>
+        <div class="muted">
+          memoato is free for now. If it helps you, consider supporting its development.
+        </div>
+        <div class="hero-actions" style="margin-top: 1rem">
+          <a class="btn primary" href="https://buymeacoffee.com/0xhp10" rel="noopener noreferrer">Buy me a coffee</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

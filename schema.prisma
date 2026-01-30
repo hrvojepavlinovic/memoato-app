@@ -1,0 +1,103 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Use Prisma Schema file to define your entities: https://www.prisma.io/docs/concepts/components/prisma-schema.
+// Run `wasp db migrate-dev` in the CLI to create the database tables,
+// then run `wasp db studio` to open Prisma Studio and view your db models.
+model User {
+  id       String @id @default(uuid())
+  username String @unique
+  role     String @default("user")
+  firstName String?
+  lastName  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum EventKind {
+  SESSION
+  NOTE
+}
+
+enum CategoryType {
+  NUMBER
+  DO
+  DONT
+  GOAL
+}
+
+model Category {
+  id String @id @default(uuid())
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  source   String @default("focus")
+  sourceId Int?
+
+  title          String
+  slug           String?
+  type           String?
+  kind           String?
+  unit           String?
+  chartType      String?
+  categoryType   CategoryType @default(NUMBER)
+  accentHex      String @default("#0A0A0A")
+  emoji          String?
+  goalWeekly     Float?
+  goalValue      Float?
+  targetCount    Int?
+  period         String?
+  targetDuration Int?
+
+  sourceCreatedAt  DateTime?
+  sourceArchivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[]
+
+  @@index([userId])
+  @@unique([source, sourceId])
+  @@unique([userId, slug])
+}
+
+model Event {
+  id String @id @default(uuid())
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  source String @default("focus")
+  kind   EventKind
+  sourceId Int?
+
+  category   Category? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+
+  rawText  String?
+  amount   Float?
+  duration Int?
+  data     Json?
+
+  sourceCreatedAt  DateTime?
+  sourceFinishedAt DateTime?
+
+  createdAt  DateTime @default(now())
+  occurredAt DateTime @default(now())
+  occurredOn DateTime @db.Date @default(dbgenerated("CURRENT_DATE"))
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@unique([source, kind, sourceId])
+  @@index([occurredOn])
+  @@index([occurredAt])
+}

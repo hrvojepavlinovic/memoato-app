@@ -1,0 +1,13 @@
+tunnel: <TUNNEL_UUID>
+credentials-file: /home/<user>/.cloudflared/<TUNNEL_UUID>.json
+
+ingress:
+  - hostname: app.memoato.com
+    service: http://127.0.0.1:5050
+  - hostname: api.memoato.com
+    service: http://127.0.0.1:5051
+  - hostname: dev.memoato.com
+    service: http://127.0.0.1:5050
+  - hostname: api-dev.memoato.com
+    service: http://127.0.0.1:5051
+  - service: http_status:404

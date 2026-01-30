@@ -1,0 +1,31 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+
+const { frontmatter } = Astro.props as {
+  frontmatter: { title?: string; description?: string; date?: string };
+};
+
+const title = frontmatter?.title?.trim() || "Blog";
+const description = frontmatter?.description?.trim();
+const date = frontmatter?.date ? new Date(frontmatter.date) : null;
+const dateLabel = date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" }) : null;
+---
+
+<BaseLayout title={`${title} · memoato`} description={description} canonicalPath={Astro.url.pathname}>
+  <section class="section">
+    <div class="container">
+      <div class="prose">
+        <a href="/blog" class="muted" style="display: inline-flex; gap: 0.5rem; align-items: center">
+          <span aria-hidden="true">←</span>
+          <span>Blog</span>
+        </a>
+        <h1 class="page-title" style="margin-top: 0.75rem">{title}</h1>
+        {dateLabel ? <div class="muted" style="margin-top: 0.35rem">{dateLabel}</div> : null}
+        <article style="margin-top: 1.5rem">
+          <slot />
+        </article>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+

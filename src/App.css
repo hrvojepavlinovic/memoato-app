@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  overflow-y: scroll;
+}
+
+/* Override Wasp auth form theme (default is yellow). */
+:root {
+  --color-waspYellow: #0a0a0a !important;
+  --color-brand: #0a0a0a !important;
+  --color-brandAccent: #111827 !important;
+  --color-submitButtonText: #ffffff !important;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-neutral-200 bg-white shadow-sm transition-all duration-200;
+  }
+
+  .label {
+    @apply text-sm font-medium text-neutral-700;
+  }
+}

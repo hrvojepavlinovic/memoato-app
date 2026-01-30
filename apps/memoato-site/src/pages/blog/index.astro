@@ -1,0 +1,25 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const posts = (await Astro.glob("./*.md")).sort((a, b) => {
+  const da = new Date(a.frontmatter.date ?? 0).getTime();
+  const db = new Date(b.frontmatter.date ?? 0).getTime();
+  return db - da;
+});
+---
+
+<BaseLayout title="Blog · memoato" description="Updates, ideas, and changelogs." canonicalPath="/blog">
+  <section class="section">
+    <div class="container prose">
+      <h1 class="page-title">Blog</h1>
+      <ul>
+        {posts.map((p) => (
+          <li>
+            <a href={p.url}>{p.frontmatter.title ?? p.url}</a> -{" "}
+            <span class="muted">{p.frontmatter.description ?? ""}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</BaseLayout>

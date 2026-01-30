@@ -1,0 +1,231 @@
+app memoato {
+  wasp: {
+    version: "^0.20.1"
+  },
+  title: "Memoato",
+  head: [
+    "<link rel='icon' href='/favicon.ico' />",
+    "<link rel='icon' type='image/png' sizes='32x32' href='/favicon-32x32.png' />",
+    "<link rel='icon' type='image/png' sizes='16x16' href='/favicon-16x16.png' />",
+    "<link rel='apple-touch-icon' sizes='180x180' href='/apple-touch-icon.png' />",
+    "<link rel='manifest' href='/manifest.webmanifest' />",
+    "<meta name='theme-color' content='#0A0A0A' />",
+    "<meta name='mobile-web-app-capable' content='yes' />",
+    "<meta name='apple-mobile-web-app-capable' content='yes' />",
+    "<meta name='apple-mobile-web-app-status-bar-style' content='default' />",
+    "<meta name='apple-mobile-web-app-title' content='memoato' />",
+  ],
+  auth: {
+    userEntity: User,
+    methods: {
+      email: {
+        fromField: {
+          name: "Memoato",
+          email: "login@memoato.com"
+        },
+        userSignupFields: import { userSignupFields } from "@src/auth/email/userSignupFields",
+        emailVerification: {
+          clientRoute: EmailVerificationRoute,
+        },
+        passwordReset: {
+          clientRoute: PasswordResetRoute,
+        }
+      },
+    },
+    onAuthSucceededRedirectTo: "/",
+    onAuthFailedRedirectTo: "/login",
+  },
+  emailSender: {
+    provider: SMTP,
+    defaultFrom: {
+      name: "Memoato",
+      email: "login@memoato.com",
+    }
+  },
+  client: {
+    rootComponent: import { App } from "@src/App",
+  }
+}
+
+// #region Auth
+route LoginRoute { path: "/login", to: LoginPage }
+page LoginPage {
+  component: import { LoginPage } from "@src/auth/email/LoginPage"
+}
+
+route SignupRoute { path: "/signup", to: SignupPage }
+page SignupPage {
+  component: import { SignupPage } from "@src/auth/email/SignupPage"
+}
+
+route RequestPasswordResetRoute { path: "/request-password-reset", to: RequestPasswordResetPage }
+page RequestPasswordResetPage {
+  component: import { RequestPasswordResetPage } from "@src/auth/email/RequestPasswordResetPage",
+}
+
+route PasswordResetRoute { path: "/password-reset", to: PasswordResetPage }
+page PasswordResetPage {
+  component: import { PasswordResetPage } from "@src/auth/email/PasswordResetPage",
+}
+
+route EmailVerificationRoute { path: "/email-verification", to: EmailVerificationPage }
+page EmailVerificationPage {
+  component: import { EmailVerificationPage } from "@src/auth/email/EmailVerificationPage",
+}
+// #endregion Auth
+
+// #region Focus
+route HomeRoute { path: "/", to: HomePage }
+page HomePage {
+  authRequired: true,
+  component: import { HomePage } from "@src/focus/HomePage"
+}
+
+route SudoRoute { path: "/sudo", to: SudoPage }
+page SudoPage {
+  component: import { SudoPage } from "@src/admin/SudoPage"
+}
+
+route ProfileRoute { path: "/profile", to: ProfilePage }
+page ProfilePage {
+  authRequired: true,
+  component: import { ProfilePage } from "@src/profile/ProfilePage"
+}
+
+route ConfirmEmailChangeRoute { path: "/profile/email-change", to: ConfirmEmailChangePage }
+page ConfirmEmailChangePage {
+  component: import { ConfirmEmailChangePage } from "@src/profile/ConfirmEmailChangePage"
+}
+
+route ConfirmDeleteAccountRoute { path: "/profile/delete-account", to: ConfirmDeleteAccountPage }
+page ConfirmDeleteAccountPage {
+  component: import { ConfirmDeleteAccountPage } from "@src/profile/ConfirmDeleteAccountPage"
+}
+
+route NewCategoryRoute { path: "/categories/new", to: NewCategoryPage }
+page NewCategoryPage {
+  authRequired: true,
+  component: import { NewCategoryPage } from "@src/focus/NewCategoryPage"
+}
+
+route EditCategoryRoute { path: "/categories/:categorySlug/edit", to: EditCategoryPage }
+page EditCategoryPage {
+  authRequired: true,
+  component: import { EditCategoryPage } from "@src/focus/EditCategoryPage"
+}
+
+route CategoryRoute { path: "/c/:categorySlug", to: CategoryPage }
+page CategoryPage {
+  authRequired: true,
+  component: import { CategoryPage } from "@src/focus/CategoryPage"
+}
+
+query getCategories {
+  fn: import { getCategories } from "@src/focus/queries",
+  entities: [Category, Event]
+}
+
+query getCategorySeries {
+  fn: import { getCategorySeries } from "@src/focus/queries",
+  entities: [Event, Category]
+}
+
+query getCategoryLineSeries {
+  fn: import { getCategoryLineSeries } from "@src/focus/queries",
+  entities: [Event, Category]
+}
+
+query getCategoryEvents {
+  fn: import { getCategoryEvents } from "@src/focus/queries",
+  entities: [Event, Category]
+}
+
+query getSudoOverview {
+  fn: import { getSudoOverview } from "@src/admin/queries",
+  entities: [User, Category, Event]
+}
+
+query getProfile {
+  fn: import { getProfile } from "@src/profile/queries",
+  entities: [User]
+}
+
+query getPublicTotals {
+  fn: import { getPublicTotals } from "@src/public/queries",
+  entities: [User, Category, Event]
+}
+
+action ensureDefaultCategories {
+  fn: import { ensureDefaultCategories } from "@src/focus/actions",
+  entities: [Category, Event]
+}
+
+action createEvent {
+  fn: import { createEvent } from "@src/focus/actions",
+  entities: [Event, Category]
+}
+
+action updateEvent {
+  fn: import { updateEvent } from "@src/focus/actions",
+  entities: [Event, Category]
+}
+
+action deleteEvent {
+  fn: import { deleteEvent } from "@src/focus/actions",
+  entities: [Event]
+}
+
+action createCategory {
+  fn: import { createCategory } from "@src/focus/actions",
+  entities: [Category]
+}
+
+action updateCategory {
+  fn: import { updateCategory } from "@src/focus/actions",
+  entities: [Category]
+}
+
+action deleteCategory {
+  fn: import { deleteCategory } from "@src/focus/actions",
+  entities: [Category, Event]
+}
+
+action updateProfile {
+  fn: import { updateProfile } from "@src/profile/actions",
+  entities: [User]
+}
+
+action requestEmailChange {
+  fn: import { requestEmailChange } from "@src/profile/actions",
+  entities: [User]
+}
+
+action confirmEmailChange {
+  fn: import { confirmEmailChange } from "@src/profile/actions"
+}
+
+action sendPasswordResetForCurrentUser {
+  fn: import { sendPasswordResetForCurrentUser } from "@src/profile/actions"
+}
+
+action requestAccountDeletion {
+  fn: import { requestAccountDeletion } from "@src/profile/actions"
+}
+
+action confirmAccountDeletion {
+  fn: import { confirmAccountDeletion } from "@src/profile/actions"
+}
+
+action exportMyData {
+  fn: import { exportMyData } from "@src/profile/export",
+  entities: [User, Category, Event]
+}
+
+// analytics is handled client-side via Databuddy script in <head>
+// #endregion Focus
+
+// Catch-all 404
+route NotFoundRoute { path: "/*", to: NotFoundPage }
+page NotFoundPage {
+  component: import { NotFoundPage } from "@src/NotFoundPage"
+}

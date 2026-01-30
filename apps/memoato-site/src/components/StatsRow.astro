@@ -1,0 +1,45 @@
+<div class="stats-row" id="stats">
+  <div class="stat">
+    <div class="stat-number" data-stat="users">…</div>
+    <div class="stat-label">Users</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number" data-stat="categories">…</div>
+    <div class="stat-label">Categories</div>
+  </div>
+  <div class="stat">
+    <div class="stat-number" data-stat="events">…</div>
+    <div class="stat-label">Entries</div>
+  </div>
+</div>
+
+<script>
+  function formatNumber(value) {
+    try {
+      return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  async function loadTotals() {
+    try {
+      const res = await fetch("/api/totals", { headers: { accept: "application/json" } });
+      if (!res.ok) throw new Error(`Bad response: ${res.status}`);
+      const json = await res.json();
+      const payload = json && typeof json === "object" && "json" in json ? json.json : json;
+
+      const usersEl = document.querySelector("[data-stat='users']");
+      const categoriesEl = document.querySelector("[data-stat='categories']");
+      const eventsEl = document.querySelector("[data-stat='events']");
+
+      if (usersEl) usersEl.textContent = formatNumber(payload?.totalUsers ?? 0);
+      if (categoriesEl) categoriesEl.textContent = formatNumber(payload?.totalCategories ?? 0);
+      if (eventsEl) eventsEl.textContent = formatNumber(payload?.totalEvents ?? 0);
+    } catch {
+      // Keep placeholders on failure.
+    }
+  }
+
+  loadTotals();
+</script>

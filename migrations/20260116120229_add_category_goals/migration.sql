@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "Category" ADD COLUMN     "chartType" TEXT,
+ADD COLUMN     "goalValue" DOUBLE PRECISION,
+ADD COLUMN     "goalWeekly" DOUBLE PRECISION,
+ADD COLUMN     "unit" TEXT;
+
+-- AlterTable
+ALTER TABLE "Event" ALTER COLUMN "amount" SET DATA TYPE DOUBLE PRECISION;
