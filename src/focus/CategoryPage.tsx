@@ -15,6 +15,10 @@ import { LineChart } from "./components/LineChart";
 import { PeriodPicker } from "./components/PeriodPicker";
 import type { CategoryWithStats, Period } from "./types";
 import { parseNumberInput } from "../shared/lib/parseNumberInput";
+import { usePrivacy } from "../privacy/PrivacyProvider";
+import { decryptCategoryTitle } from "../privacy/decryptors";
+import { isEncryptedString } from "../privacy/crypto";
+import { localCreateEvent, localGetBarSeries, localGetCategoriesWithStats, localGetLineSeries } from "./local";
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -97,6 +101,8 @@ function BarCategoryChart({
   accentHex,
   goal,
   unit,
+  isLocal,
+  localUserId,
 }: {
   categoryId: string;
   period: Period;
@@ -104,8 +110,29 @@ function BarCategoryChart({
   accentHex?: string;
   goal?: number | null;
   unit?: string | null;
+  isLocal: boolean;
+  localUserId: string | null;
 }) {
-  const seriesQuery = useQuery(getCategorySeries, { categoryId, period, offset });
+  const seriesQuery = useQuery(getCategorySeries, { categoryId, period, offset }, { enabled: !isLocal });
+  const [localData, setLocalData] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    if (!isLocal) return;
+    if (!localUserId) return;
+    let cancelled = false;
+    localGetBarSeries({ userId: localUserId, categoryId, period, offset }).then((d) => {
+      if (!cancelled) setLocalData(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, isLocal, localUserId, offset, period]);
+
+  if (isLocal) {
+    if (!localData) return <div className="h-[170px]" />;
+    return <BarChart data={localData as any} accentHex={accentHex} goal={goal} unit={unit} />;
+  }
+
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
   if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
   return <BarChart data={seriesQuery.data} accentHex={accentHex} goal={goal} unit={unit} />;
@@ -118,6 +145,8 @@ function LineCategoryChart({
   goal,
   unit,
   accentHex,
+  isLocal,
+  localUserId,
 }: {
   categoryId: string;
   period: Period;
@@ -125,8 +154,29 @@ function LineCategoryChart({
   goal: number | null;
   unit: string | null;
   accentHex?: string;
+  isLocal: boolean;
+  localUserId: string | null;
 }) {
-  const seriesQuery = useQuery(getCategoryLineSeries, { categoryId, period, offset });
+  const seriesQuery = useQuery(getCategoryLineSeries, { categoryId, period, offset }, { enabled: !isLocal });
+  const [localData, setLocalData] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    if (!isLocal) return;
+    if (!localUserId) return;
+    let cancelled = false;
+    localGetLineSeries({ userId: localUserId, categoryId, period, offset }).then((d) => {
+      if (!cancelled) setLocalData(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, isLocal, localUserId, offset, period]);
+
+  if (isLocal) {
+    if (!localData) return <div className="h-[170px]" />;
+    return <LineChart data={localData as any} goal={goal} unit={unit} accentHex={accentHex} />;
+  }
+
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
   if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
   return <LineChart data={seriesQuery.data} goal={goal} unit={unit} accentHex={accentHex} />;
@@ -139,17 +189,39 @@ export function CategoryPage() {
   const [offset, setOffset] = useState<number>(0);
   const [amount, setAmount] = useState<string>("");
   const [occurredOn, setOccurredOn] = useState<string>(todayIso());
+  const [displayTitle, setDisplayTitle] = useState<string | null>(null);
+  const privacy = usePrivacy();
 
-  const categoriesQuery = useQuery(getCategories);
+  const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
+  const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>([]);
+  const categories = privacy.mode === "local" ? localCategories : categoriesQuery.data ?? [];
 
   const category = useMemo(() => {
-    if (!categorySlug || !categoriesQuery.data) return null;
+    if (!categorySlug) return null;
     return (
-      categoriesQuery.data.find((c) => c.slug === categorySlug) ??
-      categoriesQuery.data.find((c) => c.id === categorySlug) ??
+      categories.find((c) => c.slug === categorySlug) ??
+      categories.find((c) => c.id === categorySlug) ??
       null
     );
-  }, [categoriesQuery.data, categorySlug]);
+  }, [categories, categorySlug]);
+
+  useEffect(() => {
+    if (privacy.mode !== "local") return;
+    if (!privacy.userId) return;
+    localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats));
+  }, [privacy.mode, privacy.userId]);
+
+  useEffect(() => {
+    if (privacy.mode !== "local") return;
+    const userId = privacy.userId;
+    if (!userId) return;
+    const onChanged = (e: any) => {
+      if (e?.detail?.userId !== userId) return;
+      localGetCategoriesWithStats(userId).then((cats) => setLocalCategories(cats));
+    };
+    window.addEventListener("memoato:localChanged", onChanged);
+    return () => window.removeEventListener("memoato:localChanged", onChanged);
+  }, [privacy.mode, privacy.userId]);
 
   useEffect(() => {
     if (!category || !categorySlug) return;
@@ -157,6 +229,22 @@ export function CategoryPage() {
       navigate(`/c/${category.slug}`, { replace: true });
     }
   }, [category, categorySlug, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDisplayTitle(null);
+    if (!category) return;
+    if (!privacy.key) return;
+    if (!isEncryptedString(category.title)) return;
+    (async () => {
+      const t = await decryptCategoryTitle(privacy.key as CryptoKey, category.title);
+      if (cancelled) return;
+      setDisplayTitle(t);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [category, privacy.key]);
 
   useEffect(() => {
     setOffset(0);
@@ -169,6 +257,12 @@ export function CategoryPage() {
       return;
     }
     if (!category?.id) return;
+    if (privacy.mode === "local") {
+      if (!privacy.userId) return;
+      await localCreateEvent({ userId: privacy.userId, categoryId: category.id, amount: n, occurredOn });
+      setAmount("");
+      return;
+    }
     await createEvent({ categoryId: category.id, amount: n, occurredOn });
     setAmount("");
   }
@@ -177,6 +271,9 @@ export function CategoryPage() {
   const isCountType = category?.categoryType === "DO" || category?.categoryType === "DONT";
   const amountPlaceholder = isWeight ? "e.g. 84.5" : isCountType ? "e.g. 1" : "e.g. 20";
   const resolvedCategoryId = category?.id ?? null;
+  const resolvedTitle =
+    displayTitle ?? (category && isEncryptedString(category.title) ? "Locked" : category?.title ?? null);
+  const isLocked = !!category && isEncryptedString(category.title) && !privacy.key;
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
@@ -197,7 +294,7 @@ export function CategoryPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex w-full items-center justify-between gap-2 sm:justify-start">
                   <h2 className="truncate text-2xl font-semibold tracking-tight">
-                    {category?.title ?? "Category"}
+                    {resolvedTitle ?? "Category"}
                   </h2>
                   {category ? (
                     <ButtonLink
@@ -217,6 +314,12 @@ export function CategoryPage() {
             {category ? <Summary category={category} /> : null}
           </div>
         </div>
+
+        {isLocked ? (
+          <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 shadow-sm">
+            This category is encrypted. Unlock it from <span className="font-semibold">Profile → Privacy</span>.
+          </div>
+        ) : null}
 
         <div className="card grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
           <label className="flex min-w-0 flex-col gap-1">
@@ -245,7 +348,7 @@ export function CategoryPage() {
             />
           </label>
           <div className="flex min-w-0 items-end">
-            <Button className="h-10 w-full" onClick={onAdd}>
+            <Button className="h-10 w-full" onClick={onAdd} disabled={isLocked}>
               Add
             </Button>
           </div>
@@ -289,19 +392,23 @@ export function CategoryPage() {
             goal={category.goalValue}
             unit={category.unit}
             accentHex={category.accentHex}
+            isLocal={privacy.mode === "local"}
+            localUserId={privacy.userId}
           />
-	        ) : (
-	          <BarCategoryChart
-              key={`${resolvedCategoryId}-${period}-${offset}`}
-	            categoryId={resolvedCategoryId}
-	            period={period}
-              offset={offset}
-	            accentHex={category.accentHex}
-	            goal={period === "week" ? category.goalWeekly : null}
-	            unit={category.unit}
-	          />
-	        )
-	      ) : null}
+        ) : (
+          <BarCategoryChart
+            key={`${resolvedCategoryId}-${period}-${offset}`}
+            categoryId={resolvedCategoryId}
+            period={period}
+            offset={offset}
+            accentHex={category.accentHex}
+            goal={period === "week" ? category.goalWeekly : null}
+            unit={category.unit}
+            isLocal={privacy.mode === "local"}
+            localUserId={privacy.userId}
+          />
+        )
+      ) : null}
 
       {resolvedCategoryId && category ? (
         <HistoryList

@@ -6,8 +6,21 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   <section class="section">
     <div class="container prose">
       <h1 class="page-title">Privacy policy</h1>
+      <p class="muted">Effective date: 2026-01-31</p>
       <p>
         memoato stores only what’s needed to run the app: your account and the data you log. We don’t sell your data.
+      </p>
+      <h2>Privacy modes</h2>
+      <ul>
+        <li><strong>Cloud sync</strong>: data is stored normally to power charts, history, and multi-device access.</li>
+        <li>
+          <strong>Encrypted cloud</strong>: tracker titles and per-entry notes are encrypted on your device before saving to the
+          database. You unlock with a passphrase on each device.
+        </li>
+        <li><strong>Local-only</strong>: data stays on the device (IndexedDB). Switching to local-only wipes server data for that account.</li>
+      </ul>
+      <p>
+        Encrypted cloud uses client-side encryption. If you lose your passphrase, memoato can’t recover encrypted content.
       </p>
       <h2>Data we store</h2>
       <ul>
@@ -26,6 +39,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         We use Databuddy for privacy-friendly analytics on memoato.com and app.memoato.com to understand product usage
         (not to identify you). Analytics requests may be blocked by common privacy tools.
       </p>
+      <h2>Service providers</h2>
+      <ul>
+        <li>Cloudflare (DNS, Pages, and networking).</li>
+        <li>Zoho SMTP (transactional emails for verification and password resets).</li>
+        <li>Databuddy (website and app analytics).</li>
+      </ul>
       <h2>Emails</h2>
       <p>
         We send transactional emails for account verification and password resets. We do not send marketing emails.

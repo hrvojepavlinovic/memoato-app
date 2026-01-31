@@ -3,6 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { deleteCategory, getCategories, updateCategory, useQuery } from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
 import type { Period } from "./types";
+import { usePrivacy } from "../privacy/PrivacyProvider";
+import { decryptCategoryTitle } from "../privacy/decryptors";
+import { encryptUtf8ToEncryptedString, isEncryptedString } from "../privacy/crypto";
+import { localDeleteCategory, localGetCategoriesWithStats, localUpdateCategory } from "./local";
 
 type CategoryType = "NUMBER" | "DO" | "DONT" | "GOAL";
 
@@ -23,16 +27,15 @@ const periodOptions: { value: Period; label: string }[] = [
 export function EditCategoryPage() {
   const navigate = useNavigate();
   const { categorySlug } = useParams<{ categorySlug: string }>();
-  const categoriesQuery = useQuery(getCategories);
+  const privacy = usePrivacy();
+  const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
+  const [localCategories, setLocalCategories] = useState<any[]>([]);
 
   const category = useMemo(() => {
-    if (!categorySlug || !categoriesQuery.data) return null;
-    return (
-      categoriesQuery.data.find((c) => c.slug === categorySlug) ??
-      categoriesQuery.data.find((c) => c.id === categorySlug) ??
-      null
-    );
-  }, [categoriesQuery.data, categorySlug]);
+    const list = privacy.mode === "local" ? localCategories : categoriesQuery.data ?? null;
+    if (!categorySlug || !list) return null;
+    return list.find((c: any) => c.slug === categorySlug) ?? list.find((c: any) => c.id === categorySlug) ?? null;
+  }, [categoriesQuery.data, categorySlug, localCategories, privacy.mode]);
 
   const [title, setTitle] = useState("");
   const [categoryType, setCategoryType] = useState<CategoryType>("NUMBER");
@@ -64,6 +67,27 @@ export function EditCategoryPage() {
     setAccentHexInput(hex);
     setEmoji(category.emoji ?? "");
   }, [category]);
+
+  useEffect(() => {
+    if (privacy.mode !== "local") return;
+    if (!privacy.userId) return;
+    localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats as any));
+  }, [privacy.mode, privacy.userId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!category) return;
+    if (!privacy.key) return;
+    if (!isEncryptedString(category.title)) return;
+    (async () => {
+      const t = await decryptCategoryTitle(privacy.key as CryptoKey, category.title);
+      if (cancelled) return;
+      if (t) setTitle(t);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [category, privacy.key]);
 
   const needsPeriod = categoryType !== "GOAL";
   const hint = useMemo(() => typeOptions.find((o) => o.value === categoryType)?.hint, [categoryType]);
@@ -97,19 +121,52 @@ export function EditCategoryPage() {
 
     setIsSaving(true);
     try {
-      const updated = await updateCategory({
-        categoryId: category.id,
-        title: cleanTitle,
-        categoryType,
-        period: needsPeriod ? period : undefined,
-        unit: unit.trim() || undefined,
-        goal: g ?? undefined,
-        goalValue: gv ?? undefined,
-        accentHex: cleanHex,
-        emoji: emoji.trim() || undefined,
-      });
-      await categoriesQuery.refetch();
-      navigate(`/c/${(updated as any).slug ?? updated.id}`);
+      const shouldEncrypt = privacy.mode === "encrypted" || isEncryptedString(category.title);
+      let titleToStore = cleanTitle;
+      if (shouldEncrypt) {
+        if (!privacy.key || !privacy.cryptoParams) {
+          window.alert("Unlock encryption from Profile → Privacy before editing encrypted categories.");
+          return;
+        }
+        titleToStore = await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, cleanTitle);
+      }
+
+      if (isEncryptedString(category.title) && !privacy.key) {
+        window.alert("Unlock encryption from Profile → Privacy before editing encrypted categories.");
+        return;
+      }
+
+      if (privacy.mode === "local") {
+        if (!privacy.userId) return;
+        await localUpdateCategory({
+          userId: privacy.userId,
+          categoryId: category.id,
+          title: titleToStore,
+          categoryType,
+          period: needsPeriod ? period : undefined,
+          unit: unit.trim() || null,
+          goal: g ?? null,
+          goalValue: gv ?? null,
+          accentHex: cleanHex,
+          emoji: emoji.trim() || null,
+        });
+        await localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats as any));
+        navigate(`/c/${category.slug ?? category.id}`);
+      } else {
+        const updated = await updateCategory({
+          categoryId: category.id,
+          title: titleToStore,
+          categoryType,
+          period: needsPeriod ? period : undefined,
+          unit: unit.trim() || undefined,
+          goal: g ?? undefined,
+          goalValue: gv ?? undefined,
+          accentHex: cleanHex,
+          emoji: emoji.trim() || undefined,
+        });
+        await categoriesQuery.refetch();
+        navigate(`/c/${(updated as any).slug ?? updated.id}`);
+      }
     } catch (e: any) {
       window.alert(e?.message ?? "Failed to update category.");
     } finally {
@@ -122,15 +179,22 @@ export function EditCategoryPage() {
     if (!window.confirm("Delete this category and all its entries? This cannot be undone.")) return;
 
     try {
-      await deleteCategory({ categoryId: category.id });
-      await categoriesQuery.refetch();
-      navigate("/");
+      if (privacy.mode === "local") {
+        if (!privacy.userId) return;
+        await localDeleteCategory({ userId: privacy.userId, categoryId: category.id });
+        await localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats as any));
+        navigate("/");
+      } else {
+        await deleteCategory({ categoryId: category.id });
+        await categoriesQuery.refetch();
+        navigate("/");
+      }
     } catch (e: any) {
       window.alert(e?.message ?? "Failed to delete category.");
     }
   }
 
-  if (categoriesQuery.isLoading) {
+  if (privacy.mode !== "local" && categoriesQuery.isLoading) {
     return <div className="mx-auto w-full max-w-screen-md px-4 py-6" />;
   }
 

@@ -340,7 +340,7 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
       kind: categoryType === "DO" || categoryType === "DONT" ? "count" : "amount",
       type: "Simple",
       createdAt: new Date(),
-    },
+    } as any,
   });
 };
 
@@ -422,7 +422,7 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
       goalWeekly: categoryType === "GOAL" ? null : goal ?? null,
       goalValue: categoryType === "GOAL" ? goalValue ?? null : null,
       kind: categoryType === "DO" || categoryType === "DONT" ? "count" : "amount",
-    },
+    } as any,
   });
 };
 
@@ -581,6 +581,7 @@ type UpdateEventArgs = {
   amount: number;
   occurredAt: string; // datetime-local (YYYY-MM-DDTHH:mm) or ISO
   note?: string | null;
+  noteEnc?: any | null;
 };
 
 function parseOccurredAt(occurredAt: string): { occurredAt: Date; occurredOn: Date } {
@@ -594,7 +595,7 @@ function parseOccurredAt(occurredAt: string): { occurredAt: Date; occurredOn: Da
 }
 
 export const updateEvent: UpdateEvent<UpdateEventArgs, Event> = async (
-  { eventId, amount, occurredAt, note },
+  { eventId, amount, occurredAt, note, noteEnc },
   context,
 ) => {
   if (!context.user) {
@@ -625,9 +626,17 @@ export const updateEvent: UpdateEvent<UpdateEventArgs, Event> = async (
   if ("tags" in nextData) {
     delete nextData.tags;
   }
-  if (note !== undefined) {
+  if (noteEnc !== undefined) {
+    if (noteEnc == null) {
+      delete nextData.noteEnc;
+    } else {
+      nextData.noteEnc = noteEnc as any;
+    }
+    nextData.note = null;
+  } else if (note !== undefined) {
     const cleanNote = typeof note === "string" ? note.trim() : "";
     nextData.note = cleanNote ? cleanNote : null;
+    if ("noteEnc" in nextData) delete nextData.noteEnc;
   }
   return context.entities.Event.update({
     where: { id: existing.id },

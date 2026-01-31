@@ -68,7 +68,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
   }
 
   const userId = context.user.id;
-  const categories = await context.entities.Category.findMany({
+  const categories: any[] = await (context.entities.Category as any).findMany({
     where: {
       userId,
       sourceArchivedAt: null,
@@ -99,7 +99,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
   const yearStart = startOfYear(now);
   const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
 
-  const categoryIds = categories.map((c) => c.id);
+  const categoryIds = categories.map((c) => String(c.id));
   async function totalsForWindow(start: Date, end: Date): Promise<Map<string, number>> {
     const totals = await context.entities.Event.groupBy({
       by: ["categoryId"],

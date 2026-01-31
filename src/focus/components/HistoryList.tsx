@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   deleteEvent,
   getCategoryEvents,
@@ -9,6 +9,10 @@ import {
 import { Button } from "../../shared/components/Button";
 import { parseNumberInput } from "../../shared/lib/parseNumberInput";
 import type { CategoryEventItem } from "../types";
+import { usePrivacy } from "../../privacy/PrivacyProvider";
+import { decryptEventNote } from "../../privacy/decryptors";
+import { encryptUtf8ToEncryptedString, isEncryptedString } from "../../privacy/crypto";
+import { localDeleteEvent, localGetCategoryEvents, localUpdateEvent } from "../local";
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -47,12 +51,78 @@ export function HistoryList({
   const [extraItems, setExtraItems] = useState<CategoryEventItem[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [rowById, setRowById] = useState<Record<string, RowState>>({});
+  const privacy = usePrivacy();
+  const isLocal = privacy.mode === "local";
 
-  const eventsQuery = useQuery(getCategoryEvents, { categoryId, take: 50 });
+  const eventsQuery = useQuery(getCategoryEvents, { categoryId, take: 50 }, { enabled: !isLocal });
+  const [localItems, setLocalItems] = useState<CategoryEventItem[] | null>(null);
   const items = useMemo(
-    () => (eventsQuery.data ? [...eventsQuery.data, ...extraItems] : null),
-    [eventsQuery.data, extraItems],
+    () =>
+      isLocal
+        ? localItems
+          ? [...localItems, ...extraItems]
+          : null
+        : eventsQuery.data
+          ? [...eventsQuery.data, ...extraItems]
+          : null,
+    [eventsQuery.data, extraItems, isLocal, localItems],
   );
+
+  useEffect(() => {
+    if (!isLocal) return;
+    if (!isOpen) return;
+    if (!privacy.userId) return;
+    setLocalItems(null);
+    localGetCategoryEvents({ userId: privacy.userId, categoryId, take: 50 }).then((d) => setLocalItems(d));
+  }, [categoryId, isLocal, isOpen, privacy.userId]);
+
+  useEffect(() => {
+    if (!isLocal) return;
+    if (!privacy.userId) return;
+    const onChanged = (e: any) => {
+      if (e?.detail?.userId !== privacy.userId) return;
+      if (!isOpen) return;
+      localGetCategoryEvents({ userId: privacy.userId!, categoryId, take: 50 }).then((d) => setLocalItems(d));
+      setExtraItems([]);
+    };
+    window.addEventListener("memoato:localChanged", onChanged);
+    return () => window.removeEventListener("memoato:localChanged", onChanged);
+  }, [categoryId, isLocal, isOpen, privacy.userId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!privacy.key || !items) return;
+    (async () => {
+      const updates: Array<[string, string]> = [];
+      for (const ev of items) {
+        if (!ev.data || typeof ev.data !== "object" || Array.isArray(ev.data)) continue;
+        const hasEncrypted = isEncryptedString((ev.data as any).noteEnc);
+        if (!hasEncrypted) continue;
+        const note = await decryptEventNote(privacy.key as CryptoKey, ev.data);
+        if (note != null) updates.push([ev.id, note]);
+      }
+      if (cancelled) return;
+      if (updates.length === 0) return;
+      setRowById((prev) => {
+        const next = { ...prev };
+        for (const [id, note] of updates) {
+          if (next[id]) continue;
+          const ev = items.find((x) => x.id === id);
+          if (!ev) continue;
+          next[id] = {
+            amount: formatValue(ev.amount),
+            occurredAt: toLocalDatetimeInputValue(new Date(ev.occurredAt as any)),
+            note,
+            saving: false,
+          };
+        }
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [items, privacy.key]);
 
   function ensureRowState(ev: CategoryEventItem): RowState {
     const meta =
@@ -71,6 +141,7 @@ export function HistoryList({
   }
 
   async function invalidateStats(): Promise<void> {
+    if (isLocal) return;
     const queryClient = await queryClientInitialized;
     await queryClient.invalidateQueries({ queryKey: ["operations/get-categories"] });
     await queryClient.invalidateQueries({ queryKey: ["operations/get-category-series"] });
@@ -91,12 +162,58 @@ export function HistoryList({
     setRowById((prev) => ({ ...prev, [ev.id]: { ...row, saving: true } }));
     try {
       const note = row.note.trim();
-      await updateEvent({
-        eventId: ev.id,
-        amount,
-        occurredAt: row.occurredAt,
-        note: note ? note : null,
-      });
+      const hasEncrypted = !!(
+        ev.data &&
+        typeof ev.data === "object" &&
+        !Array.isArray(ev.data) &&
+        isEncryptedString((ev.data as any).noteEnc)
+      );
+      const shouldEncrypt = privacy.mode === "encrypted" || hasEncrypted;
+
+      if (shouldEncrypt) {
+        if (!privacy.key || !privacy.cryptoParams) {
+          window.alert("Unlock encryption from Profile → Privacy first.");
+          return;
+        }
+        const enc = note ? await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, note) : null;
+        if (isLocal) {
+          if (!privacy.userId) return;
+          await localUpdateEvent({
+            userId: privacy.userId,
+            eventId: ev.id,
+            amount,
+            occurredAt: row.occurredAt,
+            noteEnc: enc,
+          } as any);
+        } else {
+          await updateEvent({
+            eventId: ev.id,
+            amount,
+            occurredAt: row.occurredAt,
+            noteEnc: enc,
+          });
+        }
+      } else {
+        if (isLocal) {
+          if (!privacy.userId) return;
+          await localUpdateEvent({
+            userId: privacy.userId,
+            eventId: ev.id,
+            amount,
+            occurredAt: row.occurredAt,
+            note: note ? note : null,
+            noteEnc: null,
+          } as any);
+        } else {
+          await updateEvent({
+            eventId: ev.id,
+            amount,
+            occurredAt: row.occurredAt,
+            note: note ? note : null,
+            noteEnc: null,
+          });
+        }
+      }
       await invalidateStats();
     } finally {
       setRowById((prev) => ({ ...prev, [ev.id]: { ...prev[ev.id], saving: false } }));
@@ -105,7 +222,12 @@ export function HistoryList({
 
   async function onDelete(ev: CategoryEventItem) {
     if (!window.confirm("Delete this entry?")) return;
-    await deleteEvent({ eventId: ev.id });
+    if (isLocal) {
+      if (!privacy.userId) return;
+      await localDeleteEvent({ userId: privacy.userId, eventId: ev.id });
+    } else {
+      await deleteEvent({ eventId: ev.id });
+    }
     setExtraItems([]);
     setRowById((prev) => {
       const next = { ...prev };
@@ -113,7 +235,7 @@ export function HistoryList({
       return next;
     });
     await invalidateStats();
-    await eventsQuery.refetch();
+    if (!isLocal) await eventsQuery.refetch();
   }
 
   async function onLoadMore() {
@@ -122,7 +244,11 @@ export function HistoryList({
     const before = new Date(last.occurredAt as any).toISOString();
     setLoadingMore(true);
     try {
-      const next = await getCategoryEvents({ categoryId, take: 50, before });
+      const next = isLocal
+        ? privacy.userId
+          ? await localGetCategoryEvents({ userId: privacy.userId, categoryId, take: 50, before })
+          : []
+        : await getCategoryEvents({ categoryId, take: 50, before });
       setExtraItems((prev) => [...prev, ...next]);
     } finally {
       setLoadingMore(false);

@@ -5,4 +5,3 @@ export type ProfileData = {
   email: string | null;
   isEmailVerified: boolean;
 };
-

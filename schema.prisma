@@ -11,14 +11,16 @@ generator client {
 // Run `wasp db migrate-dev` in the CLI to create the database tables,
 // then run `wasp db studio` to open Prisma Studio and view your db models.
 model User {
-  id       String @id @default(uuid())
-  username String @unique
-  role     String @default("user")
+  id        String   @id @default(uuid())
+  username  String   @unique
+  role      String   @default("user")
   firstName String?
   lastName  String?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  Category Category[]
+  Event    Event[]
 }
 
 enum EventKind {

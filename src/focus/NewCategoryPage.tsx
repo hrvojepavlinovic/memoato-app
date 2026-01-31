@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { createCategory } from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
 import type { Period } from "./types";
+import { usePrivacy } from "../privacy/PrivacyProvider";
+import { encryptUtf8ToEncryptedString } from "../privacy/crypto";
+import { localCreateCategory } from "./local";
 
 type CategoryType = "NUMBER" | "DO" | "DONT" | "GOAL";
 
@@ -22,6 +25,7 @@ const periodOptions: { value: Period; label: string }[] = [
 
 export function NewCategoryPage() {
   const navigate = useNavigate();
+  const privacy = usePrivacy();
   const [title, setTitle] = useState("");
   const [categoryType, setCategoryType] = useState<CategoryType>("NUMBER");
   const [period, setPeriod] = useState<Period>("week");
@@ -69,8 +73,34 @@ export function NewCategoryPage() {
 
     setIsSaving(true);
     try {
+      if (privacy.mode === "local") {
+        if (!privacy.userId) return;
+        const created = await localCreateCategory({
+          userId: privacy.userId,
+          title: cleanTitle,
+          categoryType,
+          period: needsPeriod ? period : undefined,
+          unit: unit.trim() || null,
+          goal: g ?? null,
+          goalValue: gv ?? null,
+          accentHex: cleanHex,
+          emoji: emoji.trim() || null,
+        });
+        navigate(`/c/${created.slug ?? created.id}`);
+        return;
+      }
+
+      let titleToStore = cleanTitle;
+      if (privacy.mode === "encrypted") {
+        if (!privacy.key || !privacy.cryptoParams) {
+          window.alert("Unlock encryption from Profile → Privacy before creating categories.");
+          return;
+        }
+        titleToStore = await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, cleanTitle);
+      }
+
       const created = await createCategory({
-        title: cleanTitle,
+        title: titleToStore,
         categoryType,
         period: needsPeriod ? period : undefined,
         unit: unit.trim() || undefined,

@@ -1,0 +1,764 @@
+import type { CategoryWithStats, LinePoint, Period, SeriesBucket, CategoryEventItem, CategoryChartType } from "./types";
+
+export type LocalCategory = {
+  id: string;
+  userId: string;
+  title: string;
+  slug: string;
+  categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
+  chartType: CategoryChartType;
+  period: Period | null;
+  unit: string | null;
+  accentHex: string;
+  emoji: string | null;
+  goalWeekly: number | null;
+  goalValue: number | null;
+  sourceArchivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LocalEvent = {
+  id: string;
+  userId: string;
+  kind: "SESSION";
+  categoryId: string;
+  amount: number;
+  rawText: string | null;
+  occurredAt: string; // ISO
+  occurredOn: string; // YYYY-MM-DD
+  data: any | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const DB_NAME = "memoato.local.v1";
+const DB_VERSION = 1;
+
+function emitLocalChanged(userId: string): void {
+  window.dispatchEvent(new CustomEvent("memoato:localChanged", { detail: { userId } }));
+}
+
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("categories")) {
+        const store = db.createObjectStore("categories", { keyPath: "id" });
+        store.createIndex("byUser", "userId", { unique: false });
+        store.createIndex("byUserSlug", ["userId", "slug"], { unique: true });
+      }
+      if (!db.objectStoreNames.contains("events")) {
+        const store = db.createObjectStore("events", { keyPath: "id" });
+        store.createIndex("byUser", "userId", { unique: false });
+        store.createIndex("byUserCategoryOccurredAt", ["userId", "categoryId", "occurredAt"], { unique: false });
+      }
+    };
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+function withStore<T>(
+  db: IDBDatabase,
+  storeName: "categories" | "events",
+  mode: IDBTransactionMode,
+  fn: (store: IDBObjectStore) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, mode);
+    const store = tx.objectStore(storeName);
+    let result: any = undefined;
+    fn(store);
+    tx.oncomplete = () => resolve(result as T);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+
+    (tx as any)._setResult = (v: any) => {
+      result = v;
+    };
+  });
+}
+
+async function getAllByIndex<T>(
+  db: IDBDatabase,
+  storeName: "categories" | "events",
+  indexName: string,
+  key: IDBValidKey | IDBKeyRange,
+): Promise<T[]> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, "readonly");
+    const store = tx.objectStore(storeName).index(indexName);
+    const req = store.getAll(key);
+    req.onsuccess = () => resolve((req.result ?? []) as T[]);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function slugifyTitle(title: string): string {
+  const s = title
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-+/g, "-");
+  return s.length > 0 ? s : "category";
+}
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function addDays(d: Date, days: number): Date {
+  const x = new Date(d);
+  x.setDate(x.getDate() + days);
+  return x;
+}
+
+function startOfWeek(d: Date): Date {
+  const x = startOfDay(d);
+  const day = x.getDay(); // 0=Sun
+  const diff = (day + 6) % 7; // Monday start
+  x.setDate(x.getDate() - diff);
+  return x;
+}
+
+function startOfMonth(d: Date): Date {
+  const x = startOfDay(d);
+  x.setDate(1);
+  return x;
+}
+
+function startOfYear(d: Date): Date {
+  const x = startOfDay(d);
+  x.setMonth(0, 1);
+  return x;
+}
+
+function toIsoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function nextBucketStart(d: Date, period: Period): Date {
+  if (period === "day") return addDays(d, 1);
+  if (period === "week") return addDays(d, 7);
+  if (period === "month") return new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  return new Date(d.getFullYear() + 1, 0, 1);
+}
+
+function bucketLabel(start: Date, period: Period): string {
+  const y = start.getFullYear();
+  const m = String(start.getMonth() + 1).padStart(2, "0");
+  const dd = String(start.getDate()).padStart(2, "0");
+  if (period === "day") return `${dd}.${m}.`;
+  if (period === "week") return `${dd}.${m}.`;
+  if (period === "month") {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months[start.getMonth()] ?? `${m}.${y}`;
+  }
+  return `${y}`;
+}
+
+function getBucketCount(period: Period): number {
+  if (period === "day") return 14;
+  if (period === "week") return 12;
+  if (period === "month") return 12;
+  return 6;
+}
+
+function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Date } {
+  const now = new Date();
+  const todayIso = now.toISOString().slice(0, 10);
+
+  if (!occurredOn || occurredOn === todayIso) {
+    const on = new Date(now);
+    on.setHours(0, 0, 0, 0);
+    return { occurredAt: now, occurredOn: on };
+  }
+
+  const [y, m, d] = occurredOn.split("-").map((x) => Number(x));
+  const on = new Date(y, m - 1, d);
+  on.setHours(0, 0, 0, 0);
+  const at = new Date(on);
+  at.setHours(12, 0, 0, 0);
+  return { occurredAt: at, occurredOn: on };
+}
+
+function parseOccurredAt(occurredAt: string): { occurredAt: Date; occurredOn: Date } {
+  const d = new Date(occurredAt);
+  if (Number.isNaN(d.getTime())) {
+    throw new Error("Invalid date/time");
+  }
+  const on = new Date(d);
+  on.setHours(0, 0, 0, 0);
+  return { occurredAt: d, occurredOn: on };
+}
+
+function sortRank(c: CategoryWithStats): number {
+  if (c.chartType === "line") return 2;
+  if (c.goalWeekly != null && c.goalWeekly > 0) return 0;
+  return 1;
+}
+
+function isGoalReached(c: CategoryWithStats): boolean {
+  if (c.chartType === "line") {
+    return c.goalValue != null && c.lastValue != null && c.lastValue <= c.goalValue;
+  }
+  return c.goalWeekly != null && c.goalWeekly > 0 && c.thisWeekTotal >= c.goalWeekly;
+}
+
+export async function localListCategories(userId: string): Promise<LocalCategory[]> {
+  const db = await openDb();
+  const categories = await getAllByIndex<LocalCategory>(db, "categories", "byUser", userId);
+  return categories.filter((c) => c.sourceArchivedAt == null);
+}
+
+export async function localGetCategoriesWithStats(userId: string): Promise<CategoryWithStats[]> {
+  const db = await openDb();
+  const [categories, events] = await Promise.all([
+    getAllByIndex<LocalCategory>(db, "categories", "byUser", userId),
+    getAllByIndex<LocalEvent>(db, "events", "byUser", userId),
+  ]);
+
+  const visibleCategories = categories.filter((c) => c.sourceArchivedAt == null);
+  const now = new Date();
+  const dayStart = startOfDay(now);
+  const dayEnd = addDays(dayStart, 1);
+  const weekStart = startOfWeek(now);
+  const weekEnd = addDays(weekStart, 7);
+  const monthStart = startOfMonth(now);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const yearStart = startOfYear(now);
+  const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
+
+  const totals = {
+    day: new Map<string, number>(),
+    week: new Map<string, number>(),
+    month: new Map<string, number>(),
+    year: new Map<string, number>(),
+  };
+  const lastOccurredAtByCategory = new Map<string, Date>();
+  const lastByCategory = new Map<string, number>();
+
+  for (const ev of events) {
+    if (ev.kind !== "SESSION") continue;
+    const t = new Date(ev.occurredAt);
+    if (Number.isNaN(t.getTime())) continue;
+    const categoryId = ev.categoryId;
+    const amount = ev.amount ?? 0;
+
+    const prevLast = lastOccurredAtByCategory.get(categoryId);
+    if (!prevLast || t.getTime() > prevLast.getTime()) {
+      lastOccurredAtByCategory.set(categoryId, t);
+    }
+
+    // For line charts: last value by occurredAt desc.
+    if (!lastByCategory.has(categoryId)) {
+      // We'll compute after sorting, so ignore here.
+    }
+
+    const ms = t.getTime();
+    if (ms >= dayStart.getTime() && ms < dayEnd.getTime()) {
+      totals.day.set(categoryId, (totals.day.get(categoryId) ?? 0) + amount);
+    }
+    if (ms >= weekStart.getTime() && ms < weekEnd.getTime()) {
+      totals.week.set(categoryId, (totals.week.get(categoryId) ?? 0) + amount);
+    }
+    if (ms >= monthStart.getTime() && ms < monthEnd.getTime()) {
+      totals.month.set(categoryId, (totals.month.get(categoryId) ?? 0) + amount);
+    }
+    if (ms >= yearStart.getTime() && ms < yearEnd.getTime()) {
+      totals.year.set(categoryId, (totals.year.get(categoryId) ?? 0) + amount);
+    }
+  }
+
+  // Compute lastByCategory for line charts.
+  const lineCategoryIds = new Set(
+    visibleCategories.filter((c) => (c.chartType ?? "bar") === "line").map((c) => c.id),
+  );
+  const lineEvents = events
+    .filter((e) => lineCategoryIds.has(e.categoryId) && e.amount != null)
+    .sort((a, b) => {
+      const ta = a.occurredAt;
+      const tb = b.occurredAt;
+      if (ta !== tb) return tb.localeCompare(ta);
+      return b.id.localeCompare(a.id);
+    });
+  for (const ev of lineEvents) {
+    if (!lastByCategory.has(ev.categoryId)) lastByCategory.set(ev.categoryId, ev.amount);
+  }
+
+  const result: CategoryWithStats[] = visibleCategories.map((c) => ({
+    id: c.id,
+    title: c.title,
+    slug: c.slug ?? slugifyTitle(c.title),
+    unit: c.unit ?? null,
+    chartType: (c.chartType ?? "bar") as CategoryChartType,
+    categoryType: c.categoryType,
+    accentHex: c.accentHex,
+    emoji: c.emoji ?? null,
+    period: c.period ?? null,
+    goalWeekly: c.goalWeekly ?? null,
+    goalValue: c.goalValue ?? null,
+    thisWeekTotal:
+      (c.period === "day"
+        ? totals.day.get(c.id)
+        : c.period === "month"
+          ? totals.month.get(c.id)
+          : c.period === "year"
+            ? totals.year.get(c.id)
+            : totals.week.get(c.id)) ?? 0,
+    thisYearTotal: totals.year.get(c.id) ?? 0,
+    lastValue: lastByCategory.get(c.id) ?? null,
+  }));
+
+  result.sort((a, b) => {
+    const ga = isGoalReached(a);
+    const gb = isGoalReached(b);
+    if (ga !== gb) return ga ? 1 : -1;
+
+    const la = lastOccurredAtByCategory.get(a.id)?.getTime() ?? -1;
+    const lb = lastOccurredAtByCategory.get(b.id)?.getTime() ?? -1;
+    if (la !== lb) return lb - la;
+
+    const ra = sortRank(a);
+    const rb = sortRank(b);
+    if (ra !== rb) return ra - rb;
+    return a.title.localeCompare(b.title);
+  });
+
+  return result;
+}
+
+export async function localGetCategoryEvents(args: {
+  userId: string;
+  categoryId: string;
+  take?: number;
+  before?: string;
+}): Promise<CategoryEventItem[]> {
+  const { userId, categoryId, take, before } = args;
+  const db = await openDb();
+
+  const limit = Math.max(1, Math.min(200, take ?? 50));
+  const range = IDBKeyRange.bound(
+    [userId, categoryId, ""],
+    [userId, categoryId, "\uffff"],
+  );
+  const events: LocalEvent[] = await new Promise((resolve, reject) => {
+    const tx = db.transaction("events", "readonly");
+    const index = tx.objectStore("events").index("byUserCategoryOccurredAt");
+    const out: LocalEvent[] = [];
+    index.openCursor(range, "prev").onsuccess = (e) => {
+      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) return;
+      const v = cursor.value as LocalEvent;
+      if (before && v.occurredAt >= before) {
+        cursor.continue();
+        return;
+      }
+      out.push(v);
+      if (out.length >= limit) return;
+      cursor.continue();
+    };
+    tx.oncomplete = () => resolve(out);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  return events.map((e) => ({
+    id: e.id,
+    amount: e.amount ?? null,
+    occurredAt: new Date(e.occurredAt),
+    occurredOn: new Date(e.occurredOn),
+    rawText: e.rawText ?? null,
+    data: e.data ?? null,
+  }));
+}
+
+export async function localCreateCategory(args: {
+  userId: string;
+  title: string;
+  categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
+  period?: Period;
+  unit?: string | null;
+  goal?: number | null;
+  goalValue?: number | null;
+  accentHex: string;
+  emoji?: string | null;
+}): Promise<Pick<CategoryWithStats, "id" | "slug">> {
+  const db = await openDb();
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+  const cleanTitle = args.title.trim();
+  const base = slugifyTitle(cleanTitle);
+  const existing = await getAllByIndex<LocalCategory>(db, "categories", "byUser", args.userId);
+  const used = new Set(existing.map((c) => c.slug));
+  let slug = base;
+  let n = 2;
+  while (used.has(slug)) {
+    slug = `${base}-${n}`;
+    n += 1;
+  }
+  const chartType: CategoryChartType = args.categoryType === "GOAL" ? "line" : "bar";
+
+  const record: LocalCategory = {
+    id,
+    userId: args.userId,
+    title: cleanTitle,
+    slug,
+    categoryType: args.categoryType,
+    chartType,
+    period: args.categoryType === "GOAL" ? null : args.period ?? "week",
+    unit: args.unit && args.unit.trim().length > 0 ? args.unit : null,
+    accentHex: args.accentHex,
+    emoji: args.emoji && args.emoji.trim().length > 0 ? args.emoji : null,
+    goalWeekly: args.categoryType === "GOAL" ? null : args.goal ?? null,
+    goalValue: args.categoryType === "GOAL" ? args.goalValue ?? null : null,
+    sourceArchivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await withStore<void>(db, "categories", "readwrite", (store) => {
+    const req = store.add(record);
+    req.onerror = () => {};
+  });
+  emitLocalChanged(args.userId);
+
+  return { id, slug };
+}
+
+export async function localUpdateCategory(args: {
+  userId: string;
+  categoryId: string;
+  title: string;
+  categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
+  period?: Period;
+  unit?: string | null;
+  goal?: number | null;
+  goalValue?: number | null;
+  accentHex: string;
+  emoji?: string | null;
+}): Promise<void> {
+  const db = await openDb();
+  const now = new Date().toISOString();
+  const existing = await new Promise<LocalCategory | null>((resolve, reject) => {
+    const tx = db.transaction("categories", "readonly");
+    const req = tx.objectStore("categories").get(args.categoryId);
+    req.onsuccess = () => resolve((req.result as LocalCategory) ?? null);
+    req.onerror = () => reject(req.error);
+  });
+  if (!existing || existing.userId !== args.userId) throw new Error("Category not found");
+
+  const chartType: CategoryChartType = args.categoryType === "GOAL" ? "line" : "bar";
+  const updated: LocalCategory = {
+    ...existing,
+    title: args.title.trim(),
+    categoryType: args.categoryType,
+    chartType,
+    period: args.categoryType === "GOAL" ? null : args.period ?? "week",
+    unit: args.unit && args.unit.trim().length > 0 ? args.unit : null,
+    accentHex: args.accentHex,
+    emoji: args.emoji && args.emoji.trim().length > 0 ? args.emoji : null,
+    goalWeekly: args.categoryType === "GOAL" ? null : args.goal ?? null,
+    goalValue: args.categoryType === "GOAL" ? args.goalValue ?? null : null,
+    updatedAt: now,
+  };
+
+  await withStore<void>(db, "categories", "readwrite", (store) => {
+    store.put(updated);
+  });
+  emitLocalChanged(args.userId);
+}
+
+export async function localDeleteCategory(args: { userId: string; categoryId: string }): Promise<void> {
+  const db = await openDb();
+  const { userId, categoryId } = args;
+
+  await withStore<void>(db, "categories", "readwrite", (store) => {
+    store.delete(categoryId);
+  });
+
+  const range = IDBKeyRange.bound([userId, categoryId, ""], [userId, categoryId, "\uffff"]);
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction("events", "readwrite");
+    const index = tx.objectStore("events").index("byUserCategoryOccurredAt");
+    index.openCursor(range).onsuccess = (e) => {
+      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) return;
+      cursor.delete();
+      cursor.continue();
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  emitLocalChanged(userId);
+}
+
+export async function localCreateEvent(args: {
+  userId: string;
+  categoryId: string;
+  amount: number;
+  occurredOn?: string;
+}): Promise<void> {
+  const db = await openDb();
+  const nowIso = new Date().toISOString();
+  const { occurredAt, occurredOn } = parseOccurred(args.occurredOn);
+
+  const id = crypto.randomUUID();
+  const record: LocalEvent = {
+    id,
+    userId: args.userId,
+    kind: "SESSION",
+    categoryId: args.categoryId,
+    amount: args.amount,
+    rawText: null,
+    occurredAt: occurredAt.toISOString(),
+    occurredOn: toIsoDate(occurredOn),
+    data: null,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+
+  await withStore<void>(db, "events", "readwrite", (store) => {
+    store.add(record);
+  });
+  emitLocalChanged(args.userId);
+}
+
+export async function localUpdateEvent(args: {
+  userId: string;
+  eventId: string;
+  amount: number;
+  occurredAt: string;
+  note?: string | null;
+  noteEnc?: any | null;
+}): Promise<void> {
+  const db = await openDb();
+  const existing = await new Promise<LocalEvent | null>((resolve, reject) => {
+    const tx = db.transaction("events", "readonly");
+    const req = tx.objectStore("events").get(args.eventId);
+    req.onsuccess = () => resolve((req.result as LocalEvent) ?? null);
+    req.onerror = () => reject(req.error);
+  });
+  if (!existing || existing.userId !== args.userId) throw new Error("Event not found");
+
+  const occurred = parseOccurredAt(args.occurredAt);
+  const baseData =
+    existing.data && typeof existing.data === "object" && !Array.isArray(existing.data)
+      ? (existing.data as Record<string, unknown>)
+      : {};
+  const nextData: Record<string, unknown> = { ...baseData };
+  if ("tags" in nextData) delete nextData.tags;
+  if (args.noteEnc !== undefined) {
+    if (args.noteEnc == null) delete nextData.noteEnc;
+    else nextData.noteEnc = args.noteEnc as any;
+    nextData.note = null;
+  } else if (args.note !== undefined) {
+    const cleanNote = typeof args.note === "string" ? args.note.trim() : "";
+    nextData.note = cleanNote ? cleanNote : null;
+    if ("noteEnc" in nextData) delete nextData.noteEnc;
+  }
+
+  const updated: LocalEvent = {
+    ...existing,
+    amount: args.amount,
+    occurredAt: occurred.occurredAt.toISOString(),
+    occurredOn: toIsoDate(occurred.occurredOn),
+    data: nextData,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await withStore<void>(db, "events", "readwrite", (store) => {
+    store.put(updated);
+  });
+  emitLocalChanged(args.userId);
+}
+
+export async function localDeleteEvent(args: { userId: string; eventId: string }): Promise<void> {
+  const db = await openDb();
+  const existing = await new Promise<LocalEvent | null>((resolve, reject) => {
+    const tx = db.transaction("events", "readonly");
+    const req = tx.objectStore("events").get(args.eventId);
+    req.onsuccess = () => resolve((req.result as LocalEvent) ?? null);
+    req.onerror = () => reject(req.error);
+  });
+  if (!existing || existing.userId !== args.userId) throw new Error("Event not found");
+
+  await withStore<void>(db, "events", "readwrite", (store) => {
+    store.delete(args.eventId);
+  });
+  emitLocalChanged(args.userId);
+}
+
+export async function localGetBarSeries(args: {
+  userId: string;
+  categoryId: string;
+  period: Period;
+  offset?: number;
+}): Promise<SeriesBucket[]> {
+  const { userId, categoryId, period, offset } = args;
+  const rawOffset = Math.min(0, Math.trunc(offset ?? 0));
+  const baseNow = new Date();
+  let now = baseNow;
+  if (period === "day") now = addDays(baseNow, rawOffset);
+  else if (period === "week") now = addDays(baseNow, rawOffset * 7);
+  else if (period === "month") now = new Date(baseNow.getFullYear(), baseNow.getMonth() + rawOffset, 1);
+  else now = new Date(baseNow.getFullYear() + rawOffset, 0, 1);
+  const count = getBucketCount(period);
+
+  let cursor: Date;
+  if (period === "day") cursor = startOfDay(addDays(now, -(count - 1)));
+  else if (period === "week") cursor = startOfWeek(addDays(now, -7 * (count - 1)));
+  else if (period === "month") cursor = startOfMonth(new Date(now.getFullYear(), now.getMonth() - (count - 1), 1));
+  else cursor = startOfYear(new Date(now.getFullYear() - (count - 1), 0, 1));
+
+  let end = cursor;
+  for (let i = 0; i < count; i++) end = nextBucketStart(end, period);
+
+  const buckets: { start: Date; end: Date; total: number }[] = [];
+  let bStart = cursor;
+  for (let i = 0; i < count; i++) {
+    const bEnd = nextBucketStart(bStart, period);
+    buckets.push({ start: bStart, end: bEnd, total: 0 });
+    bStart = bEnd;
+  }
+
+  const db = await openDb();
+  const range = IDBKeyRange.bound(
+    [userId, categoryId, cursor.toISOString()],
+    [userId, categoryId, end.toISOString()],
+    false,
+    true,
+  );
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction("events", "readonly");
+    const index = tx.objectStore("events").index("byUserCategoryOccurredAt");
+    index.openCursor(range).onsuccess = (e) => {
+      const cursor2 = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor2) return;
+      const ev = cursor2.value as LocalEvent;
+      const t = new Date(ev.occurredAt).getTime();
+      const amount = ev.amount ?? 0;
+      for (const b of buckets) {
+        if (t >= b.start.getTime() && t < b.end.getTime()) {
+          b.total += amount;
+          break;
+        }
+      }
+      cursor2.continue();
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  return buckets.map((b) => ({ label: bucketLabel(b.start, period), total: b.total, startDate: toIsoDate(b.start) }));
+}
+
+export async function localGetLineSeries(args: {
+  userId: string;
+  categoryId: string;
+  period: Period;
+  offset?: number;
+}): Promise<LinePoint[]> {
+  const { userId, categoryId, period, offset } = args;
+  const rawOffset = Math.min(0, Math.trunc(offset ?? 0));
+  const baseNow = new Date();
+  let now = baseNow;
+  if (period === "day") now = addDays(baseNow, rawOffset);
+  else if (period === "week") now = addDays(baseNow, rawOffset * 7);
+  else if (period === "month") now = new Date(baseNow.getFullYear(), baseNow.getMonth() + rawOffset, 1);
+  else now = new Date(baseNow.getFullYear() + rawOffset, 0, 1);
+  const count = getBucketCount(period);
+
+  let cursor: Date;
+  if (period === "day") cursor = startOfDay(addDays(now, -(count - 1)));
+  else if (period === "week") cursor = startOfWeek(addDays(now, -7 * (count - 1)));
+  else if (period === "month") cursor = startOfMonth(new Date(now.getFullYear(), now.getMonth() - (count - 1), 1));
+  else cursor = startOfYear(new Date(now.getFullYear() - (count - 1), 0, 1));
+
+  let end = cursor;
+  for (let i = 0; i < count; i++) end = nextBucketStart(end, period);
+
+  const buckets: { start: Date; end: Date; value: number | null }[] = [];
+  let bStart = cursor;
+  for (let i = 0; i < count; i++) {
+    const bEnd = nextBucketStart(bStart, period);
+    buckets.push({ start: bStart, end: bEnd, value: null });
+    bStart = bEnd;
+  }
+
+  const db = await openDb();
+  const range = IDBKeyRange.bound(
+    [userId, categoryId, cursor.toISOString()],
+    [userId, categoryId, end.toISOString()],
+    false,
+    true,
+  );
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction("events", "readonly");
+    const index = tx.objectStore("events").index("byUserCategoryOccurredAt");
+    index.openCursor(range).onsuccess = (e) => {
+      const cursor2 = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor2) return;
+      const ev = cursor2.value as LocalEvent;
+      const t = new Date(ev.occurredAt).getTime();
+      const v = ev.amount ?? null;
+      if (v != null) {
+        for (const b of buckets) {
+          if (t >= b.start.getTime() && t < b.end.getTime()) {
+            b.value = v; // last value in bucket wins (ascending order)
+          }
+        }
+      }
+      cursor2.continue();
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  return buckets.map((b) => ({ label: bucketLabel(b.start, period), startDate: toIsoDate(b.start), value: b.value }));
+}
+
+export async function localReplaceAll(args: {
+  userId: string;
+  categories: Array<Omit<LocalCategory, "userId">>;
+  events: Array<Omit<LocalEvent, "userId">>;
+}): Promise<void> {
+  const db = await openDb();
+
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(["categories", "events"], "readwrite");
+    const catStore = tx.objectStore("categories");
+    const evStore = tx.objectStore("events");
+
+    catStore.index("byUser").openCursor(IDBKeyRange.only(args.userId)).onsuccess = (e) => {
+      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) return;
+      cursor.delete();
+      cursor.continue();
+    };
+    evStore.index("byUser").openCursor(IDBKeyRange.only(args.userId)).onsuccess = (e) => {
+      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) return;
+      cursor.delete();
+      cursor.continue();
+    };
+
+    for (const c of args.categories) catStore.put({ ...c, userId: args.userId } satisfies LocalCategory);
+    for (const ev of args.events) evStore.put({ ...ev, userId: args.userId } satisfies LocalEvent);
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  emitLocalChanged(args.userId);
+}

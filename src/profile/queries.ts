@@ -17,9 +17,13 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
     throw new HttpError(401);
   }
 
-  const user = await context.entities.User.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: context.user.id },
-    select: { username: true, firstName: true, lastName: true },
+    select: {
+      username: true,
+      firstName: true,
+      lastName: true,
+    },
   });
   if (!user) {
     throw new HttpError(404);

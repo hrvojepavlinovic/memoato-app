@@ -12,6 +12,15 @@ if [[ -f .env.client ]]; then
 fi
 : "${REACT_APP_API_URL:=https://api.memoato.com}"
 
+# Prisma migrations/generation require DATABASE_URL (and friends). Keep secrets
+# out of git, but allow local/prod deploys to source them when present.
+if [[ -f .env.server ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env.server
+  set +a
+fi
+
 wasp build
 node scripts/patch_wasp_email_templates.mjs
 node scripts/patch_wasp_verify_email_autologin.mjs
@@ -28,6 +37,9 @@ npm --prefix .wasp/build/web-app install .wasp/out/sdk/wasp --no-save
 # Avoid TS type identity conflicts by ensuring the web build resolves
 # `@tanstack/react-query` from the same place as `wasp/client/operations`.
 rm -rf .wasp/build/web-app/node_modules/@tanstack
+
+# Apply any pending migrations before bundling.
+(cd .wasp/build/server && npx prisma migrate deploy --schema='../db/schema.prisma')
 
 # Prisma client generation is required before bundling the server.
 (cd .wasp/build/server && npx prisma generate --schema='../db/schema.prisma')

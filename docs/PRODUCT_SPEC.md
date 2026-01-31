@@ -106,6 +106,14 @@ More categories can be added by the user; each one can pick a type (track number
   - Aggregated totals (users, categories, entries) in cards.
   - Table of users with username, email, role, registration date, categories count, and entries count (last login optional).
 
+## Privacy modes
+
+Memoato supports three privacy/storage modes (set in **Profile → Privacy**):
+
+1. **Cloud sync (default)**: data is stored normally to power charts/history and support multi-device access.
+2. **Encrypted cloud**: **category titles** and **per-entry notes** are encrypted client-side before saving to the DB; users unlock with a passphrase per device (passphrase is never stored).
+3. **Local-only**: categories and entries are stored on-device (IndexedDB). Switching to local-only wipes server categories/events for that account.
+
 ## Analytics & PWA
 
 - Analytics:

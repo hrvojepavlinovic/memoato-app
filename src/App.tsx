@@ -5,6 +5,7 @@ import "./App.css";
 import { Header } from "./shared/components/Header";
 import { useEffect } from "react";
 import { Databuddy } from "./shared/components/Databuddy";
+import { PrivacyProvider } from "./privacy/PrivacyProvider";
 
 export function App() {
   useEffect(() => {
@@ -21,11 +22,13 @@ export function App() {
 
   return (
     <>
-      <main className="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-900">
-        <Header />
-        <Databuddy />
-        <Outlet />
-      </main>
+      <PrivacyProvider>
+        <main className="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-900">
+          <Header />
+          <Databuddy />
+          <Outlet />
+        </main>
+      </PrivacyProvider>
     </>
   );
 }

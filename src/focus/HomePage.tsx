@@ -1,8 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, routes } from "wasp/client/router";
 import { ensureDefaultCategories, getCategories, useQuery } from "wasp/client/operations";
 import type { CategoryWithStats } from "./types";
 import { ButtonLink } from "../shared/components/Button";
+import { usePrivacy } from "../privacy/PrivacyProvider";
+import { decryptCategoryTitle } from "../privacy/decryptors";
+import { isEncryptedString } from "../privacy/crypto";
+import { localCreateCategory, localGetCategoriesWithStats } from "./local";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -51,7 +55,7 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
   );
 }
 
-function formatWeekGlance(c: CategoryWithStats): string {
+function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
   if (c.chartType === "line") {
     const last = c.lastValue == null ? "—" : formatValue(c.lastValue);
     const goal = c.goalValue == null ? null : formatValue(c.goalValue);
@@ -63,7 +67,7 @@ function formatWeekGlance(c: CategoryWithStats): string {
     return "";
   }
 
-  const k = titleKey(c.title);
+  const k = titleKey(displayTitle);
   if (k === "padel" || k === "football") {
     return `This year: ${formatValue(c.thisYearTotal)}`;
   }
@@ -71,13 +75,18 @@ function formatWeekGlance(c: CategoryWithStats): string {
 }
 
 export function HomePage() {
-  const categoriesQuery = useQuery(getCategories);
-  const categories = categoriesQuery.data ?? [];
-  const isLoading = categoriesQuery.isLoading;
-  const isSuccess = categoriesQuery.isSuccess;
+  const privacy = usePrivacy();
+  const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
+  const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>([]);
+  const [localLoading, setLocalLoading] = useState(false);
+  const categories = privacy.mode === "local" ? localCategories : (categoriesQuery.data ?? []);
+  const isLoading = privacy.mode === "local" ? localLoading : categoriesQuery.isLoading;
+  const isSuccess = privacy.mode === "local" ? true : categoriesQuery.isSuccess;
   const ensuredOnceRef = useRef(false);
+  const [titleById, setTitleById] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    if (privacy.mode === "local") return;
     if (!isSuccess) return;
     if (ensuredOnceRef.current) return;
     ensuredOnceRef.current = true;
@@ -86,6 +95,86 @@ export function HomePage() {
       await categoriesQuery.refetch();
     })();
   }, [categories, categoriesQuery, isSuccess]);
+
+  useEffect(() => {
+    if (privacy.mode !== "local") return;
+    if (!privacy.userId) return;
+    let cancelled = false;
+    (async () => {
+      setLocalLoading(true);
+      try {
+        let cats = await localGetCategoriesWithStats(privacy.userId!);
+        if (cats.length === 0) {
+          await localCreateCategory({
+            userId: privacy.userId!,
+            title: "Push ups",
+            categoryType: "NUMBER",
+            period: "week",
+            unit: null,
+            goal: 300,
+            goalValue: null,
+            accentHex: "#F59E0B",
+            emoji: "💪",
+          });
+          await localCreateCategory({
+            userId: privacy.userId!,
+            title: "Weight",
+            categoryType: "GOAL",
+            unit: "kg",
+            goal: null,
+            goalValue: 85,
+            accentHex: "#0EA5E9",
+            emoji: "⚖️",
+          });
+          cats = await localGetCategoriesWithStats(privacy.userId!);
+        }
+        if (!cancelled) setLocalCategories(cats);
+      } finally {
+        if (!cancelled) setLocalLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [privacy.mode, privacy.userId]);
+
+  useEffect(() => {
+    if (privacy.mode !== "local") return;
+    const userId = privacy.userId;
+    if (!userId) return;
+    const onChanged = (e: any) => {
+      if (e?.detail?.userId !== userId) return;
+      localGetCategoriesWithStats(userId).then((cats) => setLocalCategories(cats));
+    };
+    window.addEventListener("memoato:localChanged", onChanged);
+    return () => window.removeEventListener("memoato:localChanged", onChanged);
+  }, [privacy.mode, privacy.userId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!privacy.key) {
+      setTitleById({});
+      return;
+    }
+    (async () => {
+      const pairs = await Promise.all(
+        categories.map(async (c) => {
+          if (!isEncryptedString(c.title)) return [c.id, null] as const;
+          const t = await decryptCategoryTitle(privacy.key as CryptoKey, c.title);
+          return [c.id, t] as const;
+        }),
+      );
+      if (cancelled) return;
+      const next: Record<string, string> = {};
+      for (const [id, t] of pairs) {
+        if (t) next[id] = t;
+      }
+      setTitleById(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [categories, privacy.key]);
 
   if (isLoading) {
     return <div className="mx-auto w-full max-w-screen-lg px-4 py-6" />;
@@ -107,6 +196,9 @@ export function HomePage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         {categories.map((c) => {
+        const isEncrypted = isEncryptedString(c.title);
+        const displayTitle = titleById[c.id] ?? (isEncrypted ? "Locked" : c.title);
+
           const goalReached =
             c.chartType === "line"
               ? c.goalValue != null && c.lastValue != null && c.lastValue <= c.goalValue
@@ -126,7 +218,7 @@ export function HomePage() {
               }}
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="text-base font-semibold">{c.title}</div>
+                <div className="text-base font-semibold">{displayTitle}</div>
                 <div
                   className="flex h-8 w-8 items-center justify-center rounded-full border bg-white"
                   style={{ borderColor: c.accentHex }}
@@ -139,7 +231,7 @@ export function HomePage() {
                 <GoalProgress c={c} />
               ) : (
                 <div className="mt-2 text-xs font-medium text-neutral-500">
-                  {formatWeekGlance(c)}
+                  {formatWeekGlance(c, displayTitle)}
                 </div>
               )}
             </Link>
