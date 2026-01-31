@@ -334,6 +334,7 @@ a:hover {
   padding: 2.5rem 0;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   color: rgba(10, 10, 10, 0.72);
+  background: rgba(0, 0, 0, 0.015);
 }
 
 .footer-grid {
@@ -345,6 +346,19 @@ a:hover {
   .footer-grid {
     grid-template-columns: 2fr 1fr 1fr;
   }
+}
+
+.footer-box {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 1.1rem;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.footer-box--brand {
+  background: transparent;
+  border: 0;
+  padding: 0;
 }
 
 .list {

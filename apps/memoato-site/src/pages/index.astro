@@ -9,23 +9,24 @@ import StatsRow from "../components/StatsRow.astro";
   canonicalPath="/"
 >
   <section class="container hero">
-    <div class="hero-grid">
-      <div>
-        <div class="pill">Minimal tracking · Privacy options · Open source</div>
-        <h1 class="h1" style="margin-top: 1rem">Track what matters.</h1>
-        <p class="lead">
-          memoato is a lightweight tracker for people who want results without overhead. Log quickly, see progress at a glance,
-          and adapt when routines change.
-        </p>
-        <div class="hero-actions">
-          <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
-            Open app
-          </a>
-          <a class="btn" href="/help">How it works</a>
-          <a class="btn" href="/blog/why-memoato">Read the story</a>
-        </div>
-        <StatsRow />
-      </div>
+    <div class="pill">Minimal tracking · Privacy options · Open source</div>
+    <h1 class="h1" style="margin-top: 1rem">Track what matters.</h1>
+    <p class="lead">
+      memoato is a lightweight tracker for people who want results without overhead. Log quickly, see progress at a glance,
+      and choose how private you want your data to be.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
+        Open app
+      </a>
+      <a class="btn" href="/help">How it works</a>
+      <a class="btn" href="/blog/why-memoato">Read the story</a>
+    </div>
+    <StatsRow />
+  </section>
+
+  <section class="section" style="padding-top: 1.5rem">
+    <div class="container">
       <div class="card">
         <div class="h2">Designed for low friction</div>
         <ol class="steps prose">
@@ -33,8 +34,10 @@ import StatsRow from "../components/StatsRow.astro";
           <li><strong>See progress.</strong> Goals and trends that stay readable.</li>
           <li><strong>Adjust.</strong> Rename categories, edit history, keep moving.</li>
         </ol>
+      </div>
 
-        <div class="h2" style="margin-top: 1.25rem">What you get</div>
+      <div class="card" style="margin-top: 1rem">
+        <div class="h2">What you get</div>
         <div class="feature-list">
           <div class="feature">
             <div class="feature-title">Fast capture</div>
