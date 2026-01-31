@@ -50,6 +50,7 @@ export function TimelinePage() {
   const todayIso = useMemo(() => todayLocalIso(), []);
   const [selectedIso, setSelectedIso] = useState<string>(() => todayLocalIso());
   const stripRef = useRef<HTMLDivElement | null>(null);
+  const [stripPadPx, setStripPadPx] = useState(0);
 
   const serverQuery = useQuery(getDayEvents, { occurredOn: selectedIso } as any, {
     enabled: privacy.mode !== "local",
@@ -183,8 +184,40 @@ export function TimelinePage() {
     }
   }, [selectedIso, today]);
 
-  const daysStripDesktop = useMemo(() => Array.from({ length: 21 }, (_, i) => addDays(day, i - 10)), [day]);
-  const daysStripMobile = useMemo(() => Array.from({ length: 3 }, (_, i) => addDays(day, i - 1)), [day]);
+  const daysStripDesktop = useMemo(() => {
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const diffDays = Math.max(
+      0,
+      Math.round((startOfLocalDay(today).getTime() - startOfLocalDay(day).getTime()) / msPerDay),
+    );
+    const daysBack = Math.max(60, diffDays + 10);
+    return Array.from({ length: daysBack + 1 }, (_, i) => addDays(today, i - daysBack));
+  }, [day, today]);
+
+  const daysStripMobile = useMemo(() => {
+    const prev = addDays(day, -1);
+    const next = addDays(day, 1);
+    return [
+      { date: prev, disabled: false },
+      { date: day, disabled: false },
+      { date: next, disabled: next.getTime() > today.getTime() },
+    ];
+  }, [day, today]);
+
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const anyItem = el.querySelector<HTMLElement>("[data-day-item]");
+      const itemWidth = anyItem?.clientWidth ?? 76;
+      setStripPadPx(Math.max(0, Math.floor(el.clientWidth / 2 - itemWidth / 2)));
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   useEffect(() => {
     const el = stripRef.current;
@@ -307,7 +340,7 @@ export function TimelinePage() {
             ←
           </Button>
           <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
-            {daysStripMobile.map((d) => {
+            {daysStripMobile.map(({ date: d, disabled }) => {
               const iso = toLocalIsoDate(d);
               const active = iso === selectedIso;
               const dd = String(d.getDate());
@@ -316,11 +349,14 @@ export function TimelinePage() {
                 <button
                   key={iso}
                   type="button"
+                  disabled={disabled}
                   onClick={() => setSelectedIso(iso)}
                   className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl border px-2 py-2 text-center ${
-                    active
-                      ? "border-neutral-950 bg-neutral-950 text-white"
-                      : "border-neutral-200 bg-white text-neutral-900"
+                    disabled
+                      ? "border-neutral-200 bg-neutral-50 text-neutral-400"
+                      : active
+                        ? "border-neutral-950 bg-neutral-950 text-white"
+                        : "border-neutral-200 bg-white text-neutral-900"
                   }`}
                 >
                   <div className={`text-xs font-semibold ${active ? "text-white/70" : "text-neutral-500"}`}>{w}</div>
@@ -329,7 +365,12 @@ export function TimelinePage() {
               );
             })}
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isToday}
+            onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}
+          >
             →
           </Button>
         </div>
@@ -340,6 +381,7 @@ export function TimelinePage() {
           ←
         </Button>
         <div ref={stripRef} className="flex flex-1 gap-2 overflow-x-auto pb-1">
+          <div className="shrink-0" style={{ width: stripPadPx }} aria-hidden="true" />
           {daysStripDesktop.map((d) => {
             const iso = toLocalIsoDate(d);
             const active = iso === selectedIso;
@@ -350,6 +392,7 @@ export function TimelinePage() {
               <button
                 key={iso}
                 data-iso={iso}
+                data-day-item="true"
                 type="button"
                 onClick={() => setSelectedIso(iso)}
                 className={`flex flex-col items-center justify-center rounded-xl border px-3 py-2 text-center ${
@@ -363,8 +406,14 @@ export function TimelinePage() {
               </button>
             );
           })}
+          <div className="shrink-0" style={{ width: stripPadPx }} aria-hidden="true" />
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={isToday}
+          onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}
+        >
           →
         </Button>
       </div>
@@ -375,7 +424,7 @@ export function TimelinePage() {
         <div className="card p-4 text-sm text-neutral-500">Nothing logged for this day.</div>
       ) : (
         <div className="relative space-y-1">
-          <div className="absolute left-6 top-0 h-full w-px bg-neutral-200" aria-hidden="true" />
+          <div className="absolute left-4 top-0 h-full w-px bg-neutral-200" aria-hidden="true" />
           {summary.map((s) => {
             const unit = s.unit && s.unit !== "x" ? ` ${s.unit}` : "";
             const isNotes = s.slug === "notes";
