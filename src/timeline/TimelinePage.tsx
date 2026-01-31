@@ -444,8 +444,11 @@ export function TimelinePage() {
             if (isNotes) {
               main = `${s.count} ${s.count === 1 ? "note" : "notes"}`;
             } else if (isWeight) {
-              if (s.count <= 1) main = `Weighed`;
-              else main = `Weighed ×${s.count}`;
+              const kgUnit = unit || " kg";
+              const v = Math.round(s.total * 10) / 10;
+              if (s.count <= 1) main = `${v}${kgUnit}`;
+              else if (s.avg != null) main = `avg ${Math.round(s.avg * 10) / 10}${kgUnit} · ×${s.count}`;
+              else main = `×${s.count}`;
             } else {
               const total = Math.round(s.total * 100) / 100;
               if (s.count <= 1 && unit === "" && Math.abs(total - 1) < 1e-9 && s.notePreview) {
@@ -457,9 +460,7 @@ export function TimelinePage() {
 
             let sub: string | null = null;
             if (isWeight) {
-              const v = Math.round(s.total * 10) / 10;
-              if (s.count === 1) sub = `${v}${unit || " kg"}`;
-              else if (s.avg != null) sub = `avg ${Math.round(s.avg * 10) / 10}${unit || " kg"}`;
+              sub = null;
             }
 
             const time = fmtRange(s.firstAt, s.lastAt);
