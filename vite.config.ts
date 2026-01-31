@@ -1,6 +1,4 @@
-import { defineConfig } from 'vite'
-
-export default defineConfig({
+export default {
   server: {
     open: true,
   },
@@ -12,4 +10,4 @@ export default defineConfig({
       '127.0.0.1',
     ],
   },
-})
+}
