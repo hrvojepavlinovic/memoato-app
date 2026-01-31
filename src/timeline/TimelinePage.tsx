@@ -132,7 +132,7 @@ export function TimelinePage() {
       for (const ev of events) {
         const c = ev.category;
         if (!c) continue;
-        map[c.id] = c.title.trim();
+        map[c.id] = String(c.title).trim();
       }
       setTitleByCategoryId(map);
       setNoteByEventId({});
@@ -148,7 +148,7 @@ export function TimelinePage() {
         for (const ev of events) {
           const c = ev.category;
           if (!c) continue;
-          titleMap[c.id] = isEncryptedString(c.title) ? "Locked" : c.title.trim();
+          titleMap[c.id] = isEncryptedString(c.title) ? "Locked" : String(c.title).trim();
         }
         if (!cancelled) {
           setTitleByCategoryId(titleMap);
@@ -237,7 +237,9 @@ export function TimelinePage() {
       }
       items.push({
         categoryId,
-        title: titleByCategoryId[categoryId] ?? (isEncryptedString(c.title) ? "Locked" : c.title.trim()),
+        title:
+          titleByCategoryId[categoryId] ??
+          (isEncryptedString(c.title) ? "Locked" : String(c.title).trim()),
         emoji: c.emoji ?? null,
         accentHex: c.accentHex,
         unit: c.unit ?? null,
