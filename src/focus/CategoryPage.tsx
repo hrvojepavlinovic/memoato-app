@@ -17,7 +17,7 @@ import type { CategoryWithStats, Period } from "./types";
 import { parseNumberInput } from "../shared/lib/parseNumberInput";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
-import { isEncryptedString } from "../privacy/crypto";
+import { encryptUtf8ToEncryptedString, isEncryptedString } from "../privacy/crypto";
 import { localCreateEvent, localGetBarSeries, localGetCategoriesWithStats, localGetLineSeries } from "./local";
 
 function todayIso(): string {
@@ -188,6 +188,7 @@ export function CategoryPage() {
   const [period, setPeriod] = useState<Period>("week");
   const [offset, setOffset] = useState<number>(0);
   const [amount, setAmount] = useState<string>("");
+  const [note, setNote] = useState<string>("");
   const [occurredOn, setOccurredOn] = useState<string>(todayIso());
   const [displayTitle, setDisplayTitle] = useState<string | null>(null);
   const privacy = usePrivacy();
@@ -251,23 +252,48 @@ export function CategoryPage() {
   }, [period]);
 
   async function onAdd() {
-    const n = parseNumberInput(amount);
-    if (n == null || n <= 0) {
+    if (!category?.id) return;
+    const isNotes = (category.slug ?? "") === "notes";
+    const n = isNotes ? 1 : parseNumberInput(amount);
+    if (!isNotes && (n == null || n <= 0)) {
       window.alert("Enter a positive number.");
       return;
     }
-    if (!category?.id) return;
-    if (privacy.mode === "local") {
-      if (!privacy.userId) return;
-      await localCreateEvent({ userId: privacy.userId, categoryId: category.id, amount: n, occurredOn });
-      setAmount("");
+    if (isNotes && note.trim().length === 0) {
+      window.alert("Write a note first.");
       return;
     }
-    await createEvent({ categoryId: category.id, amount: n, occurredOn });
+    if (privacy.mode === "local") {
+      if (!privacy.userId) return;
+      await localCreateEvent({
+        userId: privacy.userId,
+        categoryId: category.id,
+        amount: n ?? 1,
+        occurredOn,
+        ...(isNotes ? { note } : {}),
+      });
+      setAmount("");
+      setNote("");
+      return;
+    }
+    if (isNotes && privacy.mode === "encrypted") {
+      if (!privacy.key || !privacy.cryptoParams) {
+        window.alert("Unlock encryption from Profile → Privacy first.");
+        return;
+      }
+      const noteEnc = await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, note.trim());
+      await createEvent({ categoryId: category.id, amount: 1, occurredOn, noteEnc } as any);
+      setAmount("");
+      setNote("");
+      return;
+    }
+    await createEvent({ categoryId: category.id, amount: n ?? 1, occurredOn, ...(isNotes ? { note } : {}) } as any);
     setAmount("");
+    setNote("");
   }
 
   const isWeight = category?.chartType === "line";
+  const isNotes = (category?.slug ?? "") === "notes";
   const isCountType = category?.categoryType === "DO" || category?.categoryType === "DONT";
   const amountPlaceholder = isWeight ? "e.g. 84.5" : isCountType ? "e.g. 1" : "e.g. 20";
   const resolvedCategoryId = category?.id ?? null;
@@ -334,19 +360,32 @@ export function CategoryPage() {
               />
             </div>
           </label>
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="label">Amount</span>
-            <input
-              type={isWeight ? "text" : "number"}
-              step={isWeight ? undefined : "1"}
-              inputMode={isWeight ? "decimal" : "numeric"}
-              pattern={isWeight ? "[0-9]*[.,]?[0-9]*" : undefined}
-              placeholder={amountPlaceholder}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500"
-            />
-          </label>
+          {isNotes ? (
+            <label className="flex min-w-0 flex-col gap-1 sm:col-span-2">
+              <span className="label">Note</span>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Write a quick thought…"
+                rows={3}
+                className="block w-full min-w-0 max-w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              />
+            </label>
+          ) : (
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="label">Amount</span>
+              <input
+                type={isWeight ? "text" : "number"}
+                step={isWeight ? undefined : "1"}
+                inputMode={isWeight ? "decimal" : "numeric"}
+                pattern={isWeight ? "[0-9]*[.,]?[0-9]*" : undefined}
+                placeholder={amountPlaceholder}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500"
+              />
+            </label>
+          )}
           <div className="flex min-w-0 items-end">
             <Button className="h-10 w-full" onClick={onAdd} disabled={isLocked}>
               Add

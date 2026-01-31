@@ -11,6 +11,7 @@ export type LocalCategory = {
   unit: string | null;
   accentHex: string;
   emoji: string | null;
+  isSystem: boolean;
   goalWeekly: number | null;
   goalValue: number | null;
   sourceArchivedAt: string | null;
@@ -302,6 +303,7 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     categoryType: c.categoryType,
     accentHex: c.accentHex,
     emoji: c.emoji ?? null,
+    isSystem: !!(c as any).isSystem,
     period: c.period ?? null,
     goalWeekly: c.goalWeekly ?? null,
     goalValue: c.goalValue ?? null,
@@ -417,6 +419,7 @@ export async function localCreateCategory(args: {
     unit: args.unit && args.unit.trim().length > 0 ? args.unit : null,
     accentHex: args.accentHex,
     emoji: args.emoji && args.emoji.trim().length > 0 ? args.emoji : null,
+    isSystem: false,
     goalWeekly: args.categoryType === "GOAL" ? null : args.goal ?? null,
     goalValue: args.categoryType === "GOAL" ? args.goalValue ?? null : null,
     sourceArchivedAt: null,
@@ -465,6 +468,7 @@ export async function localUpdateCategory(args: {
     unit: args.unit && args.unit.trim().length > 0 ? args.unit : null,
     accentHex: args.accentHex,
     emoji: args.emoji && args.emoji.trim().length > 0 ? args.emoji : null,
+    isSystem: existing.isSystem ?? false,
     goalWeekly: args.categoryType === "GOAL" ? null : args.goal ?? null,
     goalValue: args.categoryType === "GOAL" ? args.goalValue ?? null : null,
     updatedAt: now,
@@ -479,6 +483,16 @@ export async function localUpdateCategory(args: {
 export async function localDeleteCategory(args: { userId: string; categoryId: string }): Promise<void> {
   const db = await openDb();
   const { userId, categoryId } = args;
+
+  const existing = await new Promise<LocalCategory | null>((resolve, reject) => {
+    const tx = db.transaction("categories", "readonly");
+    const req = tx.objectStore("categories").get(categoryId);
+    req.onsuccess = () => resolve((req.result as LocalCategory) ?? null);
+    req.onerror = () => reject(req.error);
+  });
+  if (existing && existing.userId === userId && existing.isSystem) {
+    throw new Error("This category can't be deleted.");
+  }
 
   await withStore<void>(db, "categories", "readwrite", (store) => {
     store.delete(categoryId);
@@ -506,12 +520,22 @@ export async function localCreateEvent(args: {
   categoryId: string;
   amount: number;
   occurredOn?: string;
+  note?: string | null;
+  noteEnc?: any | null;
 }): Promise<void> {
   const db = await openDb();
   const nowIso = new Date().toISOString();
   const { occurredAt, occurredOn } = parseOccurred(args.occurredOn);
 
   const id = crypto.randomUUID();
+  const nextData: Record<string, unknown> = {};
+  if (args.noteEnc != null) {
+    nextData.noteEnc = args.noteEnc as any;
+    nextData.note = null;
+  } else if (typeof args.note === "string") {
+    const clean = args.note.trim();
+    nextData.note = clean.length > 0 ? clean : null;
+  }
   const record: LocalEvent = {
     id,
     userId: args.userId,
@@ -521,7 +545,7 @@ export async function localCreateEvent(args: {
     rawText: null,
     occurredAt: occurredAt.toISOString(),
     occurredOn: toIsoDate(occurredOn),
-    data: null,
+    data: Object.keys(nextData).length > 0 ? (nextData as any) : null,
     createdAt: nowIso,
     updatedAt: nowIso,
   };

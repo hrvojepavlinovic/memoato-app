@@ -81,6 +81,12 @@ page HomePage {
   component: import { HomePage } from "@src/focus/HomePage"
 }
 
+route TimelineRoute { path: "/timeline", to: TimelinePage }
+page TimelinePage {
+  authRequired: true,
+  component: import { TimelinePage } from "@src/timeline/TimelinePage"
+}
+
 route SudoRoute { path: "/sudo", to: SudoPage }
 page SudoPage {
   component: import { SudoPage } from "@src/admin/SudoPage"
@@ -148,6 +154,11 @@ query getSudoOverview {
 query getProfile {
   fn: import { getProfile } from "@src/profile/queries",
   entities: [User]
+}
+
+query getDayEvents {
+  fn: import { getDayEvents } from "@src/timeline/queries",
+  entities: [Event, Category]
 }
 
 query getPublicTotals {

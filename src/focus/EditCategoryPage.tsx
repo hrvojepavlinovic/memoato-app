@@ -328,9 +328,17 @@ export function EditCategoryPage() {
         </div>
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button variant="ghost" onClick={onDelete} className="border border-red-200 text-red-700 hover:bg-red-50">
-            Delete category
-          </Button>
+          {category.isSystem ? (
+            <div className="text-sm font-medium text-neutral-500">This category can’t be deleted.</div>
+          ) : (
+            <Button
+              variant="ghost"
+              onClick={onDelete}
+              className="border border-red-200 text-red-700 hover:bg-red-50"
+            >
+              Delete category
+            </Button>
+          )}
           <div className="flex items-center justify-end gap-3">
             <Button variant="ghost" onClick={() => navigate(`/c/${category.slug ?? category.id}`)}>
               Cancel

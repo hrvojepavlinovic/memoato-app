@@ -16,6 +16,38 @@ function titleKey(title: string): string {
   return title.trim().toLowerCase();
 }
 
+async function ensureNotesCategory(userId: string, entities: any): Promise<void> {
+  const existing = await entities.Category.findFirst({
+    where: { userId, slug: "notes", sourceArchivedAt: null },
+    select: { id: true, isSystem: true },
+  });
+  if (existing) {
+    if (!existing.isSystem) {
+      await entities.Category.update({ where: { id: existing.id }, data: { isSystem: true } });
+    }
+    return;
+  }
+
+  const now = new Date();
+  await entities.Category.create({
+    data: {
+      userId,
+      source: "memoato",
+      title: "Notes",
+      slug: "notes",
+      categoryType: "NUMBER",
+      chartType: "bar",
+      period: "day",
+      accentHex: "#0A0A0A",
+      emoji: "📝",
+      kind: "note",
+      type: "Simple",
+      isSystem: true,
+      createdAt: now,
+    } as any,
+  });
+}
+
 async function renameTerminToFootball(userId: string, entities: any): Promise<void> {
   const existing = await entities.Category.findMany({
     where: { userId, sourceArchivedAt: null, title: { in: ["Termin", "termin"] } },
@@ -443,6 +475,7 @@ export const ensureDefaultCategories: EnsureDefaultCategories<
     await renameTerminToFootball(userId, context.entities);
     await renameWorkoutToPushUps(userId, context.entities);
     await applyKnownCategoryDefaults(userId, context.entities);
+    await ensureNotesCategory(userId, context.entities);
     const missingSlugs = await context.entities.Category.count({
       where: { userId, slug: null, sourceArchivedAt: null },
     });
@@ -485,6 +518,21 @@ export const ensureDefaultCategories: EnsureDefaultCategories<
         type: "Simple",
         createdAt: now,
       },
+      {
+        userId,
+        source: "memoato",
+        title: "Notes",
+        slug: "notes",
+        categoryType: "NUMBER",
+        chartType: "bar",
+        period: "day",
+        accentHex: "#0A0A0A",
+        emoji: "📝",
+        kind: "note",
+        type: "Simple",
+        isSystem: true,
+        createdAt: now,
+      },
     ],
     skipDuplicates: true,
   });
@@ -506,10 +554,13 @@ export const deleteCategory: DeleteCategory<DeleteCategoryArgs, { ok: boolean }>
   const userId = context.user.id;
   const existing = await context.entities.Category.findFirst({
     where: { id: categoryId, userId, sourceArchivedAt: null },
-    select: { id: true },
+    select: { id: true, isSystem: true },
   });
   if (!existing) {
     throw new HttpError(404, "Category not found");
+  }
+  if (existing.isSystem) {
+    throw new HttpError(400, "This category can't be deleted.");
   }
 
   // Hard-delete category and its events.
@@ -522,6 +573,8 @@ type CreateEventArgs = {
   categoryId: Category["id"];
   amount: number;
   occurredOn?: string; // YYYY-MM-DD
+  note?: string | null;
+  noteEnc?: any | null;
 };
 
 function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Date } {
@@ -543,7 +596,7 @@ function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Dat
 }
 
 export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
-  { categoryId, amount, occurredOn },
+  { categoryId, amount, occurredOn, note, noteEnc },
   context,
 ) => {
   if (!context.user) {
@@ -562,6 +615,14 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
 
   const occurred = parseOccurred(occurredOn);
   const unit = category.unit && category.unit !== "x" ? ` ${category.unit}` : "";
+  const nextData: Record<string, unknown> = {};
+  if (noteEnc != null) {
+    nextData.noteEnc = noteEnc as any;
+    nextData.note = null;
+  } else if (typeof note === "string") {
+    const clean = note.trim();
+    nextData.note = clean.length > 0 ? clean : null;
+  }
   return context.entities.Event.create({
     data: {
       userId,
@@ -572,6 +633,7 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
       rawText: `${category.title} ${amount}${unit}`,
       occurredAt: occurred.occurredAt,
       occurredOn: occurred.occurredOn,
+      data: Object.keys(nextData).length > 0 ? (nextData as any) : undefined,
     },
   });
 };

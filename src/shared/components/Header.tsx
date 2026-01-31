@@ -1,8 +1,8 @@
-import { logout, useAuth } from "wasp/client/auth";
+import { useAuth } from "wasp/client/auth";
 import { Link } from "wasp/client/router";
 import { getProfile, useQuery } from "wasp/client/operations";
 import LogoFallback from "../../assets/logo.svg";
-import { Button, ButtonLink } from "./Button";
+import { ButtonLink } from "./Button";
 
 export function Header() {
   const { data: user, isLoading } = useAuth();
@@ -32,6 +32,11 @@ export function Header() {
             {isLoading ? null : user ? (
               <>
                 <li>
+                  <ButtonLink to="/timeline" variant="ghost">
+                    Timeline
+                  </ButtonLink>
+                </li>
+                <li>
                   <span className="relative inline-flex">
                     <ButtonLink to="/profile" variant="ghost">
                       Profile
@@ -44,9 +49,6 @@ export function Header() {
                       />
                     ) : null}
                   </span>
-                </li>
-                <li>
-                  <Button onClick={logout}>Log out</Button>
                 </li>
               </>
             ) : (

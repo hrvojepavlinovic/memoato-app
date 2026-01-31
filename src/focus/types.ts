@@ -17,6 +17,7 @@ export type CategoryWithStats = {
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
   accentHex: string;
   emoji: string | null;
+  isSystem: boolean;
   period: Period | null;
   goalWeekly: number | null;
   goalValue: number | null;

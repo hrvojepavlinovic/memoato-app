@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { logout } from "wasp/client/auth";
 import {
   createCategory,
   createEvent,
   deleteCategory,
+  ensureDefaultCategories,
   exportMyData,
   getCategories,
   getCategoryEvents,
@@ -340,6 +342,7 @@ export function ProfilePage() {
       unit: c.unit ?? null,
       accentHex: c.accentHex,
       emoji: c.emoji ?? null,
+      isSystem: (c as any).isSystem ?? false,
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
       sourceArchivedAt: null,
@@ -475,6 +478,9 @@ export function ProfilePage() {
     privacy.setMode(targetMode);
     if (targetMode === "cloud") privacy.lock();
     setPassphrase("");
+
+    // Ensure system categories (e.g. Notes) exist/are protected post-migration.
+    await ensureDefaultCategories();
   }
 
   async function onApplyPrivacy() {
@@ -696,6 +702,9 @@ export function ProfilePage() {
         <div className="card p-4">
           <div className="mb-3 text-sm font-semibold">Data</div>
           <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={logout}>
+              Log out
+            </Button>
             <Button variant="ghost" onClick={onExport} disabled={busy === "export"}>
               Export
             </Button>
@@ -710,4 +719,3 @@ export function ProfilePage() {
     </div>
   );
 }
-
