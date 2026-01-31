@@ -124,13 +124,16 @@ export function TimelinePage() {
     if (privacy.mode !== "encrypted") {
       // Still trim for display.
       const map: Record<string, string> = {};
+      const noteMap: Record<string, string> = {};
       for (const ev of events) {
         const c = ev.category;
         if (!c) continue;
         map[c.id] = String(c.title).trim();
+        const note = typeof ev.data?.note === "string" ? (ev.data.note as string).trim() : "";
+        if (note) noteMap[ev.id] = note;
       }
       setTitleByCategoryId(map);
-      setNoteByEventId({});
+      setNoteByEventId(noteMap);
       return;
     }
 
@@ -158,8 +161,7 @@ export function TimelinePage() {
         const t = await decryptCategoryTitle(privacy.key, c.title);
         titleMap[c.id] = t ?? "Locked";
 
-        const isNotes = (c.slug ?? "") === "notes";
-        if (isNotes && ev.data) {
+        if (ev.data) {
           const note = await decryptEventNote(privacy.key, ev.data);
           if (note) noteMap[ev.id] = note;
         }
@@ -252,6 +254,7 @@ export function TimelinePage() {
       lastAt: Date;
       total: number;
       avg: number | null;
+      notePreview: string | null;
       notes: string[];
     }> = [];
 
@@ -270,6 +273,12 @@ export function TimelinePage() {
       const count = evs.length;
       const total = evs.reduce((acc, e) => acc + (e.amount ?? 0), 0);
       const avg = isWeight && count > 0 ? total / count : null;
+      const notePreview =
+        count === 1
+          ? (noteByEventId[evs[0]!.id] ??
+              (typeof evs[0]!.data?.note === "string" ? (evs[0]!.data.note as string).trim() : "") ??
+              "") || null
+          : null;
       const notes: string[] = [];
       if (isNotes) {
         for (const e of evs) {
@@ -295,6 +304,7 @@ export function TimelinePage() {
         lastAt,
         total,
         avg,
+        notePreview,
         notes,
       });
     }
@@ -438,7 +448,11 @@ export function TimelinePage() {
               else main = `Weighed ×${s.count}`;
             } else {
               const total = Math.round(s.total * 100) / 100;
-              main = s.count <= 1 ? `${total}${unit}` : `${total}${unit} total · ${s.count} entries`;
+              if (s.count <= 1 && unit === "" && Math.abs(total - 1) < 1e-9 && s.notePreview) {
+                main = s.notePreview;
+              } else {
+                main = s.count <= 1 ? `${total}${unit}` : `${total}${unit} total · ${s.count} entries`;
+              }
             }
 
             let sub: string | null = null;
