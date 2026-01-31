@@ -40,21 +40,35 @@ import StatsRow from "../components/StatsRow.astro";
         <div class="h2">What you get</div>
         <div class="feature-grid">
           <div class="feature-line">
-            <div class="feature-icon">⚡</div>
+            <div class="feature-icon" aria-hidden="true">
+              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" />
+              </svg>
+            </div>
             <div>
               <div class="feature-title">Fast capture</div>
               <div class="muted">No project setup, no fiddling, just log.</div>
             </div>
           </div>
           <div class="feature-line">
-            <div class="feature-icon">📈</div>
+            <div class="feature-icon" aria-hidden="true">
+              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18" />
+                <path d="m7 15 4-4 3 3 6-7" />
+              </svg>
+            </div>
             <div>
               <div class="feature-title">Readable charts</div>
               <div class="muted">Goals and trends that are obvious at a glance.</div>
             </div>
           </div>
           <div class="feature-line">
-            <div class="feature-icon">🔒</div>
+            <div class="feature-icon" aria-hidden="true">
+              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+                <path d="M6 11h12v10H6V11Z" />
+              </svg>
+            </div>
             <div>
               <div class="feature-title">Privacy modes</div>
               <div class="muted">Cloud sync, encrypted cloud, or local-only on device.</div>

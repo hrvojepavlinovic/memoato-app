@@ -384,7 +384,13 @@ a:hover {
   place-items: center;
   background: rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 1.1rem;
+  color: rgba(10, 10, 10, 0.9);
+}
+
+.feature-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 .list {
