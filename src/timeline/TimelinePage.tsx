@@ -183,13 +183,16 @@ export function TimelinePage() {
     }
   }, [selectedIso, today]);
 
-  const daysStripDesktop = useMemo(() => Array.from({ length: 14 }, (_, i) => addDays(day, i - 13)), [day]);
-  const daysStripMobile = useMemo(() => Array.from({ length: 3 }, (_, i) => addDays(day, i - 2)), [day]);
+  const daysStripDesktop = useMemo(() => Array.from({ length: 21 }, (_, i) => addDays(day, i - 10)), [day]);
+  const daysStripMobile = useMemo(() => Array.from({ length: 3 }, (_, i) => addDays(day, i - 1)), [day]);
 
   useEffect(() => {
     const el = stripRef.current;
     if (!el) return;
-    el.scrollLeft = el.scrollWidth;
+    const active = el.querySelector<HTMLElement>(`[data-iso="${selectedIso}"]`);
+    if (!active) return;
+    const left = active.offsetLeft - (el.clientWidth / 2 - active.clientWidth / 2);
+    el.scrollLeft = Math.max(0, left);
   }, [selectedIso]);
 
   const summary = useMemo(() => {
@@ -289,6 +292,13 @@ export function TimelinePage() {
           <h2 className="text-xl font-semibold tracking-tight">Timeline</h2>
           <p className="text-sm text-neutral-500">{isToday ? "Today" : formatDayLabel(day)}</p>
         </div>
+        {!isToday ? (
+          <div className="flex items-center">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIso(todayIso)}>
+              Today
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <div className="mb-6 sm:hidden">
@@ -323,13 +333,6 @@ export function TimelinePage() {
             →
           </Button>
         </div>
-        {!isToday ? (
-          <div className="mt-2 flex justify-end">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedIso(todayIso)}>
-              Today
-            </Button>
-          </div>
-        ) : null}
       </div>
 
       <div className="mb-6 hidden items-center gap-2 sm:flex">
@@ -346,6 +349,7 @@ export function TimelinePage() {
             return (
               <button
                 key={iso}
+                data-iso={iso}
                 type="button"
                 onClick={() => setSelectedIso(iso)}
                 className={`flex flex-col items-center justify-center rounded-xl border px-3 py-2 text-center ${
@@ -363,11 +367,6 @@ export function TimelinePage() {
         <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}>
           →
         </Button>
-        {!isToday ? (
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(todayIso)}>
-            Today
-          </Button>
-        ) : null}
       </div>
 
       {privacy.mode !== "local" && serverQuery.isLoading ? (
