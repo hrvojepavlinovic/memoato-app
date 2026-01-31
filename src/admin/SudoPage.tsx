@@ -3,7 +3,8 @@ import { getSudoOverview, useQuery } from "wasp/client/operations";
 
 function formatDate(d: Date): string {
   const x = new Date(d);
-  return x.toISOString().slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`;
 }
 
 function NotFound() {

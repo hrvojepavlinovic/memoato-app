@@ -159,10 +159,13 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (_args, con
       amount: e.amount ?? null,
       rawText: e.rawText ?? null,
       occurredAt: e.occurredAt.toISOString(),
-      occurredOn: e.occurredOn.toISOString().slice(0, 10),
+      occurredOn: (() => {
+        const d = e.occurredOn;
+        const pad = (n: number) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      })(),
       createdAt: e.createdAt.toISOString(),
       updatedAt: e.updatedAt.toISOString(),
     })),
   };
 };
-

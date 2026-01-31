@@ -142,7 +142,8 @@ function startOfYear(d: Date): Date {
 }
 
 function toIsoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function nextBucketStart(d: Date, period: Period): Date {
@@ -174,7 +175,8 @@ function getBucketCount(period: Period): number {
 
 function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Date } {
   const now = new Date();
-  const todayIso = now.toISOString().slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const todayIso = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
   if (!occurredOn || occurredOn === todayIso) {
     const on = new Date(now);

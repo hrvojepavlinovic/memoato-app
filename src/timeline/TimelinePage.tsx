@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, getDayEvents } from "wasp/client/operations";
+import { Link, routes } from "wasp/client/router";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle, decryptEventNote } from "../privacy/decryptors";
 import { isEncryptedString } from "../privacy/crypto";
 import { Button } from "../shared/components/Button";
 import { localGetCategoryEvents, localListCategories } from "../focus/local";
+import { parseLocalIsoDate, startOfLocalDay, toLocalIsoDate, todayLocalIso } from "../shared/lib/localDate";
 
 type DayEvent = {
   id: string;
@@ -28,16 +30,6 @@ type DayEvent = {
   } | null;
 };
 
-function toIsoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
 function addDays(d: Date, days: number): Date {
   const x = new Date(d);
   x.setDate(x.getDate() + days);
@@ -54,8 +46,10 @@ function formatDayLabel(d: Date): string {
 
 export function TimelinePage() {
   const privacy = usePrivacy();
-  const today = useMemo(() => startOfDay(new Date()), []);
-  const [selectedIso, setSelectedIso] = useState<string>(() => toIsoDate(new Date()));
+  const today = useMemo(() => startOfLocalDay(new Date()), []);
+  const todayIso = useMemo(() => todayLocalIso(), []);
+  const [selectedIso, setSelectedIso] = useState<string>(() => todayLocalIso());
+  const stripRef = useRef<HTMLDivElement | null>(null);
 
   const serverQuery = useQuery(getDayEvents, { occurredOn: selectedIso } as any, {
     enabled: privacy.mode !== "local",
@@ -82,7 +76,7 @@ export function TimelinePage() {
       for (const c of categories) {
         const events = await localGetCategoryEvents({ userId: privacy.userId!, categoryId: c.id, take: 5000 });
         for (const ev of events) {
-          const iso = toIsoDate(new Date(ev.occurredOn as any));
+          const iso = toLocalIsoDate(new Date(ev.occurredOn as any));
           if (iso !== onIso) continue;
           allEvents.push({
             id: ev.id,
@@ -182,15 +176,21 @@ export function TimelinePage() {
   }, [events, privacy.mode, privacy.key]);
 
   const day = useMemo(() => {
-    const d = new Date(selectedIso);
-    if (Number.isNaN(d.getTime())) return today;
-    return startOfDay(d);
+    try {
+      return parseLocalIsoDate(selectedIso);
+    } catch {
+      return today;
+    }
   }, [selectedIso, today]);
 
-  const daysStrip = useMemo(() => {
-    const base = day;
-    return Array.from({ length: 9 }, (_, i) => addDays(base, i - 4));
-  }, [day]);
+  const daysStripDesktop = useMemo(() => Array.from({ length: 14 }, (_, i) => addDays(day, i - 13)), [day]);
+  const daysStripMobile = useMemo(() => Array.from({ length: 3 }, (_, i) => addDays(day, i - 2)), [day]);
+
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    el.scrollLeft = el.scrollWidth;
+  }, [selectedIso]);
 
   const summary = useMemo(() => {
     if (!events) return [];
@@ -212,6 +212,8 @@ export function TimelinePage() {
       chartType: string;
       categoryType: string;
       count: number;
+      firstAt: Date;
+      lastAt: Date;
       total: number;
       avg: number | null;
       notes: string[];
@@ -223,6 +225,12 @@ export function TimelinePage() {
       const slug = c.slug ?? c.id;
       const isNotes = slug === "notes";
       const isWeight = c.chartType === "line" || c.categoryType === "GOAL";
+      const times = evs
+        .map((e) => new Date(e.occurredAt as any))
+        .filter((d) => !Number.isNaN(d.getTime()))
+        .sort((a, b) => a.getTime() - b.getTime());
+      const firstAt = times[0] ?? new Date(day);
+      const lastAt = times[times.length - 1] ?? new Date(day);
       const count = evs.length;
       const total = evs.reduce((acc, e) => acc + (e.amount ?? 0), 0);
       const avg = isWeight && count > 0 ? total / count : null;
@@ -247,17 +255,32 @@ export function TimelinePage() {
         chartType: c.chartType ?? "bar",
         categoryType: c.categoryType,
         count,
+        firstAt,
+        lastAt,
         total,
         avg,
         notes,
       });
     }
 
-    items.sort((a, b) => a.title.localeCompare(b.title));
+    items.sort((a, b) => a.firstAt.getTime() - b.firstAt.getTime());
     return items;
   }, [events, noteByEventId, titleByCategoryId]);
 
-  const isToday = toIsoDate(day) === toIsoDate(today);
+  const isToday = selectedIso === todayIso;
+
+  function fmtTime(d: Date): string {
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+
+  function fmtRange(first: Date, last: Date): string | null {
+    if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime())) return null;
+    const a = fmtTime(first);
+    const b = fmtTime(last);
+    return a === b ? a : `${a}–${b}`;
+  }
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
@@ -267,30 +290,79 @@ export function TimelinePage() {
           <p className="text-sm text-neutral-500">{isToday ? "Today" : formatDayLabel(day)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toIsoDate(addDays(day, -1)))}>
+          {!isToday ? (
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIso(todayIso)}>
+              Today
+            </Button>
+          ) : null}
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, -1)))}>
             ←
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toIsoDate(addDays(day, 1)))}>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}>
             →
           </Button>
         </div>
       </div>
 
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-        {daysStrip.map((d) => {
-          const iso = toIsoDate(d);
+      <div className="mb-4 sm:hidden">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, -1)))}>
+            ←
+          </Button>
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+            {daysStripMobile.map((d) => {
+              const iso = toLocalIsoDate(d);
+              const active = iso === selectedIso;
+              const dd = String(d.getDate());
+              const w = ["S", "M", "T", "W", "T", "F", "S"][d.getDay()] ?? "";
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  onClick={() => setSelectedIso(iso)}
+                  className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl border px-2 py-2 text-center ${
+                    active
+                      ? "border-neutral-950 bg-neutral-950 text-white"
+                      : "border-neutral-200 bg-white text-neutral-900"
+                  }`}
+                >
+                  <div className={`text-xs font-semibold ${active ? "text-white/70" : "text-neutral-500"}`}>{w}</div>
+                  <div className="text-sm font-semibold">{dd}</div>
+                </button>
+              );
+            })}
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}>
+            →
+          </Button>
+        </div>
+        {!isToday ? (
+          <div className="mt-2 flex justify-end">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIso(todayIso)}>
+              Today
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
+      <div ref={stripRef} className="mb-4 hidden gap-2 overflow-x-auto pb-1 sm:flex">
+        {daysStripDesktop.map((d) => {
+          const iso = toLocalIsoDate(d);
           const active = iso === selectedIso;
-          const label = iso === toIsoDate(today) ? "Today" : formatDayLabel(d);
+          const w = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()] ?? "";
+          const dd = String(d.getDate()).padStart(2, "0");
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
           return (
             <button
               key={iso}
               type="button"
               onClick={() => setSelectedIso(iso)}
-              className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold ${
+              className={`flex flex-col items-center justify-center rounded-xl border px-3 py-2 text-center ${
                 active ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-900"
               }`}
             >
-              {label}
+              <div className={`text-xs font-semibold ${active ? "text-white/70" : "text-neutral-500"}`}>{w}</div>
+              <div className="text-sm font-semibold">{dd}.{mm}.</div>
             </button>
           );
         })}
@@ -301,7 +373,8 @@ export function TimelinePage() {
       ) : summary.length === 0 ? (
         <div className="card p-4 text-sm text-neutral-500">Nothing logged for this day.</div>
       ) : (
-        <div className="space-y-3">
+        <div className="relative space-y-1">
+          <div className="absolute left-4 top-0 h-full w-px bg-neutral-200" aria-hidden="true" />
           {summary.map((s) => {
             const unit = s.unit && s.unit !== "x" ? ` ${s.unit}` : "";
             const isNotes = s.slug === "notes";
@@ -314,49 +387,64 @@ export function TimelinePage() {
               if (s.count <= 1) main = `Weighed`;
               else main = `Weighed ×${s.count}`;
             } else {
-              main = `${Math.round(s.total * 100) / 100}${unit}`;
+              const total = Math.round(s.total * 100) / 100;
+              main = s.count <= 1 ? `${total}${unit}` : `${total}${unit} total · ${s.count} entries`;
             }
 
             let sub: string | null = null;
             if (isWeight) {
-              if (s.count === 1) sub = `${Math.round(s.total * 10) / 10}${unit || " kg"}`;
+              const v = Math.round(s.total * 10) / 10;
+              if (s.count === 1) sub = `${v}${unit || " kg"}`;
               else if (s.avg != null) sub = `avg ${Math.round(s.avg * 10) / 10}${unit || " kg"}`;
             }
 
+            const time = fmtRange(s.firstAt, s.lastAt);
+
             return (
-              <div key={s.categoryId} className="card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="flex h-8 w-8 items-center justify-center rounded-full border bg-white"
-                        style={{ borderColor: s.accentHex }}
-                        aria-hidden="true"
-                      >
-                        <div className="text-lg leading-none">{s.emoji ?? ""}</div>
-                      </div>
+              <Link
+                key={s.categoryId}
+                to={routes.CategoryRoute.to}
+                params={{ categorySlug: s.slug }}
+                className="group relative block rounded-xl px-2 py-2 hover:bg-neutral-50"
+              >
+                <div className="relative flex items-start gap-3">
+                  <div
+                    className="absolute left-0 top-2 flex h-8 w-8 items-center justify-center rounded-full border bg-white"
+                    style={{ borderColor: s.accentHex }}
+                    aria-hidden="true"
+                  >
+                    <div className="text-lg leading-none">{s.emoji ?? ""}</div>
+                  </div>
+                  <div className="w-full pl-10">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate text-base font-semibold">{s.title}</div>
-                        <div className="text-sm text-neutral-500">{main}</div>
+                        <div className="text-sm text-neutral-600">{main}</div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        {time ? <div className="text-xs font-semibold text-neutral-500">{time}</div> : null}
+                        {sub ? <div className="text-sm font-semibold text-neutral-900">{sub}</div> : null}
                       </div>
                     </div>
-                  </div>
-                  {sub ? <div className="shrink-0 text-sm font-semibold text-neutral-900">{sub}</div> : null}
-                </div>
 
-                {isNotes && s.notes.length > 0 ? (
-                  <div className="mt-3 space-y-2">
-                    {s.notes.slice(0, 4).map((n, i) => (
-                      <div key={`${s.categoryId}-${i}`} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm">
-                        {n}
+                    {isNotes && s.notes.length > 0 ? (
+                      <div className="mt-2 space-y-2">
+                        {s.notes.slice(0, 3).map((n, i) => (
+                          <div
+                            key={`${s.categoryId}-${i}`}
+                            className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800"
+                          >
+                            {n}
+                          </div>
+                        ))}
+                        {s.notes.length > 3 ? (
+                          <div className="text-xs font-medium text-neutral-500">+{s.notes.length - 3} more</div>
+                        ) : null}
                       </div>
-                    ))}
-                    {s.notes.length > 4 ? (
-                      <div className="text-xs font-medium text-neutral-500">+{s.notes.length - 4} more</div>
                     ) : null}
                   </div>
-                ) : null}
-              </div>
+                </div>
+              </Link>
             );
           })}
         </div>

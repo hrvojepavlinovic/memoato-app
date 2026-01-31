@@ -243,7 +243,8 @@ type GetCategorySeriesArgs = {
 };
 
 function toIsoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function nextBucketStart(d: Date, period: Period): Date {
