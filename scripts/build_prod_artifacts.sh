@@ -28,9 +28,9 @@ node scripts/patch_wasp_email_login_allow_unverified.mjs
 
 # Wasp's generated projects rely on devDependencies for TypeScript bundling
 # (e.g. @tsconfig/node22). In some prod environments NODE_ENV=production causes
-# npm to omit dev deps, which breaks the build, so we explicitly include them.
-npm --prefix .wasp/build/server install --include=dev
-npm --prefix .wasp/build/web-app install --include=dev
+# npm to omit dev deps, which breaks the build, so we force dev deps on.
+NODE_ENV=development npm --prefix .wasp/build/server install --production=false
+NODE_ENV=development npm --prefix .wasp/build/web-app install --production=false
 
 # Ensure `wasp/*` imports inside the generated projects resolve locally (avoids
 # TS type identity conflicts caused by resolving `wasp` from the repo root).
