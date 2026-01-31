@@ -289,22 +289,9 @@ export function TimelinePage() {
           <h2 className="text-xl font-semibold tracking-tight">Timeline</h2>
           <p className="text-sm text-neutral-500">{isToday ? "Today" : formatDayLabel(day)}</p>
         </div>
-        <div className="flex items-center gap-2">
-          {!isToday ? (
-            <Button variant="ghost" size="sm" onClick={() => setSelectedIso(todayIso)}>
-              Today
-            </Button>
-          ) : null}
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, -1)))}>
-            ←
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}>
-            →
-          </Button>
-        </div>
       </div>
 
-      <div className="mb-4 sm:hidden">
+      <div className="mb-6 sm:hidden">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, -1)))}>
             ←
@@ -345,27 +332,42 @@ export function TimelinePage() {
         ) : null}
       </div>
 
-      <div ref={stripRef} className="mb-4 hidden gap-2 overflow-x-auto pb-1 sm:flex">
-        {daysStripDesktop.map((d) => {
-          const iso = toLocalIsoDate(d);
-          const active = iso === selectedIso;
-          const w = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()] ?? "";
-          const dd = String(d.getDate()).padStart(2, "0");
-          const mm = String(d.getMonth() + 1).padStart(2, "0");
-          return (
-            <button
-              key={iso}
-              type="button"
-              onClick={() => setSelectedIso(iso)}
-              className={`flex flex-col items-center justify-center rounded-xl border px-3 py-2 text-center ${
-                active ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-900"
-              }`}
-            >
-              <div className={`text-xs font-semibold ${active ? "text-white/70" : "text-neutral-500"}`}>{w}</div>
-              <div className="text-sm font-semibold">{dd}.{mm}.</div>
-            </button>
-          );
-        })}
+      <div className="mb-6 hidden items-center gap-2 sm:flex">
+        <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, -1)))}>
+          ←
+        </Button>
+        <div ref={stripRef} className="flex flex-1 gap-2 overflow-x-auto pb-1">
+          {daysStripDesktop.map((d) => {
+            const iso = toLocalIsoDate(d);
+            const active = iso === selectedIso;
+            const w = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()] ?? "";
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            return (
+              <button
+                key={iso}
+                type="button"
+                onClick={() => setSelectedIso(iso)}
+                className={`flex flex-col items-center justify-center rounded-xl border px-3 py-2 text-center ${
+                  active
+                    ? "border-neutral-950 bg-neutral-950 text-white"
+                    : "border-neutral-200 bg-white text-neutral-900"
+                }`}
+              >
+                <div className={`text-xs font-semibold ${active ? "text-white/70" : "text-neutral-500"}`}>{w}</div>
+                <div className="text-sm font-semibold">{dd}.{mm}.</div>
+              </button>
+            );
+          })}
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}>
+          →
+        </Button>
+        {!isToday ? (
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(todayIso)}>
+            Today
+          </Button>
+        ) : null}
       </div>
 
       {privacy.mode !== "local" && serverQuery.isLoading ? (
@@ -374,7 +376,7 @@ export function TimelinePage() {
         <div className="card p-4 text-sm text-neutral-500">Nothing logged for this day.</div>
       ) : (
         <div className="relative space-y-1">
-          <div className="absolute left-4 top-0 h-full w-px bg-neutral-200" aria-hidden="true" />
+          <div className="absolute left-6 top-0 h-full w-px bg-neutral-200" aria-hidden="true" />
           {summary.map((s) => {
             const unit = s.unit && s.unit !== "x" ? ` ${s.unit}` : "";
             const isNotes = s.slug === "notes";
