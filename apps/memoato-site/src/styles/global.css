@@ -258,7 +258,8 @@ a:hover {
 }
 
 .hero {
-  padding: 5rem 0 2.5rem 0;
+  padding-top: 5rem;
+  padding-bottom: 2.5rem;
 }
 
 .hero-grid {
