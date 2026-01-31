@@ -9,11 +9,11 @@ import StatsRow from "../components/StatsRow.astro";
   canonicalPath="/"
 >
   <section class="container hero">
-    <div class="pill">Minimal tracking · Privacy options · Open source</div>
+    <div class="pill">Minimal tracking · Timeline · Privacy options · Open source</div>
     <h1 class="h1" style="margin-top: 1rem">Track what matters.</h1>
     <p class="lead">
       memoato is a lightweight tracker for people who want results without overhead. Log quickly, see progress at a glance,
-      and choose how private you want your data to be.
+      and review your day in a simple timeline.
     </p>
     <div class="hero-actions">
       <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
@@ -31,6 +31,7 @@ import StatsRow from "../components/StatsRow.astro";
         <div class="h2">Designed for low friction</div>
         <ol class="steps prose">
           <li><strong>Log in seconds.</strong> One number, done.</li>
+          <li><strong>See your day.</strong> A timeline-style view that groups what you did.</li>
           <li><strong>See progress.</strong> Goals and trends that stay readable.</li>
           <li><strong>Adjust.</strong> Rename categories, edit history, keep moving.</li>
         </ol>
@@ -65,6 +66,22 @@ import StatsRow from "../components/StatsRow.astro";
           <div class="feature-line">
             <div class="feature-icon" aria-hidden="true">
               <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 6h13" />
+                <path d="M8 12h13" />
+                <path d="M8 18h13" />
+                <path d="M3 6h.01" />
+                <path d="M3 12h.01" />
+                <path d="M3 18h.01" />
+              </svg>
+            </div>
+            <div>
+              <div class="feature-title">Daily timeline</div>
+              <div class="muted">A human-readable day view that groups entries by category.</div>
+            </div>
+          </div>
+          <div class="feature-line">
+            <div class="feature-icon" aria-hidden="true">
+              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M7 11V8a5 5 0 0 1 10 0v3" />
                 <path d="M6 11h12v10H6V11Z" />
               </svg>
@@ -78,6 +95,7 @@ import StatsRow from "../components/StatsRow.astro";
 
         <div class="hero-actions" style="margin-top: 1.25rem">
           <a class="btn" href="/privacy">Privacy</a>
+          <a class="btn" href="/blog/timeline">Timeline</a>
           <a class="btn" href="/open-source">Open source</a>
         </div>
       </div>
