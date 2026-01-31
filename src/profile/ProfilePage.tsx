@@ -541,7 +541,7 @@ export function ProfilePage() {
     <div className="mx-auto w-full max-w-screen-md px-4 py-6">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold tracking-tight">Profile</h2>
-        <p className="text-sm text-neutral-500">Account, privacy, and export.</p>
+        <p className="text-sm text-neutral-500">Account, privacy, and security.</p>
       </div>
 
       <div className="space-y-6">
@@ -619,6 +619,26 @@ export function ProfilePage() {
               </label>
             </div>
 
+            {pendingMode === "local" ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <div className="font-semibold">Heads up</div>
+                <div className="mt-1 text-amber-900/80">
+                  Local-only stores categories and entries in your browser (this device). Switching to local-only will{" "}
+                  <span className="font-semibold">delete your server data</span> for this account. If you clear browser
+                  storage or lose the device, you can lose your data.
+                </div>
+              </div>
+            ) : null}
+
+            {privacy.mode === "local" ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <div className="font-semibold">Local-only is enabled</div>
+                <div className="mt-1 text-amber-900/80">
+                  Your tracker data is stored on this device only. Export periodically if you want a backup.
+                </div>
+              </div>
+            ) : null}
+
             {pendingMode === "encrypted" || privacy.mode === "encrypted" ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1">
@@ -673,44 +693,83 @@ export function ProfilePage() {
 
         <div className="card p-4">
           <div className="mb-3 text-sm font-semibold">Email & security</div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-1">
-              <span className="label">Change email</span>
-              <input
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className={inputClassName}
-                placeholder="new@email.com"
-              />
-            </label>
-            <div className="flex items-end justify-end gap-2">
-              <Button variant="ghost" onClick={onRequestEmailChange} disabled={busy === "email"}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <label className="flex flex-col gap-1">
+                <span className="label">Change email</span>
+                <input
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className={inputClassName}
+                  placeholder="new@email.com"
+                  inputMode="email"
+                />
+              </label>
+              <Button
+                variant="ghost"
+                onClick={onRequestEmailChange}
+                disabled={busy === "email"}
+                className="h-10 w-full sm:h-auto sm:w-auto"
+              >
                 Send confirmation
               </Button>
             </div>
-          </div>
-          <div className="mt-3 flex justify-end gap-2">
-            <Button variant="ghost" onClick={onSendPasswordReset} disabled={busy === "password"}>
-              Reset password
-            </Button>
-            <Button variant="ghost" onClick={onRequestDeletion} disabled={busy === "delete"}>
-              Delete account
-            </Button>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold">Password</div>
+                <div className="text-sm text-neutral-500">Send a reset link to your email.</div>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={onSendPasswordReset}
+                disabled={busy === "password"}
+                className="w-full sm:w-auto"
+              >
+                Send reset link
+              </Button>
+            </div>
+
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+              <div className="font-semibold">Danger zone</div>
+              <div className="mt-1 text-red-900/80">
+                Deleting your account permanently removes your categories and entries. This can’t be undone.
+              </div>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  variant="danger"
+                  onClick={onRequestDeletion}
+                  disabled={busy === "delete"}
+                  className="w-full sm:w-auto"
+                >
+                  Delete account
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="card p-4">
           <div className="mb-3 text-sm font-semibold">Data</div>
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" onClick={logout}>
-              Log out
-            </Button>
-            <Button variant="ghost" onClick={onExport} disabled={busy === "export"}>
-              Export
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/")}>
-              Back
-            </Button>
+          <div className="space-y-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold">Export your data</div>
+                <div className="text-sm text-neutral-500">Downloads a JSON export of your profile, categories, and entries.</div>
+              </div>
+              <Button variant="ghost" onClick={onExport} disabled={busy === "export"} className="w-full sm:w-auto">
+                Export
+              </Button>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-semibold">Session</div>
+                <div className="text-sm text-neutral-500">Sign out of this device.</div>
+              </div>
+              <Button variant="ghost" onClick={logout} className="w-full sm:w-auto">
+                Log out
+              </Button>
+            </div>
           </div>
         </div>
 
