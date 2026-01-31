@@ -27,15 +27,15 @@ node scripts/patch_wasp_verify_email_autologin.mjs
 node scripts/patch_wasp_email_login_allow_unverified.mjs
 
 # Wasp's generated projects rely on devDependencies for TypeScript bundling
-# (e.g. @tsconfig/node22). In some prod environments NODE_ENV=production causes
-# npm to omit dev deps, which breaks the build, so we force dev deps on.
-NODE_ENV=development npm --prefix .wasp/build/server install --production=false
-NODE_ENV=development npm --prefix .wasp/build/web-app install --production=false
+# (e.g. @tsconfig/node22). Ensure dev deps stay installed even if the environment
+# defaults to omitting them.
+npm --prefix .wasp/build/server install --include=dev
+npm --prefix .wasp/build/web-app install --include=dev
 
 # Ensure `wasp/*` imports inside the generated projects resolve locally (avoids
 # TS type identity conflicts caused by resolving `wasp` from the repo root).
-npm --prefix .wasp/build/server install .wasp/out/sdk/wasp --no-save
-npm --prefix .wasp/build/web-app install .wasp/out/sdk/wasp --no-save
+npm --prefix .wasp/build/server install .wasp/out/sdk/wasp --no-save --include=dev
+npm --prefix .wasp/build/web-app install .wasp/out/sdk/wasp --no-save --include=dev
 
 # Avoid TS type identity conflicts by ensuring the web build resolves
 # `@tanstack/react-query` from the same place as `wasp/client/operations`.
