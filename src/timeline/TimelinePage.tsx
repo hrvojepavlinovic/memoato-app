@@ -424,7 +424,7 @@ export function TimelinePage() {
         <div className="card p-4 text-sm text-neutral-500">Nothing logged for this day.</div>
       ) : (
         <div className="relative space-y-1">
-          <div className="absolute left-4 top-0 h-full w-px bg-neutral-200" aria-hidden="true" />
+          <div className="absolute left-6 top-0 h-full w-px bg-neutral-200" aria-hidden="true" />
           {summary.map((s) => {
             const unit = s.unit && s.unit !== "x" ? ` ${s.unit}` : "";
             const isNotes = s.slug === "notes";
