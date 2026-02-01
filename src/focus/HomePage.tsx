@@ -248,7 +248,7 @@ export function HomePage() {
         if (!privacy.userId) return;
         await localResetCategoryOrder({ userId: privacy.userId! });
       } else {
-        await resetCategoryOrder(undefined as any);
+        await resetCategoryOrder();
         await categoriesQuery.refetch();
       }
       setOrderMode(false);

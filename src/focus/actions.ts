@@ -595,7 +595,7 @@ export const setCategoryOrder: SetCategoryOrder<
     throw new HttpError(400, "Invalid category list.");
   }
 
-  await context.entities.$transaction(
+  await Promise.all(
     ids.map((id, i) =>
       context.entities.Category.update({
         where: { id },
