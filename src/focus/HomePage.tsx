@@ -354,7 +354,7 @@ export function HomePage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
+                className="h-10 w-10 px-0 sm:h-auto sm:w-auto sm:px-3"
                 onClick={() => {
                   setOrderMode(false);
                   setDraftOrderIds([]);
@@ -371,7 +371,7 @@ export function HomePage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
+                className="h-10 w-10 px-0 sm:h-auto sm:w-auto sm:px-3"
                 onClick={doResetOrder}
                 disabled={savingOrder}
                 aria-label="Reset to auto order"
@@ -385,7 +385,7 @@ export function HomePage() {
               </Button>
               <Button
                 size="sm"
-                className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
+                className="h-10 w-10 px-0 sm:h-auto sm:w-auto sm:px-3"
                 onClick={saveOrder}
                 disabled={savingOrder}
                 aria-label="Save order"
