@@ -14,6 +14,7 @@ This is a living list of what to do next. Keep it short and reorder often.
 - Landing page: add a simple FAQ section on the homepage to reduce clicks.
 - App: reduce any remaining layout shift/flicker on auth/profile transitions.
 - App: add optional per-entry note editing UX polish (keyboard, spacing, truncation).
+- App: allow manual category ordering (custom order, persisted per user).
 
 ## P2 (community + marketing)
 
@@ -26,4 +27,3 @@ This is a living list of what to do next. Keep it short and reorder often.
 - Add a minimal “release checklist” step to validate Cloudflare Pages deployed latest commit.
 - Add a weekly dependency update routine (avoid breaking changes unless needed).
 - Set up a basic uptime monitor (status page optional).
-
