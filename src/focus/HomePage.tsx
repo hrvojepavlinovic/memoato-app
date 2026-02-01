@@ -35,7 +35,8 @@ function periodLabel(p: CategoryWithStats["period"]): string {
   return "This week";
 }
 
-function withHexAlpha(hex: string, alphaHex: string): string | null {
+function withHexAlpha(hex: unknown, alphaHex: string): string | null {
+  if (typeof hex !== "string") return null;
   const h = hex.trim();
   if (!/^#[0-9a-fA-F]{6}$/.test(h)) return null;
   if (!/^[0-9a-fA-F]{2}$/.test(alphaHex)) return null;
