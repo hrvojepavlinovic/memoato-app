@@ -207,6 +207,15 @@ export function HomePage() {
     }
   }, [orderMode]);
 
+  const displayTitleById = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const c of categories) {
+      const isEncrypted = isEncryptedString(c.title);
+      out[c.id] = titleById[c.id] ?? (isEncrypted ? "Locked" : c.title);
+    }
+    return out;
+  }, [categories, titleById]);
+
   if (isLoading) {
     return <div className="mx-auto w-full max-w-screen-lg px-4 py-6" />;
   }
@@ -329,15 +338,6 @@ export function HomePage() {
       setSavingOrder(false);
     }
   }
-
-  const displayTitleById = useMemo(() => {
-    const out: Record<string, string> = {};
-    for (const c of categories) {
-      const isEncrypted = isEncryptedString(c.title);
-      out[c.id] = titleById[c.id] ?? (isEncrypted ? "Locked" : c.title);
-    }
-    return out;
-  }, [categories, titleById]);
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
