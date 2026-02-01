@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, routes } from "wasp/client/router";
 import {
   ensureDefaultCategories,
@@ -98,6 +98,9 @@ export function HomePage() {
   const [orderMode, setOrderMode] = useState(false);
   const [draftOrderIds, setDraftOrderIds] = useState<string[]>([]);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const dragPointerIdRef = useRef<number | null>(null);
+  const reorderItemByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     if (privacy.mode === "local") return;
@@ -196,6 +199,13 @@ export function HomePage() {
     setDraftOrderIds(categories.map((c) => c.id));
   }, [orderMode, categories, draftOrderIds.length]);
 
+  useEffect(() => {
+    if (!orderMode) {
+      setDraggingId(null);
+      dragPointerIdRef.current = null;
+    }
+  }, [orderMode]);
+
   if (isLoading) {
     return <div className="mx-auto w-full max-w-screen-lg px-4 py-6" />;
   }
@@ -210,16 +220,77 @@ export function HomePage() {
         .filter((c): c is CategoryWithStats => !!c)
     : categories;
 
-  function swapOrder(indexA: number, indexB: number): void {
+  function moveId(list: string[], from: number, to: number): string[] {
+    if (from === to) return list;
+    if (from < 0 || to < 0) return list;
+    if (from >= list.length || to >= list.length) return list;
+    const next = list.slice();
+    const [item] = next.splice(from, 1);
+    if (!item) return list;
+    next.splice(to, 0, item);
+    return next;
+  }
+
+  function setItemRef(id: string): (el: HTMLDivElement | null) => void {
+    return (el) => {
+      const map = reorderItemByIdRef.current;
+      if (!el) map.delete(id);
+      else map.set(id, el);
+    };
+  }
+
+  function onDragHandlePointerDown(id: string, e: React.PointerEvent<HTMLButtonElement>): void {
+    if (!orderMode) return;
+    if (savingOrder) return;
+    // Only left-click for mouse.
+    if (e.pointerType === "mouse" && "button" in e && (e as any).button !== 0) return;
+
+    dragPointerIdRef.current = e.pointerId;
+    setDraggingId(id);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }
+
+  function onDragHandlePointerMove(e: React.PointerEvent<HTMLButtonElement>): void {
+    const pid = dragPointerIdRef.current;
+    if (pid == null) return;
+    if (e.pointerId !== pid) return;
+    if (!draggingId) return;
+
+    const items = Array.from(reorderItemByIdRef.current.entries())
+      .map(([id, el]) => {
+        const r = el.getBoundingClientRect();
+        return { id, midY: r.top + r.height / 2 };
+      })
+      .sort((a, b) => a.midY - b.midY);
+
+    if (items.length === 0) return;
+    const y = e.clientY;
+    let overId = items[0]!.id;
+    let best = Math.abs(items[0]!.midY - y);
+    for (const it of items) {
+      const d = Math.abs(it.midY - y);
+      if (d < best) {
+        best = d;
+        overId = it.id;
+      }
+    }
+
+    if (overId === draggingId) return;
     setDraftOrderIds((prev) => {
-      if (indexA < 0 || indexB < 0) return prev;
-      if (indexA >= prev.length || indexB >= prev.length) return prev;
-      const next = prev.slice();
-      const tmp = next[indexA]!;
-      next[indexA] = next[indexB]!;
-      next[indexB] = tmp;
-      return next;
+      const from = prev.indexOf(draggingId);
+      const to = prev.indexOf(overId);
+      if (from === -1 || to === -1) return prev;
+      return moveId(prev, from, to);
     });
+  }
+
+  function onDragHandlePointerUp(e: React.PointerEvent<HTMLButtonElement>): void {
+    const pid = dragPointerIdRef.current;
+    if (pid == null) return;
+    if (e.pointerId !== pid) return;
+    dragPointerIdRef.current = null;
+    setDraggingId(null);
   }
 
   async function saveOrder(): Promise<void> {
@@ -258,6 +329,15 @@ export function HomePage() {
     }
   }
 
+  const displayTitleById = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const c of categories) {
+      const isEncrypted = isEncryptedString(c.title);
+      out[c.id] = titleById[c.id] ?? (isEncrypted ? "Locked" : c.title);
+    }
+    return out;
+  }, [categories, titleById]);
+
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
       <div className="mb-4 flex items-start justify-between gap-3">
@@ -270,118 +350,156 @@ export function HomePage() {
         <div className="flex items-center gap-2">
           {orderMode ? (
             <>
-              <Button variant="ghost" size="sm" onClick={() => { setOrderMode(false); setDraftOrderIds([]); }}>
-                Cancel
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
+                onClick={() => {
+                  setOrderMode(false);
+                  setDraftOrderIds([]);
+                }}
+                aria-label="Cancel reorder"
+                title="Cancel"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6 6 18" />
+                  <path d="M6 6l12 12" />
+                </svg>
+                <span className="hidden sm:inline">Cancel</span>
               </Button>
-              <Button variant="ghost" size="sm" onClick={doResetOrder} disabled={savingOrder}>
-                Reset
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
+                onClick={doResetOrder}
+                disabled={savingOrder}
+                aria-label="Reset to auto order"
+                title="Reset"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 1 1-3-6.7" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+                <span className="hidden sm:inline">Reset</span>
               </Button>
-              <Button size="sm" onClick={saveOrder} disabled={savingOrder}>
-                Done
+              <Button
+                size="sm"
+                className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
+                onClick={saveOrder}
+                disabled={savingOrder}
+                aria-label="Save order"
+                title="Done"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+                <span className="hidden sm:inline">Done</span>
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" onClick={() => setOrderMode(true)}>
-                Edit order
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
+                onClick={() => setOrderMode(true)}
+                aria-label="Edit order"
+                title="Edit order"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M8 6h13" />
+                  <path d="M8 12h13" />
+                  <path d="M8 18h13" />
+                  <path d="M3 6h.01" />
+                  <path d="M3 12h.01" />
+                  <path d="M3 18h.01" />
+                </svg>
+                <span className="hidden sm:inline">Edit order</span>
               </Button>
-              <ButtonLink to="/categories/new" size="sm">
-                Add category
+              <ButtonLink
+                to="/categories/new"
+                size="sm"
+                className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
+                aria-label="Add category"
+                title="Add category"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+                <span className="hidden sm:inline">Add category</span>
               </ButtonLink>
             </>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {orderedCategories.map((c, idx) => {
-        const isEncrypted = isEncryptedString(c.title);
-        const displayTitle = titleById[c.id] ?? (isEncrypted ? "Locked" : c.title);
-
-          const goalReached =
-            c.chartType === "line"
-              ? c.goalValue != null && c.lastValue != null && c.lastValue <= c.goalValue
-              : c.goalWeekly != null && c.goalWeekly > 0 && c.thisWeekTotal >= c.goalWeekly;
-
-          const goalBg = goalReached ? withHexAlpha(c.accentHex, "08") : null;
-
-          const controls = orderMode ? (
-            <div className="mt-1 flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="xs"
-                className="h-7 w-7 px-0"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  swapOrder(idx, idx - 1);
-                }}
-                disabled={idx === 0}
-                aria-label="Move up"
-                title="Move up"
-              >
-                ↑
-              </Button>
-              <Button
-                variant="ghost"
-                size="xs"
-                className="h-7 w-7 px-0"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  swapOrder(idx, idx + 1);
-                }}
-                disabled={idx === orderedCategories.length - 1}
-                aria-label="Move down"
-                title="Move down"
-              >
-                ↓
-              </Button>
-            </div>
-          ) : null;
-
-          const right = (
-            <div className="flex flex-col items-end gap-1">
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-full border bg-white"
-                style={{ borderColor: c.accentHex }}
-                aria-hidden="true"
-              >
-                <div className="text-lg leading-none">{c.emoji ?? ""}</div>
-              </div>
-              {controls}
-            </div>
-          );
-
-          const cardBody = (
-            <>
-              <div className="flex items-start justify-between gap-2">
-                <div className="text-base font-semibold">{displayTitle}</div>
-                {right}
-              </div>
-              {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
-                <GoalProgress c={c} />
-              ) : (
-                <div className="mt-2 text-xs font-medium text-neutral-500">
-                  {formatWeekGlance(c, displayTitle)}
-                </div>
-              )}
-            </>
-          );
-
-          return (
-            orderMode ? (
+      {orderMode ? (
+        <div className="space-y-2 pt-2">
+          <div className="text-xs font-medium text-neutral-500">
+            Drag the handle to reorder.
+          </div>
+          {orderedCategories.map((c) => {
+            const displayTitle = displayTitleById[c.id] ?? c.title;
+            const isDragging = draggingId === c.id;
+            return (
               <div
                 key={c.id}
-                className="card flex min-h-20 flex-col justify-between p-4"
+                ref={setItemRef(c.id)}
+                className="card flex items-center justify-between gap-3 p-3"
                 style={{
-                  borderColor: goalReached ? c.accentHex : undefined,
-                  backgroundColor: goalBg ?? undefined,
+                  borderColor: isDragging ? c.accentHex : undefined,
+                  backgroundColor: isDragging ? withHexAlpha(c.accentHex, "08") ?? undefined : undefined,
                 }}
               >
-                {cardBody}
+                <div className="flex min-w-0 items-center gap-3">
+                  <button
+                    type="button"
+                    className="touch-none select-none rounded-md bg-neutral-100 px-2 py-2 text-neutral-900 hover:bg-neutral-200 active:bg-neutral-300"
+                    aria-label="Drag to reorder"
+                    title="Drag"
+                    onPointerDown={(e) => onDragHandlePointerDown(c.id, e)}
+                    onPointerMove={onDragHandlePointerMove}
+                    onPointerUp={onDragHandlePointerUp}
+                    onPointerCancel={onDragHandlePointerUp}
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M7 5h2v2H7V5Zm8 0h2v2h-2V5ZM7 11h2v2H7v-2Zm8 0h2v2h-2v-2ZM7 17h2v2H7v-2Zm8 0h2v2h-2v-2Z" />
+                    </svg>
+                  </button>
+
+                  <div
+                    className="flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white"
+                    style={{ borderColor: c.accentHex }}
+                    aria-hidden="true"
+                  >
+                    <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-neutral-950">{displayTitle}</div>
+                    <div className="truncate text-xs font-medium text-neutral-500">
+                      {formatWeekGlance(c, displayTitle)}
+                    </div>
+                  </div>
+                </div>
               </div>
-            ) : (
+            );
+          })}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {orderedCategories.map((c) => {
+            const displayTitle = displayTitleById[c.id] ?? c.title;
+
+            const goalReached =
+              c.chartType === "line"
+                ? c.goalValue != null && c.lastValue != null && c.lastValue <= c.goalValue
+                : c.goalWeekly != null && c.goalWeekly > 0 && c.thisWeekTotal >= c.goalWeekly;
+
+            const goalBg = goalReached ? withHexAlpha(c.accentHex, "08") : null;
+
+            return (
               <Link
                 key={c.id}
                 to={routes.CategoryRoute.to}
@@ -392,12 +510,28 @@ export function HomePage() {
                   backgroundColor: goalBg ?? undefined,
                 }}
               >
-                {cardBody}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="text-base font-semibold">{displayTitle}</div>
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-full border bg-white"
+                    style={{ borderColor: c.accentHex }}
+                    aria-hidden="true"
+                  >
+                    <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                  </div>
+                </div>
+                {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
+                  <GoalProgress c={c} />
+                ) : (
+                  <div className="mt-2 text-xs font-medium text-neutral-500">
+                    {formatWeekGlance(c, displayTitle)}
+                  </div>
+                )}
               </Link>
-            )
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
