@@ -1,11 +1,16 @@
 import { useAuth } from "wasp/client/auth";
 import { Link } from "wasp/client/router";
 import { getProfile, useQuery } from "wasp/client/operations";
+import { useLocation } from "react-router-dom";
 import LogoFallback from "../../assets/logo.svg";
 import { ButtonLink } from "./Button";
 
 export function Header() {
   const { data: user, isLoading } = useAuth();
+  const location = useLocation();
+  const path = location.pathname || "/";
+  const onLogin = path.startsWith("/login");
+  const onSignup = path.startsWith("/signup");
   const profileQuery = useQuery(getProfile, undefined, { enabled: !!user, retry: false });
   const needsEmailVerification =
     !!user && profileQuery.isSuccess && profileQuery.data && !profileQuery.data.isEmailVerified;
@@ -53,14 +58,18 @@ export function Header() {
               </>
             ) : (
               <>
-                <li>
-                  <ButtonLink to="/signup">Sign up</ButtonLink>
-                </li>
-                <li>
-                  <ButtonLink to="/login" variant="ghost">
-                    Login
-                  </ButtonLink>
-                </li>
+                {!onSignup ? (
+                  <li>
+                    <ButtonLink to="/signup">Sign up</ButtonLink>
+                  </li>
+                ) : null}
+                {!onLogin ? (
+                  <li>
+                    <ButtonLink to="/login" variant="ghost">
+                      Login
+                    </ButtonLink>
+                  </li>
+                ) : null}
               </>
             )}
           </ul>
