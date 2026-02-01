@@ -404,7 +404,7 @@ export function HomePage() {
                 className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
                 onClick={() => setOrderMode(true)}
                 aria-label="Edit order"
-                title="Edit order"
+                title="Edit"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M8 6h13" />
@@ -414,20 +414,20 @@ export function HomePage() {
                   <path d="M3 12h.01" />
                   <path d="M3 18h.01" />
                 </svg>
-                <span className="hidden sm:inline">Edit order</span>
+                <span className="hidden sm:inline">Edit</span>
               </Button>
               <ButtonLink
                 to="/categories/new"
                 size="sm"
                 className="h-9 w-9 px-0 sm:h-auto sm:w-auto sm:px-3"
                 aria-label="Add category"
-                title="Add category"
+                title="Add"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 5v14" />
                   <path d="M5 12h14" />
                 </svg>
-                <span className="hidden sm:inline">Add category</span>
+                <span className="hidden sm:inline">Add</span>
               </ButtonLink>
             </>
           )}
