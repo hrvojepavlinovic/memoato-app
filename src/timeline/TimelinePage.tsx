@@ -125,16 +125,29 @@ export function TimelinePage() {
       // Still trim for display.
       const map: Record<string, string> = {};
       const noteMap: Record<string, string> = {};
-      for (const ev of events) {
-        const c = ev.category;
-        if (!c) continue;
-        map[c.id] = String(c.title).trim();
-        const note = typeof ev.data?.note === "string" ? (ev.data.note as string).trim() : "";
-        if (note) noteMap[ev.id] = note;
-      }
-      setTitleByCategoryId(map);
-      setNoteByEventId(noteMap);
-      return;
+      let cancelled = false;
+      (async () => {
+        for (const ev of events) {
+          const c = ev.category;
+          if (!c) continue;
+          map[c.id] = String(c.title).trim();
+
+          if (privacy.key && ev.data) {
+            const note = await decryptEventNote(privacy.key, ev.data);
+            if (note) noteMap[ev.id] = note;
+            continue;
+          }
+
+          const note = typeof ev.data?.note === "string" ? (ev.data.note as string).trim() : "";
+          if (note) noteMap[ev.id] = note;
+        }
+        if (cancelled) return;
+        setTitleByCategoryId(map);
+        setNoteByEventId(noteMap);
+      })();
+      return () => {
+        cancelled = true;
+      };
     }
 
     let cancelled = false;

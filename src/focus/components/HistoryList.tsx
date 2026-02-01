@@ -50,6 +50,7 @@ export function HistoryList({
   const [isOpen, setIsOpen] = useState(false);
   const [extraItems, setExtraItems] = useState<CategoryEventItem[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [rowById, setRowById] = useState<Record<string, RowState>>({});
   const privacy = usePrivacy();
   const isLocal = privacy.mode === "local";
@@ -75,6 +76,24 @@ export function HistoryList({
     setLocalItems(null);
     localGetCategoryEvents({ userId: privacy.userId, categoryId, take: 50 }).then((d) => setLocalItems(d));
   }, [categoryId, isLocal, isOpen, privacy.userId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setExtraItems([]);
+    setHasMore(true);
+    setRowById({});
+  }, [categoryId, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (isLocal) {
+      if (!localItems) return;
+      setHasMore(localItems.length >= 50);
+      return;
+    }
+    if (!eventsQuery.isSuccess) return;
+    setHasMore((eventsQuery.data?.length ?? 0) >= 50);
+  }, [eventsQuery.data, eventsQuery.isSuccess, isLocal, isOpen, localItems]);
 
   useEffect(() => {
     if (!isLocal) return;
@@ -250,6 +269,7 @@ export function HistoryList({
           : []
         : await getCategoryEvents({ categoryId, take: 50, before });
       setExtraItems((prev) => [...prev, ...next]);
+      setHasMore(next.length >= 50);
     } finally {
       setLoadingMore(false);
     }
@@ -352,9 +372,11 @@ export function HistoryList({
               </div>
 
               <div className="mt-3">
-                <Button variant="ghost" onClick={onLoadMore} disabled={loadingMore}>
-                  Load more
-                </Button>
+                {hasMore ? (
+                  <Button variant="ghost" onClick={onLoadMore} disabled={loadingMore}>
+                    Load more
+                  </Button>
+                ) : null}
               </div>
             </>
           ) : (
