@@ -201,6 +201,16 @@ action deleteCategory {
   entities: [Category, Event]
 }
 
+action setCategoryOrder {
+  fn: import { setCategoryOrder } from "@src/focus/actions",
+  entities: [Category]
+}
+
+action resetCategoryOrder {
+  fn: import { resetCategoryOrder } from "@src/focus/actions",
+  entities: [Category]
+}
+
 action updateProfile {
   fn: import { updateProfile } from "@src/profile/actions",
   entities: [User]

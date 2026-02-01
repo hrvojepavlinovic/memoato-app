@@ -18,6 +18,7 @@ export type CategoryWithStats = {
   accentHex: string;
   emoji: string | null;
   isSystem: boolean;
+  sortOrder: number | null;
   period: Period | null;
   goalWeekly: number | null;
   goalValue: number | null;

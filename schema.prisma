@@ -54,6 +54,7 @@ model Category {
   accentHex      String @default("#0A0A0A")
   emoji          String?
   isSystem       Boolean @default(false)
+  sortOrder      Int?
   goalWeekly     Float?
   goalValue      Float?
   targetCount    Int?

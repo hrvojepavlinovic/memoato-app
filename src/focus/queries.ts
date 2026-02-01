@@ -84,6 +84,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       accentHex: true,
       emoji: true,
       isSystem: true,
+      sortOrder: true,
       goalWeekly: true,
       goalValue: true,
     },
@@ -190,6 +191,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     accentHex: c.accentHex,
     emoji: c.emoji ?? null,
     isSystem: !!c.isSystem,
+    sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : null,
     period: (c.period as Period | null) ?? null,
     goalWeekly: c.goalWeekly ?? null,
     goalValue: c.goalValue ?? null,
@@ -218,7 +220,9 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     return c.goalWeekly != null && c.goalWeekly > 0 && c.thisWeekTotal >= c.goalWeekly;
   }
 
-  result.sort((a, b) => {
+  const hasCustomOrder = result.some((c) => c.sortOrder != null);
+
+  function autoCompare(a: CategoryWithStats, b: CategoryWithStats): number {
     const ga = isGoalReached(a);
     const gb = isGoalReached(b);
     if (ga !== gb) return ga ? 1 : -1;
@@ -231,6 +235,20 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     const rb = sortRank(b);
     if (ra !== rb) return ra - rb;
     return a.title.localeCompare(b.title);
+  }
+
+  result.sort((a, b) => {
+    if (!hasCustomOrder) return autoCompare(a, b);
+
+    const ao = a.sortOrder;
+    const bo = b.sortOrder;
+    if (ao != null || bo != null) {
+      if (ao == null) return 1;
+      if (bo == null) return -1;
+      if (ao !== bo) return ao - bo;
+      return autoCompare(a, b);
+    }
+    return autoCompare(a, b);
   });
 
   return result;

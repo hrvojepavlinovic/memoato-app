@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, routes } from "wasp/client/router";
-import { ensureDefaultCategories, getCategories, useQuery } from "wasp/client/operations";
+import {
+  ensureDefaultCategories,
+  getCategories,
+  resetCategoryOrder,
+  setCategoryOrder,
+  useQuery,
+} from "wasp/client/operations";
 import type { CategoryWithStats } from "./types";
-import { ButtonLink } from "../shared/components/Button";
+import { Button, ButtonLink } from "../shared/components/Button";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
 import { isEncryptedString } from "../privacy/crypto";
-import { localCreateCategory, localGetCategoriesWithStats } from "./local";
+import {
+  localCreateCategory,
+  localGetCategoriesWithStats,
+  localResetCategoryOrder,
+  localSetCategoryOrder,
+} from "./local";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -84,6 +95,9 @@ export function HomePage() {
   const isSuccess = privacy.mode === "local" ? true : categoriesQuery.isSuccess;
   const ensuredOnceRef = useRef(false);
   const [titleById, setTitleById] = useState<Record<string, string>>({});
+  const [orderMode, setOrderMode] = useState(false);
+  const [draftOrderIds, setDraftOrderIds] = useState<string[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   useEffect(() => {
     if (privacy.mode === "local") return;
@@ -176,6 +190,12 @@ export function HomePage() {
     };
   }, [categories, privacy.key]);
 
+  useEffect(() => {
+    if (!orderMode) return;
+    if (draftOrderIds.length > 0) return;
+    setDraftOrderIds(categories.map((c) => c.id));
+  }, [orderMode, categories, draftOrderIds.length]);
+
   if (isLoading) {
     return <div className="mx-auto w-full max-w-screen-lg px-4 py-6" />;
   }
@@ -184,18 +204,97 @@ export function HomePage() {
     return <div className="px-4 py-8 text-red-600">Failed to load.</div>;
   }
 
+  const orderedCategories: CategoryWithStats[] = orderMode
+    ? draftOrderIds
+        .map((id) => categories.find((c) => c.id === id))
+        .filter((c): c is CategoryWithStats => !!c)
+    : categories;
+
+  function swapOrder(indexA: number, indexB: number): void {
+    setDraftOrderIds((prev) => {
+      if (indexA < 0 || indexB < 0) return prev;
+      if (indexA >= prev.length || indexB >= prev.length) return prev;
+      const next = prev.slice();
+      const tmp = next[indexA]!;
+      next[indexA] = next[indexB]!;
+      next[indexB] = tmp;
+      return next;
+    });
+  }
+
+  async function saveOrder(): Promise<void> {
+    if (savingOrder) return;
+    setSavingOrder(true);
+    try {
+      if (privacy.mode === "local") {
+        if (!privacy.userId) return;
+        await localSetCategoryOrder({ userId: privacy.userId!, orderedCategoryIds: draftOrderIds });
+      } else {
+        await setCategoryOrder({ orderedCategoryIds: draftOrderIds } as any);
+        await categoriesQuery.refetch();
+      }
+      setOrderMode(false);
+      setDraftOrderIds([]);
+    } finally {
+      setSavingOrder(false);
+    }
+  }
+
+  async function doResetOrder(): Promise<void> {
+    if (savingOrder) return;
+    setSavingOrder(true);
+    try {
+      if (privacy.mode === "local") {
+        if (!privacy.userId) return;
+        await localResetCategoryOrder({ userId: privacy.userId! });
+      } else {
+        await resetCategoryOrder(undefined as any);
+        await categoriesQuery.refetch();
+      }
+      setOrderMode(false);
+      setDraftOrderIds([]);
+    } finally {
+      setSavingOrder(false);
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Categories</h2>
-          <p className="text-sm text-neutral-500">Tap to add and view history.</p>
+          <p className="text-sm text-neutral-500">
+            {orderMode ? "Reorder categories." : "Tap to add and view history."}
+          </p>
         </div>
-        <ButtonLink to="/categories/new">Add category</ButtonLink>
+        <div className="flex items-center gap-2">
+          {orderMode ? (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => { setOrderMode(false); setDraftOrderIds([]); }}>
+                Cancel
+              </Button>
+              <Button variant="ghost" size="sm" onClick={doResetOrder} disabled={savingOrder}>
+                Reset
+              </Button>
+              <Button size="sm" onClick={saveOrder} disabled={savingOrder}>
+                Done
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setOrderMode(true)}>
+                Edit order
+              </Button>
+              <ButtonLink to="/categories/new" size="sm">
+                Add category
+              </ButtonLink>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {categories.map((c) => {
+        {orderedCategories.map((c, idx) => {
         const isEncrypted = isEncryptedString(c.title);
         const displayTitle = titleById[c.id] ?? (isEncrypted ? "Locked" : c.title);
 
@@ -206,26 +305,59 @@ export function HomePage() {
 
           const goalBg = goalReached ? withHexAlpha(c.accentHex, "08") : null;
 
-          return (
-            <Link
-              key={c.id}
-              to={routes.CategoryRoute.to}
-              params={{ categorySlug: c.slug }}
-              className="card flex min-h-20 flex-col justify-between p-4 active:scale-[0.99]"
-              style={{
-                borderColor: goalReached ? c.accentHex : undefined,
-                backgroundColor: goalBg ?? undefined,
-              }}
-            >
+          const controls = orderMode ? (
+            <div className="mt-1 flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="xs"
+                className="h-7 w-7 px-0"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  swapOrder(idx, idx - 1);
+                }}
+                disabled={idx === 0}
+                aria-label="Move up"
+                title="Move up"
+              >
+                ↑
+              </Button>
+              <Button
+                variant="ghost"
+                size="xs"
+                className="h-7 w-7 px-0"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  swapOrder(idx, idx + 1);
+                }}
+                disabled={idx === orderedCategories.length - 1}
+                aria-label="Move down"
+                title="Move down"
+              >
+                ↓
+              </Button>
+            </div>
+          ) : null;
+
+          const right = (
+            <div className="flex flex-col items-end gap-1">
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-full border bg-white"
+                style={{ borderColor: c.accentHex }}
+                aria-hidden="true"
+              >
+                <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+              </div>
+              {controls}
+            </div>
+          );
+
+          const cardBody = (
+            <>
               <div className="flex items-start justify-between gap-2">
                 <div className="text-base font-semibold">{displayTitle}</div>
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full border bg-white"
-                  style={{ borderColor: c.accentHex }}
-                  aria-hidden="true"
-                >
-                  <div className="text-lg leading-none">{c.emoji ?? ""}</div>
-                </div>
+                {right}
               </div>
               {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
                 <GoalProgress c={c} />
@@ -234,7 +366,35 @@ export function HomePage() {
                   {formatWeekGlance(c, displayTitle)}
                 </div>
               )}
-            </Link>
+            </>
+          );
+
+          return (
+            orderMode ? (
+              <div
+                key={c.id}
+                className="card flex min-h-20 flex-col justify-between p-4"
+                style={{
+                  borderColor: goalReached ? c.accentHex : undefined,
+                  backgroundColor: goalBg ?? undefined,
+                }}
+              >
+                {cardBody}
+              </div>
+            ) : (
+              <Link
+                key={c.id}
+                to={routes.CategoryRoute.to}
+                params={{ categorySlug: c.slug }}
+                className="card flex min-h-20 flex-col justify-between p-4 active:scale-[0.99]"
+                style={{
+                  borderColor: goalReached ? c.accentHex : undefined,
+                  backgroundColor: goalBg ?? undefined,
+                }}
+              >
+                {cardBody}
+              </Link>
+            )
           );
         })}
       </div>

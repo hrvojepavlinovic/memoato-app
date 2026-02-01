@@ -6,6 +6,8 @@ import {
   type DeleteCategory,
   type DeleteEvent,
   type EnsureDefaultCategories,
+  type SetCategoryOrder,
+  type ResetCategoryOrder,
   type UpdateCategory,
   type UpdateEvent,
 } from "wasp/server/operations";
@@ -566,6 +568,59 @@ export const deleteCategory: DeleteCategory<DeleteCategoryArgs, { ok: boolean }>
   // Hard-delete category and its events.
   await context.entities.Event.deleteMany({ where: { userId, categoryId: existing.id } });
   await context.entities.Category.delete({ where: { id: existing.id } });
+  return { ok: true };
+};
+
+type SetCategoryOrderArgs = {
+  orderedCategoryIds: Category["id"][];
+};
+
+export const setCategoryOrder: SetCategoryOrder<
+  SetCategoryOrderArgs,
+  { ok: boolean }
+> = async ({ orderedCategoryIds }, context) => {
+  if (!context.user) {
+    throw new HttpError(401);
+  }
+  const userId = context.user.id;
+
+  const ids = Array.from(new Set((orderedCategoryIds ?? []).map(String))).filter(Boolean);
+  if (ids.length === 0) return { ok: true };
+
+  const categories = await context.entities.Category.findMany({
+    where: { userId, id: { in: ids }, sourceArchivedAt: null },
+    select: { id: true },
+  });
+  if (categories.length !== ids.length) {
+    throw new HttpError(400, "Invalid category list.");
+  }
+
+  await context.entities.$transaction(
+    ids.map((id, i) =>
+      context.entities.Category.update({
+        where: { id },
+        data: { sortOrder: i },
+      }),
+    ),
+  );
+
+  return { ok: true };
+};
+
+type ResetCategoryOrderArgs = void;
+
+export const resetCategoryOrder: ResetCategoryOrder<
+  ResetCategoryOrderArgs,
+  { ok: boolean }
+> = async (_args, context) => {
+  if (!context.user) {
+    throw new HttpError(401);
+  }
+  const userId = context.user.id;
+  await context.entities.Category.updateMany({
+    where: { userId, sourceArchivedAt: null },
+    data: { sortOrder: null },
+  });
   return { ok: true };
 };
 

@@ -12,6 +12,7 @@ export type LocalCategory = {
   accentHex: string;
   emoji: string | null;
   isSystem: boolean;
+  sortOrder?: number | null;
   goalWeekly: number | null;
   goalValue: number | null;
   sourceArchivedAt: string | null;
@@ -306,6 +307,7 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     accentHex: c.accentHex,
     emoji: c.emoji ?? null,
     isSystem: !!(c as any).isSystem,
+    sortOrder: typeof (c as any).sortOrder === "number" ? ((c as any).sortOrder as number) : null,
     period: c.period ?? null,
     goalWeekly: c.goalWeekly ?? null,
     goalValue: c.goalValue ?? null,
@@ -321,7 +323,9 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     lastValue: lastByCategory.get(c.id) ?? null,
   }));
 
-  result.sort((a, b) => {
+  const hasCustomOrder = result.some((c) => c.sortOrder != null);
+
+  function autoCompare(a: CategoryWithStats, b: CategoryWithStats): number {
     const ga = isGoalReached(a);
     const gb = isGoalReached(b);
     if (ga !== gb) return ga ? 1 : -1;
@@ -334,9 +338,54 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     const rb = sortRank(b);
     if (ra !== rb) return ra - rb;
     return a.title.localeCompare(b.title);
+  }
+
+  result.sort((a, b) => {
+    if (!hasCustomOrder) return autoCompare(a, b);
+
+    const ao = a.sortOrder;
+    const bo = b.sortOrder;
+    if (ao != null || bo != null) {
+      if (ao == null) return 1;
+      if (bo == null) return -1;
+      if (ao !== bo) return ao - bo;
+      return autoCompare(a, b);
+    }
+    return autoCompare(a, b);
   });
 
   return result;
+}
+
+export async function localSetCategoryOrder(args: { userId: string; orderedCategoryIds: string[] }): Promise<void> {
+  const db = await openDb();
+  const { userId, orderedCategoryIds } = args;
+  const categories = await getAllByIndex<LocalCategory>(db, "categories", "byUser", userId);
+  const byId = new Map(categories.map((c) => [c.id, c]));
+
+  const now = new Date().toISOString();
+  await withStore<void>(db, "categories", "readwrite", (store) => {
+    orderedCategoryIds.forEach((id, i) => {
+      const c = byId.get(id);
+      if (!c) return;
+      store.put({ ...c, sortOrder: i, updatedAt: now } satisfies LocalCategory);
+    });
+  });
+  emitLocalChanged(userId);
+}
+
+export async function localResetCategoryOrder(args: { userId: string }): Promise<void> {
+  const db = await openDb();
+  const { userId } = args;
+  const categories = await getAllByIndex<LocalCategory>(db, "categories", "byUser", userId);
+  const now = new Date().toISOString();
+  await withStore<void>(db, "categories", "readwrite", (store) => {
+    for (const c of categories) {
+      if (c.userId !== userId) continue;
+      store.put({ ...c, sortOrder: null, updatedAt: now } satisfies LocalCategory);
+    }
+  });
+  emitLocalChanged(userId);
 }
 
 export async function localGetCategoryEvents(args: {
