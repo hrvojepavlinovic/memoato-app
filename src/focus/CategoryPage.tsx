@@ -410,35 +410,53 @@ export function CategoryPage() {
           </div>
         ) : null}
 
-        <div
-          className={`card grid grid-cols-1 gap-3 p-4 ${
-            isNotes ? "sm:grid-cols-[220px_1fr_140px]" : "sm:grid-cols-3"
-          }`}
-        >
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="label">Date</span>
-            <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white">
-              <input
-                type="date"
-                value={occurredOn}
-                onChange={(e) => setOccurredOn(e.target.value)}
-                className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900"
-                style={{ WebkitAppearance: "none" }}
-              />
-            </div>
-          </label>
-          {isNotes ? (
+        {isNotes ? (
+          <div className="card grid grid-cols-1 gap-3 p-4">
             <label className="flex min-w-0 flex-col gap-1">
               <span className="label">Note</span>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Write a quick thought…"
-                rows={2}
+                rows={3}
                 className="block w-full min-w-0 max-w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
               />
             </label>
-          ) : (
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex min-w-0 flex-col gap-1">
+                <span className="label">Date</span>
+                <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white">
+                  <input
+                    type="date"
+                    value={occurredOn}
+                    onChange={(e) => setOccurredOn(e.target.value)}
+                    className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900"
+                    style={{ WebkitAppearance: "none" }}
+                  />
+                </div>
+              </label>
+              <div className="flex min-w-0 items-end">
+                <Button className="h-10 w-full" onClick={onAdd} disabled={isLocked}>
+                  Add
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="label">Date</span>
+              <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white">
+                <input
+                  type="date"
+                  value={occurredOn}
+                  onChange={(e) => setOccurredOn(e.target.value)}
+                  className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900"
+                  style={{ WebkitAppearance: "none" }}
+                />
+              </div>
+            </label>
             <label className="flex min-w-0 flex-col gap-1">
               <span className="label">Amount</span>
               <input
@@ -452,13 +470,13 @@ export function CategoryPage() {
                 className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500"
               />
             </label>
-          )}
-          <div className="flex min-w-0 items-end">
-            <Button className="h-10 w-full" onClick={onAdd} disabled={isLocked}>
-              Add
-            </Button>
+            <div className="flex min-w-0 items-end">
+              <Button className="h-10 w-full" onClick={onAdd} disabled={isLocked}>
+                Add
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
