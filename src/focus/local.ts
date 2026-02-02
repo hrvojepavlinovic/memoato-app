@@ -1,4 +1,13 @@
-import type { CategoryWithStats, LinePoint, Period, SeriesBucket, CategoryEventItem, CategoryChartType } from "./types";
+import type {
+  CategoryWithStats,
+  LinePoint,
+  Period,
+  SeriesBucket,
+  CategoryEventItem,
+  CategoryChartType,
+  BucketAggregation,
+  GoalDirection,
+} from "./types";
 
 export type LocalCategory = {
   id: string;
@@ -13,6 +22,8 @@ export type LocalCategory = {
   emoji: string | null;
   isSystem: boolean;
   sortOrder?: number | null;
+  bucketAggregation?: BucketAggregation | null;
+  goalDirection?: GoalDirection | null;
   goalWeekly: number | null;
   goalValue: number | null;
   sourceArchivedAt: string | null;
@@ -189,7 +200,7 @@ function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Dat
   const on = new Date(y, m - 1, d);
   on.setHours(0, 0, 0, 0);
   const at = new Date(on);
-  at.setHours(12, 0, 0, 0);
+  at.setHours(now.getHours(), now.getMinutes(), 0, 0);
   return { occurredAt: at, occurredOn: on };
 }
 
@@ -209,11 +220,25 @@ function sortRank(c: CategoryWithStats): number {
   return 1;
 }
 
+function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
+  const v = (c.goalDirection ?? "").toLowerCase();
+  if (v === "at_most") return "at_most";
+  if (v === "at_least") return "at_least";
+  if ((c.slug ?? "").toLowerCase() === "weight") return "at_most";
+  if (c.categoryType === "DONT") return "at_most";
+  return "at_least";
+}
+
 function isGoalReached(c: CategoryWithStats): boolean {
   if (c.chartType === "line") {
-    return c.goalValue != null && c.lastValue != null && c.lastValue <= c.goalValue;
+    if (c.goalValue == null || c.lastValue == null) return false;
+    const dir = normalizeGoalDirection(c);
+    return dir === "at_most" ? c.lastValue <= c.goalValue : c.lastValue >= c.goalValue;
   }
-  return c.goalWeekly != null && c.goalWeekly > 0 && c.thisWeekTotal >= c.goalWeekly;
+  if (c.goalWeekly == null || c.goalWeekly <= 0) return false;
+  const dir = normalizeGoalDirection(c);
+  if (dir === "at_most") return false;
+  return c.thisWeekTotal >= c.goalWeekly;
 }
 
 export async function localListCategories(userId: string): Promise<LocalCategory[]> {
@@ -308,6 +333,8 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     emoji: c.emoji ?? null,
     isSystem: !!(c as any).isSystem,
     sortOrder: typeof (c as any).sortOrder === "number" ? ((c as any).sortOrder as number) : null,
+    bucketAggregation: ((c as any).bucketAggregation as any) ?? null,
+    goalDirection: ((c as any).goalDirection as any) ?? null,
     period: c.period ?? null,
     goalWeekly: c.goalWeekly ?? null,
     goalValue: c.goalValue ?? null,
@@ -437,12 +464,15 @@ export async function localCreateCategory(args: {
   userId: string;
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
+  chartType?: CategoryChartType;
   period?: Period;
   unit?: string | null;
   goal?: number | null;
   goalValue?: number | null;
   accentHex: string;
   emoji?: string | null;
+  bucketAggregation?: BucketAggregation | null;
+  goalDirection?: GoalDirection | null;
 }): Promise<Pick<CategoryWithStats, "id" | "slug">> {
   const db = await openDb();
   const now = new Date().toISOString();
@@ -457,7 +487,8 @@ export async function localCreateCategory(args: {
     slug = `${base}-${n}`;
     n += 1;
   }
-  const chartType: CategoryChartType = args.categoryType === "GOAL" ? "line" : "bar";
+  const chartType: CategoryChartType = args.chartType ?? (args.categoryType === "GOAL" ? "line" : "bar");
+  const needsPeriod = chartType !== "line";
 
   const record: LocalCategory = {
     id,
@@ -466,13 +497,15 @@ export async function localCreateCategory(args: {
     slug,
     categoryType: args.categoryType,
     chartType,
-    period: args.categoryType === "GOAL" ? null : args.period ?? "week",
+    period: needsPeriod ? args.period ?? "week" : null,
     unit: args.unit && args.unit.trim().length > 0 ? args.unit : null,
     accentHex: args.accentHex,
     emoji: args.emoji && args.emoji.trim().length > 0 ? args.emoji : null,
     isSystem: false,
-    goalWeekly: args.categoryType === "GOAL" ? null : args.goal ?? null,
-    goalValue: args.categoryType === "GOAL" ? args.goalValue ?? null : null,
+    bucketAggregation: args.bucketAggregation ?? null,
+    goalDirection: args.goalDirection ?? null,
+    goalWeekly: needsPeriod ? args.goal ?? null : null,
+    goalValue: chartType === "line" ? args.goalValue ?? null : null,
     sourceArchivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -492,12 +525,15 @@ export async function localUpdateCategory(args: {
   categoryId: string;
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
+  chartType?: CategoryChartType;
   period?: Period;
   unit?: string | null;
   goal?: number | null;
   goalValue?: number | null;
   accentHex: string;
   emoji?: string | null;
+  bucketAggregation?: BucketAggregation | null;
+  goalDirection?: GoalDirection | null;
 }): Promise<void> {
   const db = await openDb();
   const now = new Date().toISOString();
@@ -509,19 +545,22 @@ export async function localUpdateCategory(args: {
   });
   if (!existing || existing.userId !== args.userId) throw new Error("Category not found");
 
-  const chartType: CategoryChartType = args.categoryType === "GOAL" ? "line" : "bar";
+  const chartType: CategoryChartType = args.chartType ?? (args.categoryType === "GOAL" ? "line" : "bar");
+  const needsPeriod = chartType !== "line";
   const updated: LocalCategory = {
     ...existing,
     title: args.title.trim(),
     categoryType: args.categoryType,
     chartType,
-    period: args.categoryType === "GOAL" ? null : args.period ?? "week",
+    period: needsPeriod ? args.period ?? "week" : null,
     unit: args.unit && args.unit.trim().length > 0 ? args.unit : null,
     accentHex: args.accentHex,
     emoji: args.emoji && args.emoji.trim().length > 0 ? args.emoji : null,
     isSystem: existing.isSystem ?? false,
-    goalWeekly: args.categoryType === "GOAL" ? null : args.goal ?? null,
-    goalValue: args.categoryType === "GOAL" ? args.goalValue ?? null : null,
+    bucketAggregation: args.bucketAggregation ?? (existing as any).bucketAggregation ?? null,
+    goalDirection: args.goalDirection ?? (existing as any).goalDirection ?? null,
+    goalWeekly: needsPeriod ? args.goal ?? null : null,
+    goalValue: chartType === "line" ? args.goalValue ?? null : null,
     updatedAt: now,
   };
 
@@ -632,9 +671,18 @@ export async function localUpdateEvent(args: {
   const nextData: Record<string, unknown> = { ...baseData };
   if ("tags" in nextData) delete nextData.tags;
   if (args.noteEnc !== undefined) {
-    if (args.noteEnc == null) delete nextData.noteEnc;
-    else nextData.noteEnc = args.noteEnc as any;
-    nextData.note = null;
+    if (args.noteEnc == null) {
+      delete nextData.noteEnc;
+      if (args.note !== undefined) {
+        const cleanNote = typeof args.note === "string" ? args.note.trim() : "";
+        nextData.note = cleanNote ? cleanNote : null;
+      } else {
+        nextData.note = null;
+      }
+    } else {
+      nextData.noteEnc = args.noteEnc as any;
+      nextData.note = null;
+    }
   } else if (args.note !== undefined) {
     const cleanNote = typeof args.note === "string" ? args.note.trim() : "";
     nextData.note = cleanNote ? cleanNote : null;
@@ -677,8 +725,10 @@ export async function localGetBarSeries(args: {
   categoryId: string;
   period: Period;
   offset?: number;
+  aggregation?: BucketAggregation | null;
 }): Promise<SeriesBucket[]> {
   const { userId, categoryId, period, offset } = args;
+  const aggregation: BucketAggregation = args.aggregation === "avg" ? "avg" : "sum";
   const rawOffset = Math.min(0, Math.trunc(offset ?? 0));
   const baseNow = new Date();
   let now = baseNow;
@@ -697,11 +747,11 @@ export async function localGetBarSeries(args: {
   let end = cursor;
   for (let i = 0; i < count; i++) end = nextBucketStart(end, period);
 
-  const buckets: { start: Date; end: Date; total: number }[] = [];
+  const buckets: { start: Date; end: Date; total: number; count: number }[] = [];
   let bStart = cursor;
   for (let i = 0; i < count; i++) {
     const bEnd = nextBucketStart(bStart, period);
-    buckets.push({ start: bStart, end: bEnd, total: 0 });
+    buckets.push({ start: bStart, end: bEnd, total: 0, count: 0 });
     bStart = bEnd;
   }
 
@@ -724,6 +774,7 @@ export async function localGetBarSeries(args: {
       for (const b of buckets) {
         if (t >= b.start.getTime() && t < b.end.getTime()) {
           b.total += amount;
+          b.count += 1;
           break;
         }
       }
@@ -734,7 +785,11 @@ export async function localGetBarSeries(args: {
     tx.onabort = () => reject(tx.error);
   });
 
-  return buckets.map((b) => ({ label: bucketLabel(b.start, period), total: b.total, startDate: toIsoDate(b.start) }));
+  return buckets.map((b) => ({
+    label: bucketLabel(b.start, period),
+    total: aggregation === "avg" && b.count > 0 ? b.total / b.count : b.total,
+    startDate: toIsoDate(b.start),
+  }));
 }
 
 export async function localGetLineSeries(args: {
@@ -742,8 +797,10 @@ export async function localGetLineSeries(args: {
   categoryId: string;
   period: Period;
   offset?: number;
+  aggregation?: BucketAggregation | null;
 }): Promise<LinePoint[]> {
   const { userId, categoryId, period, offset } = args;
+  const aggregation: BucketAggregation = args.aggregation === "avg" ? "avg" : "last";
   const rawOffset = Math.min(0, Math.trunc(offset ?? 0));
   const baseNow = new Date();
   let now = baseNow;
@@ -762,11 +819,11 @@ export async function localGetLineSeries(args: {
   let end = cursor;
   for (let i = 0; i < count; i++) end = nextBucketStart(end, period);
 
-  const buckets: { start: Date; end: Date; value: number | null }[] = [];
+  const buckets: { start: Date; end: Date; value: number | null; sum: number; count: number }[] = [];
   let bStart = cursor;
   for (let i = 0; i < count; i++) {
     const bEnd = nextBucketStart(bStart, period);
-    buckets.push({ start: bStart, end: bEnd, value: null });
+    buckets.push({ start: bStart, end: bEnd, value: null, sum: 0, count: 0 });
     bStart = bEnd;
   }
 
@@ -789,7 +846,10 @@ export async function localGetLineSeries(args: {
       if (v != null) {
         for (const b of buckets) {
           if (t >= b.start.getTime() && t < b.end.getTime()) {
-            b.value = v; // last value in bucket wins (ascending order)
+            b.sum += v;
+            b.count += 1;
+            if (aggregation === "last") b.value = v;
+            else b.value = b.sum / b.count;
           }
         }
       }

@@ -493,3 +493,40 @@ a:hover {
   background: rgba(0, 0, 0, 0.02);
   border-radius: 12px;
 }
+
+.post-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.post-card {
+  display: block;
+  padding: 1.25rem;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.post-card:hover {
+  text-decoration: none;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.post-title {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.post-meta {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.post-desc {
+  color: rgba(10, 10, 10, 0.72);
+}

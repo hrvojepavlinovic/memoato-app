@@ -29,16 +29,9 @@ import StatsRow from "../components/StatsRow.astro";
     <div class="container">
       <div class="card">
         <div class="h2">Designed for low friction</div>
-        <ol class="steps prose">
-          <li><strong>Log in seconds.</strong> One number, done.</li>
-          <li><strong>See your day.</strong> A timeline-style view that groups what you did.</li>
-          <li><strong>See progress.</strong> Goals and trends that stay readable.</li>
-          <li><strong>Adjust.</strong> Rename categories, edit history, keep moving.</li>
-        </ol>
-      </div>
-
-      <div class="card" style="margin-top: 1rem">
-        <div class="h2">What you get</div>
+        <div class="muted" style="max-width: 70ch">
+          Log fast, see progress clearly, review your day in a timeline, and adjust as you go.
+        </div>
         <div class="feature-grid">
           <div class="feature-line">
             <div class="feature-icon" aria-hidden="true">
@@ -77,6 +70,25 @@ import StatsRow from "../components/StatsRow.astro";
             <div>
               <div class="feature-title">Daily timeline</div>
               <div class="muted">A human-readable day view that groups entries by category.</div>
+            </div>
+          </div>
+          <div class="feature-line">
+            <div class="feature-icon" aria-hidden="true">
+              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v2" />
+                <path d="M12 20v2" />
+                <path d="M4.93 4.93l1.41 1.41" />
+                <path d="M17.66 17.66l1.41 1.41" />
+                <path d="M2 12h2" />
+                <path d="M20 12h2" />
+                <path d="M6.34 17.66l-1.41 1.41" />
+                <path d="M19.07 4.93l-1.41 1.41" />
+                <path d="M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10Z" />
+              </svg>
+            </div>
+            <div>
+              <div class="feature-title">Flexible categories</div>
+              <div class="muted">Choose bar or line, set goals, and control how multiple entries are counted.</div>
             </div>
           </div>
           <div class="feature-line">

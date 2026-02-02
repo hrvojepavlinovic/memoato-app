@@ -10,6 +10,8 @@ import type {
   CategoryChartType,
   CategoryEventItem,
   CategoryWithStats,
+  GoalDirection,
+  BucketAggregation,
   LinePoint,
   Period,
   SeriesBucket,
@@ -85,6 +87,8 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       emoji: true,
       isSystem: true,
       sortOrder: true,
+      bucketAggregation: true,
+      goalDirection: true,
       goalWeekly: true,
       goalValue: true,
     },
@@ -192,6 +196,9 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     emoji: c.emoji ?? null,
     isSystem: !!c.isSystem,
     sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : null,
+    bucketAggregation:
+      typeof c.bucketAggregation === "string" ? (c.bucketAggregation as BucketAggregation) : null,
+    goalDirection: typeof c.goalDirection === "string" ? (c.goalDirection as GoalDirection) : null,
     period: (c.period as Period | null) ?? null,
     goalWeekly: c.goalWeekly ?? null,
     goalValue: c.goalValue ?? null,
@@ -207,6 +214,24 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     lastValue: lastByCategory.get(c.id) ?? null,
   }));
 
+  function normalizeBucketAggregation(c: CategoryWithStats): BucketAggregation {
+    const v = (c.bucketAggregation ?? "").toLowerCase();
+    if (v === "avg") return "avg";
+    if (v === "last") return "last";
+    if (v === "sum") return "sum";
+    return c.chartType === "line" ? "last" : "sum";
+  }
+
+  function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
+    const v = (c.goalDirection ?? "").toLowerCase();
+    if (v === "at_most") return "at_most";
+    if (v === "at_least") return "at_least";
+    // Defaults: weight is "at_most", don'ts are "at_most", everything else "at_least".
+    if ((c.slug ?? "").toLowerCase() === "weight") return "at_most";
+    if (c.categoryType === "DONT") return "at_most";
+    return "at_least";
+  }
+
   function sortRank(c: CategoryWithStats): number {
     if (c.chartType === "line") return 2; // goal-value series (e.g. weight)
     if (c.goalWeekly != null && c.goalWeekly > 0) return 0; // progress-bar categories
@@ -215,9 +240,15 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
 
   function isGoalReached(c: CategoryWithStats): boolean {
     if (c.chartType === "line") {
-      return c.goalValue != null && c.lastValue != null && c.lastValue <= c.goalValue;
+      if (c.goalValue == null || c.lastValue == null) return false;
+      const dir = normalizeGoalDirection(c);
+      return dir === "at_most" ? c.lastValue <= c.goalValue : c.lastValue >= c.goalValue;
     }
-    return c.goalWeekly != null && c.goalWeekly > 0 && c.thisWeekTotal >= c.goalWeekly;
+    if (c.goalWeekly == null || c.goalWeekly <= 0) return false;
+    const dir = normalizeGoalDirection(c);
+    // For per-period totals, default is "at_least". "at_most" is treated as a limit and doesn't count as "reached" here.
+    if (dir === "at_most") return false;
+    return c.thisWeekTotal >= c.goalWeekly;
   }
 
   const hasCustomOrder = result.some((c) => c.sortOrder != null);
@@ -292,6 +323,21 @@ function getBucketCount(period: Period): number {
   return 6;
 }
 
+function normalizeAgg(v: unknown, chartType: CategoryChartType): BucketAggregation {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  if (s === "sum") return "sum";
+  if (s === "avg") return "avg";
+  if (s === "last") return "last";
+  return chartType === "line" ? "last" : "sum";
+}
+
+function normalizeDir(v: unknown): GoalDirection | null {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  if (s === "at_least") return "at_least";
+  if (s === "at_most") return "at_most";
+  return null;
+}
+
 export const getCategorySeries: GetCategorySeries<
   GetCategorySeriesArgs,
   SeriesBucket[]
@@ -301,13 +347,15 @@ export const getCategorySeries: GetCategorySeries<
   }
 
   const userId = context.user.id;
-  const ownsCategory = await context.entities.Category.findFirst({
+  const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { id: true },
+    select: { id: true, chartType: true, bucketAggregation: true },
   });
-  if (!ownsCategory) {
+  if (!category) {
     throw new HttpError(404, "Category not found");
   }
+  const chartType = ((category.chartType ?? "bar") as CategoryChartType);
+  const aggregation = normalizeAgg((category as any).bucketAggregation, chartType);
 
   const rawOffset = Math.min(0, Math.trunc(offset ?? 0));
   const baseNow = new Date();
@@ -341,6 +389,7 @@ export const getCategorySeries: GetCategorySeries<
     where: {
       userId,
       categoryId,
+      kind: "SESSION",
       occurredAt: {
         gte: start,
         lt: end,
@@ -352,11 +401,11 @@ export const getCategorySeries: GetCategorySeries<
     },
   });
 
-  const buckets: { start: Date; end: Date; total: number }[] = [];
+  const buckets: { start: Date; end: Date; total: number; count: number }[] = [];
   let bStart = cursor;
   for (let i = 0; i < count; i++) {
     const bEnd = nextBucketStart(bStart, period);
-    buckets.push({ start: bStart, end: bEnd, total: 0 });
+    buckets.push({ start: bStart, end: bEnd, total: 0, count: 0 });
     bStart = bEnd;
   }
 
@@ -366,6 +415,7 @@ export const getCategorySeries: GetCategorySeries<
     for (const b of buckets) {
       if (t >= b.start.getTime() && t < b.end.getTime()) {
         b.total += amount;
+        b.count += 1;
         break;
       }
     }
@@ -373,7 +423,7 @@ export const getCategorySeries: GetCategorySeries<
 
   return buckets.map((b) => ({
     label: bucketLabel(b.start, period),
-    total: b.total,
+    total: aggregation === "avg" && b.count > 0 ? b.total / b.count : b.total,
     startDate: toIsoDate(b.start),
   }));
 };
@@ -387,13 +437,15 @@ export const getCategoryLineSeries: GetCategoryLineSeries<
   }
 
   const userId = context.user.id;
-  const ownsCategory = await context.entities.Category.findFirst({
+  const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { id: true },
+    select: { id: true, chartType: true, bucketAggregation: true },
   });
-  if (!ownsCategory) {
+  if (!category) {
     throw new HttpError(404, "Category not found");
   }
+  const chartType = ((category.chartType ?? "bar") as CategoryChartType);
+  const aggregation = normalizeAgg((category as any).bucketAggregation, chartType);
 
   const rawOffset = Math.min(0, Math.trunc(offset ?? 0));
   const baseNow = new Date();
@@ -426,6 +478,7 @@ export const getCategoryLineSeries: GetCategoryLineSeries<
     where: {
       userId,
       categoryId,
+      kind: "SESSION",
       amount: { not: null },
       occurredAt: { gte: start, lt: end },
     },
@@ -433,11 +486,11 @@ export const getCategoryLineSeries: GetCategoryLineSeries<
     orderBy: [{ occurredAt: "asc" }],
   });
 
-  const buckets: { start: Date; end: Date; value: number | null }[] = [];
+  const buckets: { start: Date; end: Date; value: number | null; sum: number; count: number }[] = [];
   let bStart = cursor;
   for (let i = 0; i < count; i++) {
     const bEnd = nextBucketStart(bStart, period);
-    buckets.push({ start: bStart, end: bEnd, value: null });
+    buckets.push({ start: bStart, end: bEnd, value: null, sum: 0, count: 0 });
     bStart = bEnd;
   }
 
@@ -447,7 +500,15 @@ export const getCategoryLineSeries: GetCategoryLineSeries<
     if (v == null) continue;
     for (const b of buckets) {
       if (t >= b.start.getTime() && t < b.end.getTime()) {
-        b.value = v; // last value in bucket wins (events are asc)
+        b.sum += v;
+        b.count += 1;
+        if (aggregation === "last") {
+          b.value = v; // last value in bucket wins (events are asc)
+        } else if (aggregation === "sum") {
+          b.value = b.sum;
+        } else if (aggregation === "avg") {
+          b.value = b.sum / b.count;
+        }
       }
     }
   }

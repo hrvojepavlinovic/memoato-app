@@ -38,6 +38,59 @@ function periodLabel(p: Period | null): string {
   return "This week";
 }
 
+function daysInMonth(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
+
+function daysInYear(d: Date): number {
+  const y = d.getFullYear();
+  const isLeap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+  return isLeap ? 366 : 365;
+}
+
+function daysInPeriod(period: Period, reference: Date): number {
+  if (period === "day") return 1;
+  if (period === "week") return 7;
+  if (period === "month") return daysInMonth(reference);
+  return daysInYear(reference);
+}
+
+function periodReferenceDate(period: Period, offset: number): Date {
+  const base = new Date();
+  if (period === "day") {
+    const d = new Date(base);
+    d.setDate(d.getDate() + offset);
+    return d;
+  }
+  if (period === "week") {
+    const d = new Date(base);
+    d.setDate(d.getDate() + offset * 7);
+    return d;
+  }
+  if (period === "month") {
+    return new Date(base.getFullYear(), base.getMonth() + offset, 1);
+  }
+  return new Date(base.getFullYear() + offset, 0, 1);
+}
+
+function scaleGoalToPeriod(args: {
+  baseGoal: number | null;
+  basePeriod: Period | null;
+  viewPeriod: Period;
+  viewOffset: number;
+}): number | null {
+  const { baseGoal, basePeriod, viewPeriod, viewOffset } = args;
+  if (baseGoal == null || baseGoal <= 0) return null;
+  const baseP: Period = basePeriod ?? "week";
+  const ref = periodReferenceDate(viewPeriod, viewOffset);
+  const baseDays = daysInPeriod(baseP, ref);
+  const viewDays = daysInPeriod(viewPeriod, ref);
+  if (baseDays <= 0 || viewDays <= 0) return baseGoal;
+  const perDay = baseGoal / baseDays;
+  const scaled = perDay * viewDays;
+  return Math.max(0, Math.round(scaled));
+}
+
 function Summary({ category }: { category: CategoryWithStats }) {
   const unit =
     category.unit && category.unit !== "x"
@@ -102,18 +155,22 @@ function BarCategoryChart({
   offset,
   accentHex,
   goal,
+  goalDirection,
   unit,
   isLocal,
   localUserId,
+  bucketAggregation,
 }: {
   categoryId: string;
   period: Period;
   offset: number;
   accentHex?: string;
   goal?: number | null;
+  goalDirection?: any | null;
   unit?: string | null;
   isLocal: boolean;
   localUserId: string | null;
+  bucketAggregation?: any | null;
 }) {
   const seriesQuery = useQuery(getCategorySeries, { categoryId, period, offset }, { enabled: !isLocal });
   const [localData, setLocalData] = useState<any[] | null>(null);
@@ -122,22 +179,22 @@ function BarCategoryChart({
     if (!isLocal) return;
     if (!localUserId) return;
     let cancelled = false;
-    localGetBarSeries({ userId: localUserId, categoryId, period, offset }).then((d) => {
+    localGetBarSeries({ userId: localUserId, categoryId, period, offset, aggregation: bucketAggregation }).then((d) => {
       if (!cancelled) setLocalData(d);
     });
     return () => {
       cancelled = true;
     };
-  }, [categoryId, isLocal, localUserId, offset, period]);
+  }, [bucketAggregation, categoryId, isLocal, localUserId, offset, period]);
 
   if (isLocal) {
     if (!localData) return <div className="h-[170px]" />;
-    return <BarChart data={localData as any} accentHex={accentHex} goal={goal} unit={unit} />;
+    return <BarChart data={localData as any} accentHex={accentHex} goal={goal} goalDirection={goalDirection} unit={unit} />;
   }
 
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
   if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
-  return <BarChart data={seriesQuery.data} accentHex={accentHex} goal={goal} unit={unit} />;
+  return <BarChart data={seriesQuery.data} accentHex={accentHex} goal={goal} goalDirection={goalDirection} unit={unit} />;
 }
 
 function LineCategoryChart({
@@ -147,8 +204,10 @@ function LineCategoryChart({
   goal,
   unit,
   accentHex,
+  goalDirection,
   isLocal,
   localUserId,
+  bucketAggregation,
 }: {
   categoryId: string;
   period: Period;
@@ -156,8 +215,10 @@ function LineCategoryChart({
   goal: number | null;
   unit: string | null;
   accentHex?: string;
+  goalDirection?: any | null;
   isLocal: boolean;
   localUserId: string | null;
+  bucketAggregation?: any | null;
 }) {
   const seriesQuery = useQuery(getCategoryLineSeries, { categoryId, period, offset }, { enabled: !isLocal });
   const [localData, setLocalData] = useState<any[] | null>(null);
@@ -166,22 +227,22 @@ function LineCategoryChart({
     if (!isLocal) return;
     if (!localUserId) return;
     let cancelled = false;
-    localGetLineSeries({ userId: localUserId, categoryId, period, offset }).then((d) => {
+    localGetLineSeries({ userId: localUserId, categoryId, period, offset, aggregation: bucketAggregation }).then((d) => {
       if (!cancelled) setLocalData(d);
     });
     return () => {
       cancelled = true;
     };
-  }, [categoryId, isLocal, localUserId, offset, period]);
+  }, [bucketAggregation, categoryId, isLocal, localUserId, offset, period]);
 
   if (isLocal) {
     if (!localData) return <div className="h-[170px]" />;
-    return <LineChart data={localData as any} goal={goal} unit={unit} accentHex={accentHex} />;
+    return <LineChart data={localData as any} goal={goal} goalDirection={goalDirection} unit={unit} accentHex={accentHex} />;
   }
 
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
   if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
-  return <LineChart data={seriesQuery.data} goal={goal} unit={unit} accentHex={accentHex} />;
+  return <LineChart data={seriesQuery.data} goal={goal} goalDirection={goalDirection} unit={unit} accentHex={accentHex} />;
 }
 
 export function CategoryPage() {
@@ -349,7 +410,11 @@ export function CategoryPage() {
           </div>
         ) : null}
 
-        <div className="card grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
+        <div
+          className={`card grid grid-cols-1 gap-3 p-4 ${
+            isNotes ? "sm:grid-cols-[220px_1fr_140px]" : "sm:grid-cols-3"
+          }`}
+        >
           <label className="flex min-w-0 flex-col gap-1">
             <span className="label">Date</span>
             <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white">
@@ -363,13 +428,13 @@ export function CategoryPage() {
             </div>
           </label>
           {isNotes ? (
-            <label className="flex min-w-0 flex-col gap-1 sm:col-span-2">
+            <label className="flex min-w-0 flex-col gap-1">
               <span className="label">Note</span>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Write a quick thought…"
-                rows={3}
+                rows={2}
                 className="block w-full min-w-0 max-w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
               />
             </label>
@@ -431,10 +496,12 @@ export function CategoryPage() {
             period={period}
             offset={offset}
             goal={category.goalValue}
+            goalDirection={category.goalDirection}
             unit={category.unit}
             accentHex={category.accentHex}
             isLocal={privacy.mode === "local"}
             localUserId={privacy.userId}
+            bucketAggregation={category.bucketAggregation}
           />
         ) : (
           <BarCategoryChart
@@ -443,10 +510,17 @@ export function CategoryPage() {
             period={period}
             offset={offset}
             accentHex={category.accentHex}
-            goal={period === "week" ? category.goalWeekly : null}
+            goal={scaleGoalToPeriod({
+              baseGoal: category.goalWeekly,
+              basePeriod: category.period,
+              viewPeriod: period,
+              viewOffset: offset,
+            })}
+            goalDirection={category.goalDirection}
             unit={category.unit}
             isLocal={privacy.mode === "local"}
             localUserId={privacy.userId}
+            bucketAggregation={category.bucketAggregation}
           />
         )
       ) : null}

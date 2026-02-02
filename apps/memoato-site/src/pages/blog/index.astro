@@ -6,20 +6,37 @@ const posts = (await Astro.glob("./*.md")).sort((a, b) => {
   const db = new Date(b.frontmatter.date ?? 0).getTime();
   return db - da;
 });
+
+function fmtDate(input: any): string | null {
+  if (!input) return null;
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+}
 ---
 
 <BaseLayout title="Blog · memoato" description="Updates, ideas, and changelogs." canonicalPath="/blog">
   <section class="section">
-    <div class="container prose">
+    <div class="container">
+      <div class="prose">
       <h1 class="page-title">Blog</h1>
-      <ul>
-        {posts.map((p) => (
-          <li>
-            <a href={p.url}>{p.frontmatter.title ?? p.url}</a> -{" "}
-            <span class="muted">{p.frontmatter.description ?? ""}</span>
-          </li>
-        ))}
-      </ul>
+      <div class="post-list">
+        {posts.map((p) => {
+          const title = p.frontmatter.title ?? p.url;
+          const desc = p.frontmatter.description ?? "";
+          const dateLabel = fmtDate(p.frontmatter.date);
+          return (
+            <a class="card post-card" href={p.url}>
+              <div class="post-title">{title}</div>
+              <div class="post-meta">
+                {dateLabel ? <span class="muted">{dateLabel}</span> : null}
+                {desc ? <span class="post-desc">{desc}</span> : null}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+      </div>
     </div>
   </section>
 </BaseLayout>

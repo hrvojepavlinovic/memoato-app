@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, getDayEvents } from "wasp/client/operations";
 import { Link, routes } from "wasp/client/router";
 import { usePrivacy } from "../privacy/PrivacyProvider";
@@ -45,12 +46,39 @@ function formatDayLabel(d: Date): string {
 }
 
 export function TimelinePage() {
+  const navigate = useNavigate();
+  const params = useParams<{ occurredOn?: string }>();
   const privacy = usePrivacy();
   const today = useMemo(() => startOfLocalDay(new Date()), []);
   const todayIso = useMemo(() => todayLocalIso(), []);
-  const [selectedIso, setSelectedIso] = useState<string>(() => todayLocalIso());
-  const stripRef = useRef<HTMLDivElement | null>(null);
-  const [stripPadPx, setStripPadPx] = useState(0);
+  const [selectedIso, setSelectedIso] = useState<string>(() => {
+    const s = params.occurredOn;
+    if (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    return todayLocalIso();
+  });
+
+  useEffect(() => {
+    const s = params.occurredOn;
+    if (!s) {
+      setSelectedIso(todayIso);
+      return;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      setSelectedIso(s);
+      return;
+    }
+    navigate("/timeline", { replace: true });
+    setSelectedIso(todayIso);
+  }, [navigate, params.occurredOn, todayIso]);
+
+  function selectIso(iso: string) {
+    setSelectedIso(iso);
+    if (iso === todayIso) {
+      navigate("/timeline");
+    } else {
+      navigate(`/timeline/${iso}`);
+    }
+  }
 
   const serverQuery = useQuery(getDayEvents, { occurredOn: selectedIso } as any, {
     enabled: privacy.mode !== "local",
@@ -199,49 +227,9 @@ export function TimelinePage() {
     }
   }, [selectedIso, today]);
 
-  const daysStripDesktop = useMemo(() => {
-    const msPerDay = 24 * 60 * 60 * 1000;
-    const diffDays = Math.max(
-      0,
-      Math.round((startOfLocalDay(today).getTime() - startOfLocalDay(day).getTime()) / msPerDay),
-    );
-    const daysBack = Math.max(60, diffDays + 10);
-    return Array.from({ length: daysBack + 1 }, (_, i) => addDays(today, i - daysBack));
-  }, [day, today]);
-
-  const daysStripMobile = useMemo(() => {
-    const prev = addDays(day, -1);
-    const next = addDays(day, 1);
-    return [
-      { date: prev, disabled: false },
-      { date: day, disabled: false },
-      { date: next, disabled: next.getTime() > today.getTime() },
-    ];
-  }, [day, today]);
-
-  useEffect(() => {
-    const el = stripRef.current;
-    if (!el) return;
-
-    const update = () => {
-      const anyItem = el.querySelector<HTMLElement>("[data-day-item]");
-      const itemWidth = anyItem?.clientWidth ?? 76;
-      setStripPadPx(Math.max(0, Math.floor(el.clientWidth / 2 - itemWidth / 2)));
-    };
-
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  useEffect(() => {
-    const el = stripRef.current;
-    if (!el) return;
-    const active = el.querySelector<HTMLElement>(`[data-iso="${selectedIso}"]`);
-    if (!active) return;
-    const left = active.offsetLeft - (el.clientWidth / 2 - active.clientWidth / 2);
-    el.scrollLeft = Math.max(0, left);
-  }, [selectedIso]);
+  const daysStrip = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => addDays(day, i - 2));
+  }, [day]);
 
   const summary = useMemo(() => {
     if (!events) return [];
@@ -295,10 +283,20 @@ export function TimelinePage() {
       const notes: string[] = [];
       if (isNotes) {
         for (const e of evs) {
-          const n =
-            noteByEventId[e.id] ??
-            (typeof e.data?.note === "string" ? (e.data.note as string).trim() : "");
-          if (n) notes.push(n);
+          const fromMap = noteByEventId[e.id];
+          if (fromMap) {
+            notes.push(fromMap);
+            continue;
+          }
+          const plain = typeof e.data?.note === "string" ? (e.data.note as string).trim() : "";
+          if (plain) {
+            notes.push(plain);
+            continue;
+          }
+          const enc = e.data && typeof e.data === "object" && !Array.isArray(e.data) ? (e.data as any).noteEnc : null;
+          if (isEncryptedString(enc)) {
+            notes.push("Locked note");
+          }
         }
       }
       items.push({
@@ -350,40 +348,41 @@ export function TimelinePage() {
         </div>
         {!isToday ? (
           <div className="flex items-center">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedIso(todayIso)}>
+            <Button variant="ghost" size="sm" onClick={() => selectIso(todayIso)}>
               Today
             </Button>
           </div>
         ) : null}
       </div>
 
-      <div className="mb-6 sm:hidden">
+      <div className="mb-6">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, -1)))}>
+          <Button variant="ghost" size="sm" onClick={() => selectIso(toLocalIsoDate(addDays(day, -1)))}>
             ←
           </Button>
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
-            {daysStripMobile.map(({ date: d, disabled }) => {
+          <div className="grid min-w-0 flex-1 grid-cols-5 gap-2">
+            {daysStrip.map((d) => {
               const iso = toLocalIsoDate(d);
               const active = iso === selectedIso;
-              const dd = String(d.getDate());
+              const disabled = d.getTime() > today.getTime();
+              const dd = String(d.getDate()).padStart(2, "0");
               const w = ["S", "M", "T", "W", "T", "F", "S"][d.getDay()] ?? "";
               return (
                 <button
                   key={iso}
                   type="button"
                   disabled={disabled}
-                  onClick={() => setSelectedIso(iso)}
-                  className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl border px-2 py-2 text-center ${
+                  onClick={() => selectIso(iso)}
+                  className={`flex min-w-0 flex-col items-center justify-center rounded-xl border px-2 py-2 text-center ${
                     disabled
                       ? "border-neutral-200 bg-neutral-50 text-neutral-400"
                       : active
                         ? "border-neutral-950 bg-neutral-950 text-white"
-                        : "border-neutral-200 bg-white text-neutral-900"
+                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50"
                   }`}
                 >
                   <div className={`text-xs font-semibold ${active ? "text-white/70" : "text-neutral-500"}`}>{w}</div>
-                  <div className="text-sm font-semibold">{dd}</div>
+                  <div className="text-sm font-semibold tabular-nums">{dd}</div>
                 </button>
               );
             })}
@@ -392,53 +391,11 @@ export function TimelinePage() {
             variant="ghost"
             size="sm"
             disabled={isToday}
-            onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}
+            onClick={() => selectIso(toLocalIsoDate(addDays(day, 1)))}
           >
             →
           </Button>
         </div>
-      </div>
-
-      <div className="mb-6 hidden items-center gap-2 sm:flex">
-        <Button variant="ghost" size="sm" onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, -1)))}>
-          ←
-        </Button>
-        <div ref={stripRef} className="flex flex-1 gap-2 overflow-x-auto pb-1">
-          <div className="shrink-0" style={{ width: stripPadPx }} aria-hidden="true" />
-          {daysStripDesktop.map((d) => {
-            const iso = toLocalIsoDate(d);
-            const active = iso === selectedIso;
-            const w = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()] ?? "";
-            const dd = String(d.getDate()).padStart(2, "0");
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            return (
-              <button
-                key={iso}
-                data-iso={iso}
-                data-day-item="true"
-                type="button"
-                onClick={() => setSelectedIso(iso)}
-                className={`flex flex-col items-center justify-center rounded-xl border px-3 py-2 text-center ${
-                  active
-                    ? "border-neutral-950 bg-neutral-950 text-white"
-                    : "border-neutral-200 bg-white text-neutral-900"
-                }`}
-              >
-                <div className={`text-xs font-semibold ${active ? "text-white/70" : "text-neutral-500"}`}>{w}</div>
-                <div className="text-sm font-semibold">{dd}.{mm}.</div>
-              </button>
-            );
-          })}
-          <div className="shrink-0" style={{ width: stripPadPx }} aria-hidden="true" />
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={isToday}
-          onClick={() => setSelectedIso(toLocalIsoDate(addDays(day, 1)))}
-        >
-          →
-        </Button>
       </div>
 
       {privacy.mode !== "local" && serverQuery.isLoading ? (

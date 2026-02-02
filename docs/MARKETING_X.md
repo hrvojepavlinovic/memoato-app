@@ -68,6 +68,47 @@ Wasp folks: what’s the best way you’d implement an in-app public voting boar
 
 Repo: https://github.com/hrvojepavlinovic/memoato-app
 
+## Draft: feedback + shipping (memoato account)
+
+### Post A (single)
+Feedback is a feature.
+
+This week memoato shipped a bunch of improvements based on real usage:
+- Custom category sorting (put your most important trackers first).
+- More category options: goals, chart type (bar or line), and how multiple entries are counted (sum, average, last).
+- Better day review with Timeline.
+
+Next up: dark theme, also based on feedback.
+
+Try it: https://app.memoato.com
+Built with @WaspLang. Analytics by @trydatabuddy.
+
+### Post B (thread starter)
+Shipping memoato in public means feedback turns into features fast.
+
+In the last few days we added:
+1) Custom category sorting.
+2) Category settings for goals, chart type, and multiple-entry behavior (sum, average, last).
+3) Timeline day view (a human-readable summary of what you did).
+
+Next up: dark theme.
+
+Try it: https://app.memoato.com
+
+### Post C (screenshot captions)
+Screenshot 1: Home dashboard (custom sorted categories).
+Screenshot 2: Category settings (goal, chart type, multiple-entry behavior).
+Screenshot 3: Timeline day view.
+
+## Quote tweet (your account, replying to memoato post)
+Love this part of building: users point out what feels off, and we fix it quickly.
+
+Category sorting and richer category settings came directly from feedback.
+Dark theme is next.
+
+Try memoato: https://app.memoato.com
+Repo: https://github.com/hrvojepavlinovic/memoato-app
+
 ## Suggested CTA links
 - App: `https://app.memoato.com`
 - Landing: `https://memoato.com`

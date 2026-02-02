@@ -35,6 +35,7 @@ type RowState = {
   amount: string;
   occurredAt: string;
   note: string;
+  noteDirty: boolean;
   saving: boolean;
 };
 
@@ -125,13 +126,20 @@ export function HistoryList({
       setRowById((prev) => {
         const next = { ...prev };
         for (const [id, note] of updates) {
-          if (next[id]) continue;
           const ev = items.find((x) => x.id === id);
           if (!ev) continue;
+          const existing = next[id];
+          if (existing) {
+            if (existing.noteDirty) continue;
+            if (existing.note.trim()) continue;
+            next[id] = { ...existing, note };
+            continue;
+          }
           next[id] = {
             amount: formatValue(ev.amount),
             occurredAt: toLocalDatetimeInputValue(new Date(ev.occurredAt as any)),
             note,
+            noteDirty: false,
             saving: false,
           };
         }
@@ -154,6 +162,7 @@ export function HistoryList({
         amount: formatValue(ev.amount),
         occurredAt: toLocalDatetimeInputValue(new Date(ev.occurredAt as any)),
         note,
+        noteDirty: false,
         saving: false,
       }
     );
@@ -194,7 +203,11 @@ export function HistoryList({
           window.alert("Unlock encryption from Profile → Privacy first.");
           return;
         }
-        const enc = note ? await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, note) : null;
+        const enc = row.noteDirty
+          ? note
+            ? await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, note)
+            : null
+          : undefined;
         if (isLocal) {
           if (!privacy.userId) return;
           await localUpdateEvent({
@@ -202,14 +215,14 @@ export function HistoryList({
             eventId: ev.id,
             amount,
             occurredAt: row.occurredAt,
-            noteEnc: enc,
+            ...(enc !== undefined ? { noteEnc: enc } : {}),
           } as any);
         } else {
           await updateEvent({
             eventId: ev.id,
             amount,
             occurredAt: row.occurredAt,
-            noteEnc: enc,
+            ...(enc !== undefined ? { noteEnc: enc } : {}),
           });
         }
       } else {
@@ -220,20 +233,22 @@ export function HistoryList({
             eventId: ev.id,
             amount,
             occurredAt: row.occurredAt,
-            note: note ? note : null,
-            noteEnc: null,
+            ...(row.noteDirty ? { note: note ? note : null } : {}),
           } as any);
         } else {
           await updateEvent({
             eventId: ev.id,
             amount,
             occurredAt: row.occurredAt,
-            note: note ? note : null,
-            noteEnc: null,
+            ...(row.noteDirty ? { note: note ? note : null } : {}),
           });
         }
       }
       await invalidateStats();
+      setRowById((prev) => ({
+        ...prev,
+        [ev.id]: { ...(prev[ev.id] ?? row), note, noteDirty: false },
+      }));
     } finally {
       setRowById((prev) => ({ ...prev, [ev.id]: { ...prev[ev.id], saving: false } }));
     }
@@ -336,18 +351,18 @@ export function HistoryList({
                       </label>
                       <label className="flex flex-col gap-1">
                         <span className="label">Note</span>
-                        <input
-                          type="text"
-                          value={row.note}
-                          onChange={(e) =>
-                            setRowById((prev) => ({
-                              ...prev,
-                              [ev.id]: { ...row, note: e.target.value },
-                            }))
-                          }
-                          className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500"
-                          placeholder="Optional"
-                        />
+                          <input
+                            type="text"
+                            value={row.note}
+                            onChange={(e) =>
+                              setRowById((prev) => ({
+                                ...prev,
+                                [ev.id]: { ...row, note: e.target.value, noteDirty: true },
+                              }))
+                            }
+                            className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500"
+                            placeholder="Optional"
+                          />
                       </label>
                       <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end sm:justify-end">
                         <Button

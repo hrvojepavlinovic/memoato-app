@@ -184,6 +184,8 @@ async function applyKnownCategoryDefaults(
       period?: string;
       goalWeekly?: number;
       goalValue?: number;
+      bucketAggregation?: string;
+      goalDirection?: string;
     }
   > = {
     "active kcal": {
@@ -228,8 +230,10 @@ async function applyKnownCategoryDefaults(
     weight: {
       unit: "kg",
       chartType: "line",
-      categoryType: "GOAL",
+      categoryType: "NUMBER",
       goalValue: 85,
+      bucketAggregation: "last",
+      goalDirection: "at_most",
       accentHex: "#0EA5E9",
       emoji: "⚖️",
     },
@@ -248,6 +252,8 @@ async function applyKnownCategoryDefaults(
       accentHex: true,
       emoji: true,
       period: true,
+      bucketAggregation: true,
+      goalDirection: true,
       goalWeekly: true,
       goalValue: true,
     },
@@ -283,6 +289,12 @@ async function applyKnownCategoryDefaults(
     if (preset.goalValue != null && c.goalValue == null) {
       update.goalValue = preset.goalValue;
     }
+    if (preset.bucketAggregation != null && (c.bucketAggregation == null || String(c.bucketAggregation).trim() === "")) {
+      update.bucketAggregation = preset.bucketAggregation;
+    }
+    if (preset.goalDirection != null && (c.goalDirection == null || String(c.goalDirection).trim() === "")) {
+      update.goalDirection = preset.goalDirection;
+    }
 
     // accentHex has a DB default (#0A0A0A). Treat that as "unset" for presets, but never overwrite custom colors.
     if (preset.accentHex != null && (c.accentHex == null || c.accentHex.toUpperCase() === "#0A0A0A")) {
@@ -302,6 +314,9 @@ async function applyKnownCategoryDefaults(
 type CreateCategoryArgs = {
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
+  chartType?: "bar" | "line";
+  bucketAggregation?: string | null;
+  goalDirection?: string | null;
   period?: "day" | "week" | "month" | "year";
   unit?: string;
   goal?: number;
@@ -319,8 +334,33 @@ function normalizeHex(s: string): string {
   return `#${m[1].toUpperCase()}`;
 }
 
+function normalizeChartType(v: unknown, fallback: "bar" | "line"): "bar" | "line" {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  if (s === "line") return "line";
+  if (s === "bar") return "bar";
+  return fallback;
+}
+
+function normalizeBucketAggregation(v: unknown, chartType: "bar" | "line"): string | null {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  if (s === "") return null;
+  if (chartType === "bar") {
+    if (s === "sum" || s === "avg") return s;
+    throw new HttpError(400, "Bucket aggregation must be 'sum' or 'avg' for bar charts.");
+  }
+  if (s === "last" || s === "avg") return s;
+  throw new HttpError(400, "Bucket aggregation must be 'last' or 'avg' for line charts.");
+}
+
+function normalizeGoalDirection(v: unknown): string | null {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  if (s === "") return null;
+  if (s === "at_least" || s === "at_most") return s;
+  throw new HttpError(400, "Goal direction must be 'at_least' or 'at_most'.");
+}
+
 export const createCategory: CreateCategory<CreateCategoryArgs, Category> = async (
-  { title, categoryType, period, unit, goal, goalValue, accentHex, emoji },
+  { title, categoryType, chartType, bucketAggregation, goalDirection, period, unit, goal, goalValue, accentHex, emoji },
   context,
 ) => {
   if (!context.user) {
@@ -336,12 +376,16 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
   const cleanUnit = (unit ?? "").trim();
   const cleanHex = normalizeHex(accentHex);
 
-  const needsPeriod = categoryType !== "GOAL";
+  const fallbackChartType = categoryType === "GOAL" ? "line" : "bar";
+  const cleanChartType = normalizeChartType(chartType, fallbackChartType);
+  const cleanAgg = normalizeBucketAggregation(bucketAggregation, cleanChartType);
+  const cleanDir = normalizeGoalDirection(goalDirection);
+
+  const needsPeriod = cleanChartType !== "line";
   if (needsPeriod && !period) {
     throw new HttpError(400, "Period is required.");
   }
 
-  const chartType = categoryType === "GOAL" ? "line" : "bar";
   const resolvedUnit = cleanUnit || "";
 
   const userId = context.user.id;
@@ -364,13 +408,15 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
       title: cleanTitle,
       slug,
       categoryType,
-      period: needsPeriod ? period : undefined,
+      period: needsPeriod ? period : null,
       unit: resolvedUnit.length > 0 ? resolvedUnit : null,
-      chartType,
+      chartType: cleanChartType,
       accentHex: cleanHex,
       emoji: cleanEmoji.length > 0 ? cleanEmoji : null,
-      goalWeekly: goal != null ? goal : undefined,
-      goalValue: goalValue != null ? goalValue : undefined,
+      bucketAggregation: cleanAgg,
+      goalDirection: cleanDir,
+      goalWeekly: needsPeriod && goal != null ? goal : null,
+      goalValue: cleanChartType === "line" && goalValue != null ? goalValue : null,
       kind: categoryType === "DO" || categoryType === "DONT" ? "count" : "amount",
       type: "Simple",
       createdAt: new Date(),
@@ -382,6 +428,9 @@ type UpdateCategoryArgs = {
   categoryId: Category["id"];
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
+  chartType?: "bar" | "line";
+  bucketAggregation?: string | null;
+  goalDirection?: string | null;
   period?: "day" | "week" | "month" | "year";
   unit?: string;
   goal?: number;
@@ -391,7 +440,20 @@ type UpdateCategoryArgs = {
 };
 
 export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = async (
-  { categoryId, title, categoryType, period, unit, goal, goalValue, accentHex, emoji },
+  {
+    categoryId,
+    title,
+    categoryType,
+    chartType,
+    bucketAggregation,
+    goalDirection,
+    period,
+    unit,
+    goal,
+    goalValue,
+    accentHex,
+    emoji,
+  },
   context,
 ) => {
   if (!context.user) {
@@ -416,12 +478,16 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
   const cleanUnit = (unit ?? "").trim();
   const cleanHex = normalizeHex(accentHex);
 
-  const needsPeriod = categoryType !== "GOAL";
+  const fallbackChartType = categoryType === "GOAL" ? "line" : "bar";
+  const cleanChartType = normalizeChartType(chartType, fallbackChartType);
+  const cleanAgg = normalizeBucketAggregation(bucketAggregation, cleanChartType);
+  const cleanDir = normalizeGoalDirection(goalDirection);
+
+  const needsPeriod = cleanChartType !== "line";
   if (needsPeriod && !period) {
     throw new HttpError(400, "Period is required.");
   }
 
-  const chartType = categoryType === "GOAL" ? "line" : "bar";
   const resolvedUnit =
     cleanUnit.length === 0 || cleanUnit.toLowerCase() === "x" ? null : cleanUnit;
 
@@ -450,11 +516,13 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
       categoryType,
       period: needsPeriod ? period : null,
       unit: resolvedUnit,
-      chartType,
+      chartType: cleanChartType,
       accentHex: cleanHex,
       emoji: cleanEmoji.length > 0 ? cleanEmoji : null,
-      goalWeekly: categoryType === "GOAL" ? null : goal ?? null,
-      goalValue: categoryType === "GOAL" ? goalValue ?? null : null,
+      bucketAggregation: cleanAgg,
+      goalDirection: cleanDir,
+      goalWeekly: needsPeriod ? goal ?? null : null,
+      goalValue: cleanChartType === "line" ? goalValue ?? null : null,
       kind: categoryType === "DO" || categoryType === "DONT" ? "count" : "amount",
     } as any,
   });
@@ -496,9 +564,12 @@ export const ensureDefaultCategories: EnsureDefaultCategories<
         source: "memoato",
         title: "Weight",
         slug: "weight",
-        categoryType: "GOAL",
+        categoryType: "NUMBER",
         chartType: "line",
         unit: "kg",
+        bucketAggregation: "last",
+        goalDirection: "at_most",
+        goalValue: 85,
         accentHex: "#0A0A0A",
         emoji: "⚖️",
         kind: "amount",
@@ -647,7 +718,7 @@ function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Dat
   const on = new Date(y, m - 1, d);
   on.setHours(0, 0, 0, 0);
   const at = new Date(on);
-  at.setHours(12, 0, 0, 0);
+  at.setHours(now.getHours(), now.getMinutes(), 0, 0);
   return { occurredAt: at, occurredOn: on };
 }
 
@@ -747,10 +818,16 @@ export const updateEvent: UpdateEvent<UpdateEventArgs, Event> = async (
   if (noteEnc !== undefined) {
     if (noteEnc == null) {
       delete nextData.noteEnc;
+      if (note !== undefined) {
+        const cleanNote = typeof note === "string" ? note.trim() : "";
+        nextData.note = cleanNote ? cleanNote : null;
+      } else {
+        nextData.note = null;
+      }
     } else {
       nextData.noteEnc = noteEnc as any;
+      nextData.note = null;
     }
-    nextData.note = null;
   } else if (note !== undefined) {
     const cleanNote = typeof note === "string" ? note.trim() : "";
     nextData.note = cleanNote ? cleanNote : null;

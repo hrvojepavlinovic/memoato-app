@@ -55,6 +55,8 @@ model Category {
   emoji          String?
   isSystem       Boolean @default(false)
   sortOrder      Int?
+  bucketAggregation String?
+  goalDirection  String?
   goalWeekly     Float?
   goalValue      Float?
   targetCount    Int?

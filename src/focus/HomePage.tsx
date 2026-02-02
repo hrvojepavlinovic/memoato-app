@@ -67,12 +67,23 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
   );
 }
 
+function normalizeGoalDirection(c: CategoryWithStats): "at_least" | "at_most" {
+  const v = (c.goalDirection ?? "").toLowerCase();
+  if (v === "at_most") return "at_most";
+  if (v === "at_least") return "at_least";
+  if ((c.slug ?? "").toLowerCase() === "weight") return "at_most";
+  if (c.categoryType === "DONT") return "at_most";
+  return "at_least";
+}
+
 function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
   if (c.chartType === "line") {
     const last = c.lastValue == null ? "—" : formatValue(c.lastValue);
     const goal = c.goalValue == null ? null : formatValue(c.goalValue);
     const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
-    return goal ? `${last}${unit} · Goal: ${goal}${unit}` : `${last}${unit}`;
+    const dir = normalizeGoalDirection(c);
+    const prefix = dir === "at_most" ? "≤" : "≥";
+    return goal ? `${last}${unit} · Goal ${prefix} ${goal}${unit}` : `${last}${unit}`;
   }
 
   if (c.goalWeekly != null && c.goalWeekly > 0) {
@@ -127,6 +138,9 @@ export function HomePage() {
             userId: privacy.userId!,
             title: "Push ups",
             categoryType: "NUMBER",
+            chartType: "bar",
+            bucketAggregation: "sum",
+            goalDirection: "at_least",
             period: "week",
             unit: null,
             goal: 300,
@@ -137,7 +151,10 @@ export function HomePage() {
           await localCreateCategory({
             userId: privacy.userId!,
             title: "Weight",
-            categoryType: "GOAL",
+            categoryType: "NUMBER",
+            chartType: "line",
+            bucketAggregation: "last",
+            goalDirection: "at_most",
             unit: "kg",
             goal: null,
             goalValue: 85,
@@ -483,7 +500,11 @@ export function HomePage() {
 
             const goalReached =
               c.chartType === "line"
-                ? c.goalValue != null && c.lastValue != null && c.lastValue <= c.goalValue
+                ? c.goalValue != null &&
+                  c.lastValue != null &&
+                  (normalizeGoalDirection(c) === "at_most"
+                    ? c.lastValue <= c.goalValue
+                    : c.lastValue >= c.goalValue)
                 : c.goalWeekly != null && c.goalWeekly > 0 && c.thisWeekTotal >= c.goalWeekly;
 
             const goalBg = goalReached ? withHexAlpha(c.accentHex, "08") : null;

@@ -2,14 +2,19 @@ app memoato {
   wasp: {
     version: "^0.20.1"
   },
-  title: "Memoato",
+  title: "memoato",
   head: [
     "<link rel='icon' href='/favicon.ico' />",
     "<link rel='icon' type='image/png' sizes='32x32' href='/favicon-32x32.png' />",
     "<link rel='icon' type='image/png' sizes='16x16' href='/favicon-16x16.png' />",
     "<link rel='apple-touch-icon' sizes='180x180' href='/apple-touch-icon.png' />",
     "<link rel='manifest' href='/manifest.webmanifest' />",
-    "<meta name='theme-color' content='#0A0A0A' />",
+    "<meta name='theme-color' content='#ffffff' />",
+    "<meta name='description' content='A fast, minimal habit tracker for ADHD brains: quick input, clear progress, fewer decisions.' />",
+    "<meta property='og:site_name' content='memoato' />",
+    "<meta property='og:title' content='memoato' />",
+    "<meta property='og:description' content='A fast, minimal habit tracker for ADHD brains: quick input, clear progress, fewer decisions.' />",
+    "<meta property='og:url' content='https://app.memoato.com' />",
     "<meta name='mobile-web-app-capable' content='yes' />",
     "<meta name='apple-mobile-web-app-capable' content='yes' />",
     "<meta name='apple-mobile-web-app-status-bar-style' content='default' />",
@@ -82,6 +87,7 @@ page HomePage {
 }
 
 route TimelineRoute { path: "/timeline", to: TimelinePage }
+route TimelineDayRoute { path: "/timeline/:occurredOn", to: TimelinePage }
 page TimelinePage {
   authRequired: true,
   component: import { TimelinePage } from "@src/timeline/TimelinePage"

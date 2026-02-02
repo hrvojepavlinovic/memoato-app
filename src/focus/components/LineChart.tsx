@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LinePoint } from "../types";
 import { goalLineColors } from "./goalColors";
 
@@ -14,15 +14,18 @@ function formatValue(v: number): string {
 export function LineChart({
   data,
   goal,
+  goalDirection,
   unit,
   accentHex,
 }: {
   data: LinePoint[];
   goal: number | null;
+  goalDirection?: "at_least" | "at_most" | null;
   unit: string | null;
   accentHex?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
   const stroke = accentHex ?? "#0a0a0a";
   const goalColors = goalLineColors(accentHex);
   const values = data.map((d) => d.value).filter((v): v is number => v != null);
@@ -39,14 +42,27 @@ export function LineChart({
   const safeMax = finiteMax + margin;
   const span = safeMax - safeMin || 1;
 
-  const widthPerPoint = 44;
+  const minWidthPerPoint = 44;
   const endPadPx = 12;
   const height = 140;
   const padTop = 12;
   const padBottom = 26;
   const usableHeight = height - padTop - padBottom;
 
-  const width = Math.max(1, data.length) * widthPerPoint + endPadPx;
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => setContainerWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const minWidth = Math.max(1, data.length) * minWidthPerPoint + endPadPx;
+  const innerWidth = Math.max(minWidth, Math.max(0, containerWidth - 24)); // subtract p-3 left/right
+  const usableWidth = Math.max(1, innerWidth - endPadPx);
+  const stepX = usableWidth / Math.max(1, data.length);
   const lastKey = useMemo(() => data.at(-1)?.startDate ?? "", [data]);
 
   useEffect(() => {
@@ -72,7 +88,7 @@ export function LineChart({
   const points = data
     .map((d, idx) => {
       if (d.value == null) return null;
-      const x = idx * widthPerPoint + widthPerPoint / 2;
+      const x = (idx + 0.5) * stepX;
       const y = yFor(d.value);
       return { x, y, value: d.value, label: d.label };
     })
@@ -84,6 +100,7 @@ export function LineChart({
 
   const goalY = goal == null ? null : yFor(goal);
   const unitSuffix = unit ? ` ${unit}` : "";
+  const goalPrefix = goalDirection === "at_most" ? "≤" : "≥";
 
   return (
     <div className="w-full">
@@ -91,12 +108,12 @@ export function LineChart({
         ref={scrollRef}
         className="overflow-x-auto rounded-xl border border-neutral-200 bg-white p-3 shadow-sm"
       >
-        <svg width={width} height={height} className="block">
+        <svg width={innerWidth} height={height} className="block">
           {goalY != null && (
             <>
               <line
                 x1={0}
-                x2={width}
+                x2={innerWidth}
                 y1={goalY}
                 y2={goalY}
                 stroke={goalColors.stroke}
@@ -109,7 +126,7 @@ export function LineChart({
                 fontSize="11"
                 fontWeight={600}
               >
-                Goal {formatValue(goal as number)}
+                Goal {goalPrefix} {formatValue(goal as number)}
                 {unitSuffix}
               </text>
             </>
@@ -145,7 +162,7 @@ export function LineChart({
           {data.map((d, idx) => (
             <text
               key={`${d.startDate}-${idx}`}
-              x={idx * widthPerPoint + widthPerPoint / 2}
+              x={(idx + 0.5) * stepX}
               y={height - 8}
               textAnchor="middle"
               fill="rgba(0,0,0,0.5)"

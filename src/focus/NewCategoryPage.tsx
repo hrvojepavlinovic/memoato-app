@@ -7,13 +7,16 @@ import { usePrivacy } from "../privacy/PrivacyProvider";
 import { encryptUtf8ToEncryptedString } from "../privacy/crypto";
 import { localCreateCategory } from "./local";
 
-type CategoryType = "NUMBER" | "DO" | "DONT" | "GOAL";
+type CategoryType = "NUMBER" | "DO" | "DONT";
+type ChartType = "bar" | "line";
+type BarAgg = "sum" | "avg";
+type LineAgg = "last" | "avg";
+type GoalDirection = "at_least" | "at_most";
 
 const typeOptions: { value: CategoryType; label: string; hint: string }[] = [
   { value: "NUMBER", label: "Track number", hint: "Counts, minutes, kcal, etc." },
   { value: "DO", label: "Do's", hint: "Count each time you do it." },
   { value: "DONT", label: "Don'ts", hint: "Count each time you break it." },
-  { value: "GOAL", label: "Goal value", hint: "Track a value over time (line chart)." },
 ];
 
 const periodOptions: { value: Period; label: string }[] = [
@@ -29,15 +32,23 @@ export function NewCategoryPage() {
   const [title, setTitle] = useState("");
   const [categoryType, setCategoryType] = useState<CategoryType>("NUMBER");
   const [period, setPeriod] = useState<Period>("week");
+  const [chartType, setChartType] = useState<ChartType>("bar");
+  const [barAgg, setBarAgg] = useState<BarAgg>("sum");
+  const [lineAgg, setLineAgg] = useState<LineAgg>("last");
   const [unit, setUnit] = useState("");
   const [goal, setGoal] = useState<string>("");
   const [goalValue, setGoalValue] = useState<string>("");
+  const [goalDirection, setGoalDirection] = useState<GoalDirection>("at_least");
   const [accentHex, setAccentHex] = useState("#0A0A0A");
   const [accentHexInput, setAccentHexInput] = useState("#0A0A0A");
   const [emoji, setEmoji] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const needsPeriod = categoryType !== "GOAL";
+  const effectiveChartType: ChartType =
+    categoryType === "NUMBER" ? chartType : "bar";
+  const bucketAggregation =
+    effectiveChartType === "bar" ? barAgg : lineAgg;
+  const needsPeriod = effectiveChartType !== "line";
   const hint = useMemo(() => typeOptions.find((o) => o.value === categoryType)?.hint, [categoryType]);
 
   function normalizeHexInput(s: string): string | null {
@@ -79,12 +90,15 @@ export function NewCategoryPage() {
           userId: privacy.userId,
           title: cleanTitle,
           categoryType,
+          chartType: effectiveChartType,
           period: needsPeriod ? period : undefined,
           unit: unit.trim() || null,
-          goal: g ?? null,
-          goalValue: gv ?? null,
+          goal: needsPeriod ? (g ?? null) : null,
+          goalValue: effectiveChartType === "line" ? (gv ?? null) : null,
           accentHex: cleanHex,
           emoji: emoji.trim() || null,
+          bucketAggregation,
+          goalDirection,
         });
         navigate(`/c/${created.slug ?? created.id}`);
         return;
@@ -102,13 +116,16 @@ export function NewCategoryPage() {
       const created = await createCategory({
         title: titleToStore,
         categoryType,
+        chartType: effectiveChartType,
+        bucketAggregation,
+        goalDirection,
         period: needsPeriod ? period : undefined,
         unit: unit.trim() || undefined,
-        goal: g ?? undefined,
-        goalValue: gv ?? undefined,
+        goal: needsPeriod ? (g ?? undefined) : undefined,
+        goalValue: effectiveChartType === "line" ? (gv ?? undefined) : undefined,
         accentHex: cleanHex,
         emoji: emoji.trim() || undefined,
-      });
+      } as any);
       navigate(`/c/${(created as any).slug ?? created.id}`);
     } finally {
       setIsSaving(false);
@@ -150,6 +167,19 @@ export function NewCategoryPage() {
           </label>
 
           <label className="flex flex-col gap-1">
+            <span className="label">Chart</span>
+            <select
+              value={effectiveChartType}
+              onChange={(e) => setChartType(e.target.value as ChartType)}
+              disabled={categoryType !== "NUMBER"}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100"
+            >
+              <option value="bar">Bar (totals)</option>
+              <option value="line">Line (values)</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
             <span className="label">Period</span>
             <select
               value={period}
@@ -164,6 +194,31 @@ export function NewCategoryPage() {
               ))}
             </select>
           </label>
+
+          {categoryType === "NUMBER" ? (
+            <label className="flex flex-col gap-1">
+              <span className="label">Multiple entries</span>
+              {effectiveChartType === "bar" ? (
+                <select
+                  value={barAgg}
+                  onChange={(e) => setBarAgg(e.target.value as BarAgg)}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+                >
+                  <option value="sum">Sum</option>
+                  <option value="avg">Average</option>
+                </select>
+              ) : (
+                <select
+                  value={lineAgg}
+                  onChange={(e) => setLineAgg(e.target.value as LineAgg)}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+                >
+                  <option value="last">Last</option>
+                  <option value="avg">Average</option>
+                </select>
+              )}
+            </label>
+          ) : null}
 
           <label className="flex flex-col gap-1">
             <span className="label">Accent</span>
@@ -210,23 +265,37 @@ export function NewCategoryPage() {
             <input
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              placeholder={categoryType === "GOAL" ? "e.g. kg" : "e.g. x"}
+              placeholder={effectiveChartType === "line" ? "e.g. kg" : "e.g. ml"}
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
             />
           </label>
 
           <label className="flex flex-col gap-1">
             <span className="label">
-              {categoryType === "GOAL" ? "Goal value (optional)" : "Goal (optional)"}
+              {effectiveChartType === "line" ? "Goal value (optional)" : "Goal (optional)"}
             </span>
             <input
               type="number"
               step="0.1"
-              value={categoryType === "GOAL" ? goalValue : goal}
-              onChange={(e) => (categoryType === "GOAL" ? setGoalValue(e.target.value) : setGoal(e.target.value))}
-              placeholder={categoryType === "GOAL" ? "e.g. 85" : "e.g. 10"}
+              value={effectiveChartType === "line" ? goalValue : goal}
+              onChange={(e) =>
+                effectiveChartType === "line" ? setGoalValue(e.target.value) : setGoal(e.target.value)
+              }
+              placeholder={effectiveChartType === "line" ? "e.g. 85" : "e.g. 2000"}
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
             />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="label">Goal direction</span>
+            <select
+              value={goalDirection}
+              onChange={(e) => setGoalDirection(e.target.value as GoalDirection)}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+            >
+              <option value="at_least">At least (higher is better)</option>
+              <option value="at_most">At most (lower is better)</option>
+            </select>
           </label>
         </div>
 

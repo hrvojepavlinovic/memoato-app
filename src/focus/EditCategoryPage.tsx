@@ -2,19 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { deleteCategory, getCategories, updateCategory, useQuery } from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
-import type { Period } from "./types";
+import type { GoalDirection, Period, BucketAggregation, CategoryChartType } from "./types";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
 import { encryptUtf8ToEncryptedString, isEncryptedString } from "../privacy/crypto";
 import { localDeleteCategory, localGetCategoriesWithStats, localUpdateCategory } from "./local";
 
-type CategoryType = "NUMBER" | "DO" | "DONT" | "GOAL";
+type CategoryType = "NUMBER" | "DO" | "DONT";
+type ChartType = CategoryChartType;
+type BarAgg = Extract<BucketAggregation, "sum" | "avg">;
+type LineAgg = Extract<BucketAggregation, "last" | "avg">;
 
 const typeOptions: { value: CategoryType; label: string; hint: string }[] = [
   { value: "NUMBER", label: "Track number", hint: "Counts, minutes, kcal, etc." },
   { value: "DO", label: "Do's", hint: "Count each time you do it." },
   { value: "DONT", label: "Don'ts", hint: "Count each time you break it." },
-  { value: "GOAL", label: "Goal value", hint: "Track a value over time (line chart)." },
 ];
 
 const periodOptions: { value: Period; label: string }[] = [
@@ -40,13 +42,27 @@ export function EditCategoryPage() {
   const [title, setTitle] = useState("");
   const [categoryType, setCategoryType] = useState<CategoryType>("NUMBER");
   const [period, setPeriod] = useState<Period>("week");
+  const [chartType, setChartType] = useState<ChartType>("bar");
+  const [barAgg, setBarAgg] = useState<BarAgg>("sum");
+  const [lineAgg, setLineAgg] = useState<LineAgg>("last");
   const [unit, setUnit] = useState("");
   const [goal, setGoal] = useState<string>("");
   const [goalValue, setGoalValue] = useState<string>("");
+  const [goalDirection, setGoalDirection] = useState<GoalDirection>("at_least");
   const [accentHex, setAccentHex] = useState("#0A0A0A");
   const [accentHexInput, setAccentHexInput] = useState("#0A0A0A");
   const [emoji, setEmoji] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  function defaultGoalDirectionForCategory(c: any): GoalDirection {
+    const dir = (c?.goalDirection ?? "").toLowerCase();
+    if (dir === "at_most") return "at_most";
+    if (dir === "at_least") return "at_least";
+    const slug = String(c?.slug ?? "").toLowerCase();
+    if (slug === "weight") return "at_most";
+    if (c?.categoryType === "DONT") return "at_most";
+    return "at_least";
+  }
 
   function normalizeHexInput(s: string): string | null {
     const m = /^#([0-9a-fA-F]{6})$/.exec(s.trim());
@@ -57,8 +73,19 @@ export function EditCategoryPage() {
   useEffect(() => {
     if (!category) return;
     setTitle(category.title ?? "");
-    setCategoryType((category.categoryType as CategoryType) ?? "NUMBER");
+    setCategoryType((category.categoryType === "GOAL" ? "NUMBER" : (category.categoryType as CategoryType)) ?? "NUMBER");
     setPeriod((category.period as Period) ?? "week");
+    const nextChartType =
+      (category.categoryType === "NUMBER" ? (category.chartType as ChartType) : "bar") ??
+      ((category.categoryType === "GOAL" ? "line" : "bar") as ChartType);
+    setChartType(nextChartType);
+    const agg = (category.bucketAggregation ?? "").toLowerCase();
+    if (nextChartType === "bar") {
+      setBarAgg(agg === "avg" ? "avg" : "sum");
+    } else {
+      setLineAgg(agg === "avg" ? "avg" : "last");
+    }
+    setGoalDirection(defaultGoalDirectionForCategory(category));
     setUnit(category.unit && category.unit !== "x" ? category.unit : "");
     setGoal(category.goalWeekly != null ? String(category.goalWeekly) : "");
     setGoalValue(category.goalValue != null ? String(category.goalValue) : "");
@@ -89,8 +116,26 @@ export function EditCategoryPage() {
     };
   }, [category, privacy.key]);
 
-  const needsPeriod = categoryType !== "GOAL";
+  const effectiveChartType: ChartType = categoryType === "NUMBER" ? chartType : "bar";
+  const bucketAggregation: BucketAggregation = effectiveChartType === "bar" ? barAgg : lineAgg;
+  const needsPeriod = effectiveChartType !== "line";
   const hint = useMemo(() => typeOptions.find((o) => o.value === categoryType)?.hint, [categoryType]);
+
+  function onChartTypeChange(next: ChartType) {
+    setChartType(next);
+    if (next === "line") {
+      if (goalValue.trim() === "" && goal.trim() !== "") {
+        setGoalValue(goal);
+        setGoal("");
+      }
+      return;
+    }
+    // bar
+    if (goal.trim() === "" && goalValue.trim() !== "") {
+      setGoal(goalValue);
+      setGoalValue("");
+    }
+  }
 
   async function onSave() {
     if (!category?.id) return;
@@ -143,12 +188,15 @@ export function EditCategoryPage() {
           categoryId: category.id,
           title: titleToStore,
           categoryType,
+          chartType: effectiveChartType,
           period: needsPeriod ? period : undefined,
           unit: unit.trim() || null,
-          goal: g ?? null,
-          goalValue: gv ?? null,
+          goal: needsPeriod ? (g ?? null) : null,
+          goalValue: effectiveChartType === "line" ? (gv ?? null) : null,
           accentHex: cleanHex,
           emoji: emoji.trim() || null,
+          bucketAggregation,
+          goalDirection,
         });
         await localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats as any));
         navigate(`/c/${category.slug ?? category.id}`);
@@ -157,13 +205,16 @@ export function EditCategoryPage() {
           categoryId: category.id,
           title: titleToStore,
           categoryType,
+          chartType: effectiveChartType,
+          bucketAggregation,
+          goalDirection,
           period: needsPeriod ? period : undefined,
           unit: unit.trim() || undefined,
-          goal: g ?? undefined,
-          goalValue: gv ?? undefined,
+          goal: needsPeriod ? (g ?? undefined) : undefined,
+          goalValue: effectiveChartType === "line" ? (gv ?? undefined) : undefined,
           accentHex: cleanHex,
           emoji: emoji.trim() || undefined,
-        });
+        } as any);
         await categoriesQuery.refetch();
         navigate(`/c/${(updated as any).slug ?? updated.id}`);
       }
@@ -245,6 +296,19 @@ export function EditCategoryPage() {
           </label>
 
           <label className="flex flex-col gap-1">
+            <span className="label">Chart</span>
+            <select
+              value={effectiveChartType}
+              onChange={(e) => onChartTypeChange(e.target.value as ChartType)}
+              disabled={categoryType !== "NUMBER"}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100"
+            >
+              <option value="bar">Bar (totals)</option>
+              <option value="line">Line (values)</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
             <span className="label">Period</span>
             <select
               value={period}
@@ -259,6 +323,31 @@ export function EditCategoryPage() {
               ))}
             </select>
           </label>
+
+          {categoryType === "NUMBER" ? (
+            <label className="flex flex-col gap-1">
+              <span className="label">Multiple entries</span>
+              {effectiveChartType === "bar" ? (
+                <select
+                  value={barAgg}
+                  onChange={(e) => setBarAgg(e.target.value as BarAgg)}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+                >
+                  <option value="sum">Sum</option>
+                  <option value="avg">Average</option>
+                </select>
+              ) : (
+                <select
+                  value={lineAgg}
+                  onChange={(e) => setLineAgg(e.target.value as LineAgg)}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+                >
+                  <option value="last">Last</option>
+                  <option value="avg">Average</option>
+                </select>
+              )}
+            </label>
+          ) : null}
 
           <label className="flex flex-col gap-1">
             <span className="label">Accent</span>
@@ -305,25 +394,37 @@ export function EditCategoryPage() {
             <input
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              placeholder={categoryType === "GOAL" ? "e.g. kg" : "e.g. x"}
+              placeholder={effectiveChartType === "line" ? "e.g. kg" : "e.g. x"}
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
             />
           </label>
 
           <label className="flex flex-col gap-1">
             <span className="label">
-              {categoryType === "GOAL" ? "Goal value (optional)" : "Goal (optional)"}
+              {effectiveChartType === "line" ? "Goal value (optional)" : "Goal (optional)"}
             </span>
             <input
               type="number"
               step="0.1"
-              value={categoryType === "GOAL" ? goalValue : goal}
+              value={effectiveChartType === "line" ? goalValue : goal}
               onChange={(e) =>
-                categoryType === "GOAL" ? setGoalValue(e.target.value) : setGoal(e.target.value)
+                effectiveChartType === "line" ? setGoalValue(e.target.value) : setGoal(e.target.value)
               }
-              placeholder={categoryType === "GOAL" ? "e.g. 85" : "e.g. 10"}
+              placeholder={effectiveChartType === "line" ? "e.g. 85" : "e.g. 10"}
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
             />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="label">Goal direction</span>
+            <select
+              value={goalDirection}
+              onChange={(e) => setGoalDirection(e.target.value as GoalDirection)}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+            >
+              <option value="at_least">At least</option>
+              <option value="at_most">At most</option>
+            </select>
           </label>
         </div>
 

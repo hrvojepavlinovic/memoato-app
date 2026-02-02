@@ -25,11 +25,16 @@ Memoato is:
 
 - Each category belongs to a user, has a friendly slug (`/c/:categorySlug`), and stores:
   - `title`, optional `emoji`, accent color (`accentHex`), friendly slug.
-  - `categoryType`: `NUMBER` | `DO` | `DONT` | `GOAL` (kept as a string so we can evolve it later).
-  - `chartType`: `bar` (default) or `line`.
-  - `period`: day/week/month/year (only for non-GOAL tracking).
+  - `categoryType`: `NUMBER` | `DO` | `DONT` (legacy `GOAL` may exist but is treated as `NUMBER`).
+  - `chartType`: `bar` (totals per bucket) or `line` (values over time).
+  - `period`: day/week/month/year (bar charts only; line charts have no period field).
   - `unit`: optional text (omit `x` when there is no service unit).
-  - Goals: `goalWeekly` for period-based tracking (weeks, etc.), `goalValue` for line-valued goals (like weight).
+  - Goals:
+    - `goalWeekly`: per-period goal (used by bar charts for the selected `period`).
+    - `goalValue`: target value (used by line charts like weight).
+    - `goalDirection`: `at_least` (higher is better) or `at_most` (lower is better).
+  - Multiple entries per bucket:
+    - `bucketAggregation`: `sum` | `avg` | `last` (bar charts use `sum`/`avg`; line charts use `last`/`avg`).
 
 ### Events
 

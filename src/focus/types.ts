@@ -8,6 +8,9 @@ export type SeriesBucket = {
 
 export type CategoryChartType = "bar" | "line";
 
+export type BucketAggregation = "sum" | "avg" | "last";
+export type GoalDirection = "at_least" | "at_most";
+
 export type CategoryWithStats = {
   id: string;
   title: string;
@@ -19,6 +22,8 @@ export type CategoryWithStats = {
   emoji: string | null;
   isSystem: boolean;
   sortOrder: number | null;
+  bucketAggregation: BucketAggregation | null;
+  goalDirection: GoalDirection | null;
   period: Period | null;
   goalWeekly: number | null;
   goalValue: number | null;

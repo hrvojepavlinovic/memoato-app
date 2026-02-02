@@ -11,11 +11,13 @@ export function BarChart({
   data,
   accentHex,
   goal,
+  goalDirection,
   unit,
 }: {
   data: SeriesBucket[];
   accentHex?: string;
   goal?: number | null;
+  goalDirection?: "at_least" | "at_most" | null;
   unit?: string | null;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -25,6 +27,7 @@ export function BarChart({
   const goalColors = goalLineColors(accentHex);
   const chartHeight = 120;
   const unitSuffix = unit && unit !== "x" ? ` ${unit}` : "";
+  const goalPrefix = goalDirection === "at_most" ? "≤" : "≥";
 
   const minColPx = 32;
   const gapPx = 8;
@@ -90,7 +93,7 @@ export function BarChart({
                         style={{ top: `${labelY}px`, color: goalColors.label }}
                         aria-hidden="true"
                       >
-                        Goal {formatValue(resolvedGoal)}
+                        Goal {goalPrefix} {formatValue(resolvedGoal)}
                         {unitSuffix}
                       </div>
                     </>
