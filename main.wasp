@@ -19,6 +19,7 @@ app memoato {
     "<meta name='apple-mobile-web-app-capable' content='yes' />",
     "<meta name='apple-mobile-web-app-status-bar-style' content='default' />",
     "<meta name='apple-mobile-web-app-title' content='memoato' />",
+    "<script>(function(){try{var ls='';try{ls=(localStorage.getItem('memoato:theme')||'').trim();}catch(e){}var m=/(?:^|; )memoato_theme=([^;]*)/.exec(document.cookie||'');var c=m?decodeURIComponent(m[1]||''):'';var t=(ls==='dark'||ls==='light')?ls:((c==='dark'||c==='light')?c:'light');var dark=t==='dark';var el=document.documentElement;el.classList.toggle('dark',dark);el.style.colorScheme=dark?'dark':'light';var meta=document.querySelector(\"meta[name='theme-color']\");if(meta)meta.setAttribute('content',dark?'#0A0A0A':'#ffffff');}catch(e){}})();</script>",
   ],
   auth: {
     userEntity: User,

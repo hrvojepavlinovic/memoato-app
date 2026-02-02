@@ -26,7 +26,7 @@ export function ConfirmEmailChangePage() {
     <div className="mx-auto w-full max-w-screen-sm px-4 py-10">
       <div className="card p-5">
         <div className="text-xl font-semibold tracking-tight">Confirm email change</div>
-        <div className="mt-2 text-sm text-neutral-600">
+        <div className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
           {message ?? "Click confirm to update your Memoato email."}
         </div>
         <div className="mt-4 flex gap-2">
@@ -41,4 +41,3 @@ export function ConfirmEmailChangePage() {
     </div>
   );
 }
-

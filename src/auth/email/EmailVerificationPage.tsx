@@ -44,28 +44,28 @@ export function EmailVerificationPage() {
     <AuthLayout>
       <div className="mb-6">
         <h2 className="text-2xl font-semibold tracking-tight">Email verification</h2>
-        <p className="mt-1 text-sm text-neutral-500">memoato</p>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">memoato</p>
       </div>
 
       {!token ? (
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800">
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
           Missing verification token.
         </div>
       ) : status === "loading" ? (
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800">
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
           Verifying… You’ll be logged in automatically.
         </div>
       ) : status === "error" ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-200">
           {errorMessage ?? "Email verification failed."}
         </div>
       ) : (
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800">
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
           Verifying…
         </div>
       )}
 
-      <div className="mt-4 text-sm font-medium text-neutral-900">
+      <div className="mt-4 text-sm font-medium text-neutral-900 dark:text-neutral-100">
         <Link to="/login" className="font-semibold underline">
           Go to login
         </Link>

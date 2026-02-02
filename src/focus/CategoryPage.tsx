@@ -19,6 +19,8 @@ import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
 import { encryptUtf8ToEncryptedString, isEncryptedString } from "../privacy/crypto";
 import { localCreateEvent, localGetBarSeries, localGetCategoriesWithStats, localGetLineSeries } from "./local";
+import { useTheme } from "../theme/ThemeProvider";
+import { resolveAccentForTheme } from "../theme/colors";
 
 function todayIso(): string {
   const d = new Date();
@@ -92,6 +94,8 @@ function scaleGoalToPeriod(args: {
 }
 
 function Summary({ category }: { category: CategoryWithStats }) {
+  const theme = useTheme();
+  const accent = resolveAccentForTheme(category.accentHex, theme.isDark) ?? category.accentHex;
   const unit =
     category.unit && category.unit !== "x"
       ? ` ${category.unit}`
@@ -101,11 +105,11 @@ function Summary({ category }: { category: CategoryWithStats }) {
     const last = category.lastValue == null ? "—" : formatValue(category.lastValue);
     const goal = category.goalValue == null ? null : formatValue(category.goalValue);
     return (
-      <div className="text-sm text-neutral-500">
-        Last: <span className="font-semibold text-neutral-900">{last}{unit}</span>
+      <div className="text-sm text-neutral-500 dark:text-neutral-400">
+        Last: <span className="font-semibold text-neutral-900 dark:text-neutral-100">{last}{unit}</span>
         {goal ? (
           <>
-            {" · "}Goal: <span className="font-semibold text-neutral-900">{goal}{unit}</span>
+            {" · "}Goal: <span className="font-semibold text-neutral-900 dark:text-neutral-100">{goal}{unit}</span>
           </>
         ) : null}
       </div>
@@ -120,17 +124,17 @@ function Summary({ category }: { category: CategoryWithStats }) {
   if (goal > 0) {
     return (
       <div className="mt-1 w-full">
-        <div className="flex items-center justify-between text-[12px] font-medium text-neutral-500">
+        <div className="flex items-center justify-between text-[12px] font-medium text-neutral-500 dark:text-neutral-400">
           <span>{label}</span>
           <span className="tabular-nums">
             {formatValue(done)} / {formatValue(goal)}
             {unit}
           </span>
         </div>
-        <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
+        <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
           <div
             className="h-full rounded-full"
-            style={{ width: `${pct * 100}%`, backgroundColor: category.accentHex }}
+            style={{ width: `${pct * 100}%`, backgroundColor: accent }}
             aria-label={`${label} progress`}
           />
         </div>
@@ -140,9 +144,9 @@ function Summary({ category }: { category: CategoryWithStats }) {
 
   const week = formatValue(done);
   return (
-    <div className="text-sm text-neutral-500">
+    <div className="text-sm text-neutral-500 dark:text-neutral-400">
       {label}:{" "}
-      <span className="font-semibold text-neutral-900">
+      <span className="font-semibold text-neutral-900 dark:text-neutral-100">
         {week}{unit}
       </span>
     </div>
@@ -255,6 +259,7 @@ export function CategoryPage() {
   const [occurredOn, setOccurredOn] = useState<string>(todayIso());
   const [displayTitle, setDisplayTitle] = useState<string | null>(null);
   const privacy = usePrivacy();
+  const theme = useTheme();
 
   const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
   const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>([]);
@@ -362,6 +367,7 @@ export function CategoryPage() {
   const resolvedCategoryId = category?.id ?? null;
   const resolvedTitle =
     displayTitle ?? (category && isEncryptedString(category.title) ? "Locked" : category?.title ?? null);
+  const accentHex = category ? resolveAccentForTheme(category.accentHex, theme.isDark) ?? category.accentHex : "#0A0A0A";
   const isLocked = !!category && isEncryptedString(category.title) && !privacy.key;
 
   return (
@@ -372,8 +378,8 @@ export function CategoryPage() {
             <div className="flex w-full items-start gap-3">
               {category ? (
                 <div
-                  className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white"
-                  style={{ borderColor: category.accentHex }}
+                  className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                  style={{ borderColor: accentHex }}
                   aria-hidden="true"
                 >
                   <div className="text-lg leading-none">{category.emoji ?? ""}</div>
@@ -405,7 +411,7 @@ export function CategoryPage() {
         </div>
 
         {isLocked ? (
-          <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 shadow-sm">
+          <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300">
             This category is encrypted. Unlock it from <span className="font-semibold">Profile → Privacy</span>.
           </div>
         ) : null}
@@ -419,19 +425,19 @@ export function CategoryPage() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Write a quick thought…"
                 rows={3}
-                className="block w-full min-w-0 max-w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+                className="block w-full min-w-0 max-w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
               />
             </label>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="flex min-w-0 flex-col gap-1">
                 <span className="label">Date</span>
-                <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white">
+                <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-950">
                   <input
                     type="date"
                     value={occurredOn}
                     onChange={(e) => setOccurredOn(e.target.value)}
-                    className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900"
+                    className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
                     style={{ WebkitAppearance: "none" }}
                   />
                 </div>
@@ -447,12 +453,12 @@ export function CategoryPage() {
           <div className="card grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
             <label className="flex min-w-0 flex-col gap-1">
               <span className="label">Date</span>
-              <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white">
+              <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-950">
                 <input
                   type="date"
                   value={occurredOn}
                   onChange={(e) => setOccurredOn(e.target.value)}
-                  className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900"
+                  className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
                   style={{ WebkitAppearance: "none" }}
                 />
               </div>
@@ -467,7 +473,7 @@ export function CategoryPage() {
                 placeholder={amountPlaceholder}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500"
+                className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
               />
             </label>
             <div className="flex min-w-0 items-end">

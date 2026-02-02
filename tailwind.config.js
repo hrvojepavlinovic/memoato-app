@@ -2,6 +2,7 @@ import { resolveProjectPath } from "wasp/dev";
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: "class",
   content: [resolveProjectPath("./src/**/*.{js,jsx,ts,tsx}")],
   theme: {
     extend: {

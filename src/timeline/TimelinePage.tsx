@@ -8,6 +8,8 @@ import { isEncryptedString } from "../privacy/crypto";
 import { Button } from "../shared/components/Button";
 import { localGetCategoryEvents, localListCategories } from "../focus/local";
 import { parseLocalIsoDate, startOfLocalDay, toLocalIsoDate, todayLocalIso } from "../shared/lib/localDate";
+import { useTheme } from "../theme/ThemeProvider";
+import { resolveAccentForTheme } from "../theme/colors";
 
 type DayEvent = {
   id: string;
@@ -49,6 +51,7 @@ export function TimelinePage() {
   const navigate = useNavigate();
   const params = useParams<{ occurredOn?: string }>();
   const privacy = usePrivacy();
+  const theme = useTheme();
   const today = useMemo(() => startOfLocalDay(new Date()), []);
   const todayIso = useMemo(() => todayLocalIso(), []);
   const [selectedIso, setSelectedIso] = useState<string>(() => {
@@ -344,7 +347,7 @@ export function TimelinePage() {
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Timeline</h2>
-          <p className="text-sm text-neutral-500">{isToday ? "Today" : formatDayLabel(day)}</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">{isToday ? "Today" : formatDayLabel(day)}</p>
         </div>
         {!isToday ? (
           <div className="flex items-center">
@@ -375,13 +378,19 @@ export function TimelinePage() {
                   onClick={() => selectIso(iso)}
                   className={`flex min-w-0 flex-col items-center justify-center rounded-xl border px-2 py-2 text-center ${
                     disabled
-                      ? "border-neutral-200 bg-neutral-50 text-neutral-400"
+                      ? "border-neutral-200 bg-neutral-50 text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-500"
                       : active
-                        ? "border-neutral-950 bg-neutral-950 text-white"
-                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50"
+                        ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900"
                   }`}
                 >
-                  <div className={`text-xs font-semibold ${active ? "text-white/70" : "text-neutral-500"}`}>{w}</div>
+                  <div
+                    className={`text-xs font-semibold ${
+                      active ? "text-white/70 dark:text-neutral-950/70" : "text-neutral-500 dark:text-neutral-400"
+                    }`}
+                  >
+                    {w}
+                  </div>
                   <div className="text-sm font-semibold tabular-nums">{dd}</div>
                 </button>
               );
@@ -399,16 +408,17 @@ export function TimelinePage() {
       </div>
 
       {privacy.mode !== "local" && serverQuery.isLoading ? (
-        <div className="card p-4 text-sm text-neutral-500">Loading…</div>
+        <div className="card p-4 text-sm text-neutral-500 dark:text-neutral-400">Loading…</div>
       ) : summary.length === 0 ? (
-        <div className="card p-4 text-sm text-neutral-500">Nothing logged for this day.</div>
+        <div className="card p-4 text-sm text-neutral-500 dark:text-neutral-400">Nothing logged for this day.</div>
       ) : (
         <div className="relative space-y-1">
-          <div className="absolute left-6 top-0 h-full w-px bg-neutral-200" aria-hidden="true" />
+          <div className="absolute left-6 top-0 h-full w-px bg-neutral-200 dark:bg-neutral-800" aria-hidden="true" />
           {summary.map((s) => {
             const unit = s.unit && s.unit !== "x" ? ` ${s.unit}` : "";
             const isNotes = s.slug === "notes";
             const isWeight = s.chartType === "line" || s.categoryType === "GOAL";
+            const accent = resolveAccentForTheme(s.accentHex, theme.isDark) ?? s.accentHex;
 
             let main = "";
             if (isNotes) {
@@ -440,12 +450,12 @@ export function TimelinePage() {
                 key={s.categoryId}
                 to={routes.CategoryRoute.to}
                 params={{ categorySlug: s.slug }}
-                className="group relative block rounded-xl px-2 py-2 hover:bg-neutral-50"
+                className="group relative block rounded-xl px-2 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-900"
               >
                 <div className="relative flex items-start gap-3">
                   <div
-                    className="absolute left-0 top-2 flex h-8 w-8 items-center justify-center rounded-full border bg-white"
-                    style={{ borderColor: s.accentHex }}
+                    className="absolute left-0 top-2 flex h-8 w-8 items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                    style={{ borderColor: accent }}
                     aria-hidden="true"
                   >
                     <div className="text-lg leading-none">{s.emoji ?? ""}</div>
@@ -454,11 +464,11 @@ export function TimelinePage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate text-base font-semibold">{s.title}</div>
-                        <div className="text-sm text-neutral-600">{main}</div>
+                        <div className="text-sm text-neutral-600 dark:text-neutral-300">{main}</div>
                       </div>
                       <div className="shrink-0 text-right">
-                        {time ? <div className="text-xs font-semibold text-neutral-500">{time}</div> : null}
-                        {sub ? <div className="text-sm font-semibold text-neutral-900">{sub}</div> : null}
+                        {time ? <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">{time}</div> : null}
+                        {sub ? <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{sub}</div> : null}
                       </div>
                     </div>
 
@@ -467,13 +477,13 @@ export function TimelinePage() {
                         {s.notes.slice(0, 3).map((n, i) => (
                           <div
                             key={`${s.categoryId}-${i}`}
-                            className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800"
+                            className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200"
                           >
                             {n}
                           </div>
                         ))}
                         {s.notes.length > 3 ? (
-                          <div className="text-xs font-medium text-neutral-500">+{s.notes.length - 3} more</div>
+                          <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">+{s.notes.length - 3} more</div>
                         ) : null}
                       </div>
                     ) : null}

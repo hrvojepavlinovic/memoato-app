@@ -32,7 +32,7 @@ export function ConfirmDeleteAccountPage() {
     <div className="mx-auto w-full max-w-screen-sm px-4 py-10">
       <div className="card p-5">
         <div className="text-xl font-semibold tracking-tight">Delete account</div>
-        <div className="mt-2 text-sm text-neutral-600">
+        <div className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
           {message ?? "This will permanently delete your Memoato data."}
         </div>
         <div className="mt-4 flex gap-2">
@@ -51,4 +51,3 @@ export function ConfirmDeleteAccountPage() {
     </div>
   );
 }
-

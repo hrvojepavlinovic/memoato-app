@@ -136,7 +136,7 @@ export function NewCategoryPage() {
     <div className="mx-auto w-full max-w-screen-md px-4 py-6">
       <div className="mb-4">
         <h2 className="text-2xl font-semibold tracking-tight">New category</h2>
-        <p className="text-sm text-neutral-500">{hint}</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">{hint}</p>
       </div>
 
       <div className="card p-4">
@@ -147,7 +147,7 @@ export function NewCategoryPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Meditation"
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
@@ -156,7 +156,7 @@ export function NewCategoryPage() {
             <select
               value={categoryType}
               onChange={(e) => setCategoryType(e.target.value as CategoryType)}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               {typeOptions.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -172,7 +172,7 @@ export function NewCategoryPage() {
               value={effectiveChartType}
               onChange={(e) => setChartType(e.target.value as ChartType)}
               disabled={categoryType !== "NUMBER"}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
             >
               <option value="bar">Bar (totals)</option>
               <option value="line">Line (values)</option>
@@ -185,7 +185,7 @@ export function NewCategoryPage() {
               value={period}
               onChange={(e) => setPeriod(e.target.value as Period)}
               disabled={!needsPeriod}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
             >
               {periodOptions.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -202,7 +202,7 @@ export function NewCategoryPage() {
                 <select
                   value={barAgg}
                   onChange={(e) => setBarAgg(e.target.value as BarAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
                   <option value="sum">Sum</option>
                   <option value="avg">Average</option>
@@ -211,7 +211,7 @@ export function NewCategoryPage() {
                 <select
                   value={lineAgg}
                   onChange={(e) => setLineAgg(e.target.value as LineAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
                   <option value="last">Last</option>
                   <option value="avg">Average</option>
@@ -231,7 +231,7 @@ export function NewCategoryPage() {
                   setAccentHex(n);
                   setAccentHexInput(n);
                 }}
-                className="h-10 w-12 rounded-md border border-neutral-300 bg-white p-1"
+                className="h-10 w-12 rounded-md border border-neutral-300 bg-white p-1 dark:border-neutral-700 dark:bg-neutral-950"
               />
               <input
                 value={accentHexInput}
@@ -245,7 +245,7 @@ export function NewCategoryPage() {
                   const n = normalizeHexInput(accentHexInput);
                   if (n) setAccentHexInput(n);
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
               />
             </div>
           </label>
@@ -256,7 +256,7 @@ export function NewCategoryPage() {
               value={emoji}
               onChange={(e) => setEmoji(e.target.value)}
               placeholder="e.g. 🧘"
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
@@ -266,7 +266,7 @@ export function NewCategoryPage() {
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
               placeholder={effectiveChartType === "line" ? "e.g. kg" : "e.g. ml"}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
@@ -282,7 +282,7 @@ export function NewCategoryPage() {
                 effectiveChartType === "line" ? setGoalValue(e.target.value) : setGoal(e.target.value)
               }
               placeholder={effectiveChartType === "line" ? "e.g. 85" : "e.g. 2000"}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
@@ -291,7 +291,7 @@ export function NewCategoryPage() {
             <select
               value={goalDirection}
               onChange={(e) => setGoalDirection(e.target.value as GoalDirection)}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               <option value="at_least">At least (higher is better)</option>
               <option value="at_most">At most (lower is better)</option>

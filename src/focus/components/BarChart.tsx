@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { SeriesBucket } from "../types";
 import { goalLineColors } from "./goalColors";
+import { useTheme } from "../../theme/ThemeProvider";
+import { resolveAccentForTheme } from "../../theme/colors";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -21,10 +23,12 @@ export function BarChart({
   unit?: string | null;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const theme = useTheme();
   const resolvedGoal = goal != null && goal > 0 ? goal : null;
   const max = Math.max(1, ...data.map((d) => d.total), resolvedGoal ?? 1);
-  const fill = accentHex ?? "#0a0a0a";
-  const goalColors = goalLineColors(accentHex);
+  const resolvedAccent = resolveAccentForTheme(accentHex ?? undefined, theme.isDark);
+  const fill = resolvedAccent ?? (theme.isDark ? "#FAFAFA" : "#0a0a0a");
+  const goalColors = goalLineColors(resolvedAccent ?? accentHex);
   const chartHeight = 120;
   const unitSuffix = unit && unit !== "x" ? ` ${unit}` : "";
   const goalPrefix = goalDirection === "at_most" ? "≤" : "≥";
@@ -52,7 +56,7 @@ export function BarChart({
     <div className="w-full">
       <div
         ref={scrollRef}
-        className="overflow-x-auto rounded-xl border border-neutral-200 bg-white p-3 shadow-sm"
+        className="overflow-x-auto rounded-xl border border-neutral-200 bg-white p-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
       >
         <div
           className="min-w-full"
@@ -62,7 +66,7 @@ export function BarChart({
             {data.map((d) => (
               <div
                 key={`v-${d.startDate}`}
-                className="text-center text-[11px] font-semibold tabular-nums text-neutral-700"
+                className="text-center text-[11px] font-semibold tabular-nums text-neutral-700 dark:text-neutral-200"
               >
                 {formatValue(d.total)}
               </div>
@@ -124,7 +128,7 @@ export function BarChart({
             {data.map((d) => (
               <div
                 key={`l-${d.startDate}`}
-                className="text-center text-[11px] font-medium text-neutral-500"
+                className="text-center text-[11px] font-medium text-neutral-500 dark:text-neutral-400"
               >
                 {d.label}
               </div>

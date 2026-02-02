@@ -7,7 +7,7 @@ export function LoginPage() {
     <AuthLayout>
       <LoginForm />
       <br />
-      <span className="text-sm font-medium text-neutral-900">
+      <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
         {"Don't have an account yet? "}
         <Link to="/signup" className="font-semibold underline">
           Go to signup
@@ -15,7 +15,7 @@ export function LoginPage() {
         .
       </span>
       <br />
-      <span className="text-sm font-medium text-neutral-900">
+      <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
         {"Forgot your password? "}
         <Link to="/request-password-reset" className="font-semibold underline">
           Reset it

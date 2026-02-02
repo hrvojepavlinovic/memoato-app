@@ -6,6 +6,7 @@ import { Header } from "./shared/components/Header";
 import { useEffect } from "react";
 import { Databuddy } from "./shared/components/Databuddy";
 import { PrivacyProvider } from "./privacy/PrivacyProvider";
+import { ThemeProvider } from "./theme/ThemeProvider";
 
 export function App() {
   useEffect(() => {
@@ -22,13 +23,15 @@ export function App() {
 
   return (
     <>
-      <PrivacyProvider>
-        <main className="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-900">
-          <Header />
-          <Databuddy />
-          <Outlet />
-        </main>
-      </PrivacyProvider>
+      <ThemeProvider>
+        <PrivacyProvider>
+          <main className="flex min-h-screen w-full flex-col bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+            <Header />
+            <Databuddy />
+            <Outlet />
+          </main>
+        </PrivacyProvider>
+      </ThemeProvider>
     </>
   );
 }

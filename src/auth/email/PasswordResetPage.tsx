@@ -7,7 +7,7 @@ export function PasswordResetPage() {
     <AuthLayout>
       <ResetPasswordForm />
       <br />
-      <span className="text-sm font-medium text-neutral-900">
+      <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
         {"If everything is okay, "}
         <Link to="/login" className="font-semibold underline">
           go to login

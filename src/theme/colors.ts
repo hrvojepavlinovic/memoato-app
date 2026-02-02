@@ -5,10 +5,6 @@ function parseHex(hex: string): { r: number; g: number; b: number } | null {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
 
-function rgba({ r, g, b }: { r: number; g: number; b: number }, a: number): string {
-  return `rgba(${r},${g},${b},${a})`;
-}
-
 function srgbToLinear(x: number): number {
   const v = x / 255;
   return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
@@ -21,17 +17,15 @@ function luminance(rgb: { r: number; g: number; b: number }): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-export function goalLineColors(accentHex?: string): { stroke: string; label: string } {
-  const fallback = { stroke: "var(--goal-fallback-stroke)", label: "var(--goal-fallback-label)" };
-  if (!accentHex) return fallback;
+export function resolveAccentForTheme(accentHex: string | undefined, isDark: boolean): string | undefined {
+  if (!accentHex) return undefined;
   const rgb = parseHex(accentHex);
-  if (!rgb) return fallback;
+  if (!rgb) return accentHex;
+  const lum = luminance(rgb);
 
-  // If the accent is very light, use neutral colors for readability.
-  if (luminance(rgb) > 0.82) return fallback;
-
-  return {
-    stroke: rgba(rgb, 0.35),
-    label: rgba(rgb, 0.65),
-  };
+  // Avoid invisible accents: black-on-black in dark mode, or white-on-white in light mode.
+  if (isDark && lum < 0.18) return "#FAFAFA";
+  if (!isDark && lum > 0.9) return "#0A0A0A";
+  return accentHex;
 }
+

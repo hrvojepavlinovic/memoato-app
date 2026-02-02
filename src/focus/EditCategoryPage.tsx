@@ -253,7 +253,7 @@ export function EditCategoryPage() {
     return (
       <div className="mx-auto w-full max-w-screen-md px-4 py-10">
         <div className="text-2xl font-semibold tracking-tight">404</div>
-        <div className="mt-1 text-sm text-neutral-500">Category not found.</div>
+        <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Category not found.</div>
         <div className="mt-4">
           <Button onClick={() => navigate("/")}>Go home</Button>
         </div>
@@ -265,7 +265,7 @@ export function EditCategoryPage() {
     <div className="mx-auto w-full max-w-screen-md px-4 py-6">
       <div className="mb-4">
         <h2 className="text-2xl font-semibold tracking-tight">Edit category</h2>
-        <p className="text-sm text-neutral-500">{hint}</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">{hint}</p>
       </div>
 
       <div className="card p-4">
@@ -276,7 +276,7 @@ export function EditCategoryPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Meditation"
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
@@ -285,7 +285,7 @@ export function EditCategoryPage() {
             <select
               value={categoryType}
               onChange={(e) => setCategoryType(e.target.value as CategoryType)}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               {typeOptions.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -301,7 +301,7 @@ export function EditCategoryPage() {
               value={effectiveChartType}
               onChange={(e) => onChartTypeChange(e.target.value as ChartType)}
               disabled={categoryType !== "NUMBER"}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
             >
               <option value="bar">Bar (totals)</option>
               <option value="line">Line (values)</option>
@@ -314,7 +314,7 @@ export function EditCategoryPage() {
               value={period}
               onChange={(e) => setPeriod(e.target.value as Period)}
               disabled={!needsPeriod}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
             >
               {periodOptions.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -331,7 +331,7 @@ export function EditCategoryPage() {
                 <select
                   value={barAgg}
                   onChange={(e) => setBarAgg(e.target.value as BarAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
                   <option value="sum">Sum</option>
                   <option value="avg">Average</option>
@@ -340,7 +340,7 @@ export function EditCategoryPage() {
                 <select
                   value={lineAgg}
                   onChange={(e) => setLineAgg(e.target.value as LineAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
                   <option value="last">Last</option>
                   <option value="avg">Average</option>
@@ -360,7 +360,7 @@ export function EditCategoryPage() {
                   setAccentHex(n);
                   setAccentHexInput(n);
                 }}
-                className="h-10 w-12 rounded-md border border-neutral-300 bg-white p-1"
+                className="h-10 w-12 rounded-md border border-neutral-300 bg-white p-1 dark:border-neutral-700 dark:bg-neutral-950"
               />
               <input
                 value={accentHexInput}
@@ -374,7 +374,7 @@ export function EditCategoryPage() {
                   const n = normalizeHexInput(accentHexInput);
                   if (n) setAccentHexInput(n);
                 }}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
               />
             </div>
           </label>
@@ -385,7 +385,7 @@ export function EditCategoryPage() {
               value={emoji}
               onChange={(e) => setEmoji(e.target.value)}
               placeholder="e.g. 🧘"
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
@@ -395,7 +395,7 @@ export function EditCategoryPage() {
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
               placeholder={effectiveChartType === "line" ? "e.g. kg" : "e.g. x"}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
@@ -411,7 +411,7 @@ export function EditCategoryPage() {
                 effectiveChartType === "line" ? setGoalValue(e.target.value) : setGoal(e.target.value)
               }
               placeholder={effectiveChartType === "line" ? "e.g. 85" : "e.g. 10"}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
@@ -420,7 +420,7 @@ export function EditCategoryPage() {
             <select
               value={goalDirection}
               onChange={(e) => setGoalDirection(e.target.value as GoalDirection)}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               <option value="at_least">At least</option>
               <option value="at_most">At most</option>
@@ -430,12 +430,12 @@ export function EditCategoryPage() {
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {category.isSystem ? (
-            <div className="text-sm font-medium text-neutral-500">This category can’t be deleted.</div>
+            <div className="text-sm font-medium text-neutral-500 dark:text-neutral-400">This category can’t be deleted.</div>
           ) : (
             <Button
               variant="ghost"
               onClick={onDelete}
-              className="border border-red-200 text-red-700 hover:bg-red-50"
+              className="border border-red-200 text-red-700 hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-900/20"
             >
               Delete category
             </Button>

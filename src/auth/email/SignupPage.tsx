@@ -64,11 +64,11 @@ export function SignupPage() {
     <AuthLayout>
       <div className="mb-6">
         <h2 className="text-2xl font-semibold tracking-tight">Create a new account</h2>
-        <p className="mt-1 text-sm text-neutral-500">memoato</p>
+        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">memoato</p>
       </div>
 
       {isSuccess ? (
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800">
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
           <div className="font-semibold">Almost there.</div>
           <div className="mt-1">
             We sent you a confirmation link. You can start using memoato now, but please verify your email soon.
@@ -77,7 +77,7 @@ export function SignupPage() {
       ) : (
         <form onSubmit={onSubmit} className="space-y-4">
           {errorMessage ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-200">
               {errorMessage}
             </div>
           ) : null}
@@ -89,7 +89,7 @@ export function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
               autoComplete="email"
               required
             />
@@ -102,7 +102,7 @@ export function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
               autoComplete="new-password"
               required
             />
@@ -118,24 +118,24 @@ export function SignupPage() {
                 setUsername(e.target.value);
               }}
               disabled={isLoading}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
               autoComplete="username"
               required
             />
-            <span className="text-xs text-neutral-500">No spaces.</span>
+            <span className="text-xs text-neutral-500 dark:text-neutral-400">No spaces.</span>
           </label>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="h-10 w-full rounded-lg bg-neutral-950 px-4 font-semibold text-white hover:bg-neutral-900 disabled:opacity-60"
+            className="h-10 w-full rounded-lg bg-neutral-950 px-4 font-semibold text-white hover:bg-neutral-900 disabled:opacity-60 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
           >
             {isLoading ? "Signing up…" : "Sign up"}
           </button>
         </form>
       )}
       <br />
-      <span className="text-sm font-medium text-neutral-900">
+      <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
         {"Already have an account? "}
         <Link to="/login" className="font-semibold underline">
           Go to login

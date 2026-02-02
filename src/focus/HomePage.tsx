@@ -12,6 +12,8 @@ import { Button, ButtonLink } from "../shared/components/Button";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
 import { isEncryptedString } from "../privacy/crypto";
+import { useTheme } from "../theme/ThemeProvider";
+import { resolveAccentForTheme } from "../theme/colors";
 import {
   localCreateCategory,
   localGetCategoriesWithStats,
@@ -99,6 +101,7 @@ function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
 
 export function HomePage() {
   const privacy = usePrivacy();
+  const theme = useTheme();
   const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
   const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>([]);
   const [localLoading, setLocalLoading] = useState(false);
@@ -448,20 +451,21 @@ export function HomePage() {
           {orderedCategories.map((c) => {
             const displayTitle = displayTitleById[c.id] ?? c.title;
             const isDragging = draggingId === c.id;
+            const accent = resolveAccentForTheme(c.accentHex, theme.isDark) ?? c.accentHex;
             return (
               <div
                 key={c.id}
                 ref={setItemRef(c.id)}
                 className="card flex items-center justify-between gap-3 p-3"
                 style={{
-                  borderColor: isDragging ? c.accentHex : undefined,
-                  backgroundColor: isDragging ? withHexAlpha(c.accentHex, "08") ?? undefined : undefined,
+                  borderColor: isDragging ? accent : undefined,
+                  backgroundColor: isDragging ? withHexAlpha(accent, "08") ?? undefined : undefined,
                 }}
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <button
                     type="button"
-                    className="touch-none select-none rounded-md bg-neutral-100 px-2 py-2 text-neutral-900 hover:bg-neutral-200 active:bg-neutral-300"
+                    className="touch-none select-none rounded-md bg-neutral-100 px-2 py-2 text-neutral-900 hover:bg-neutral-200 active:bg-neutral-300 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 dark:active:bg-neutral-600"
                     aria-label="Drag to reorder"
                     title="Drag"
                     onPointerDown={(e) => onDragHandlePointerDown(c.id, e)}
@@ -475,16 +479,16 @@ export function HomePage() {
                   </button>
 
                   <div
-                    className="flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white"
-                    style={{ borderColor: c.accentHex }}
+                    className="flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                    style={{ borderColor: accent }}
                     aria-hidden="true"
                   >
                     <div className="text-lg leading-none">{c.emoji ?? ""}</div>
                   </div>
 
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-neutral-950">{displayTitle}</div>
-                    <div className="truncate text-xs font-medium text-neutral-500">
+                    <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">{displayTitle}</div>
+                    <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
                       {formatWeekGlance(c, displayTitle)}
                     </div>
                   </div>
@@ -497,6 +501,7 @@ export function HomePage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {orderedCategories.map((c) => {
             const displayTitle = displayTitleById[c.id] ?? c.title;
+            const accent = resolveAccentForTheme(c.accentHex, theme.isDark) ?? c.accentHex;
 
             const goalReached =
               c.chartType === "line"
@@ -507,7 +512,7 @@ export function HomePage() {
                     : c.lastValue >= c.goalValue)
                 : c.goalWeekly != null && c.goalWeekly > 0 && c.thisWeekTotal >= c.goalWeekly;
 
-            const goalBg = goalReached ? withHexAlpha(c.accentHex, "08") : null;
+            const goalBg = goalReached ? withHexAlpha(accent, "08") : null;
 
             return (
               <Link
@@ -516,15 +521,15 @@ export function HomePage() {
                 params={{ categorySlug: c.slug }}
                 className="card flex min-h-20 flex-col justify-between p-4 active:scale-[0.99]"
                 style={{
-                  borderColor: goalReached ? c.accentHex : undefined,
+                  borderColor: goalReached ? accent : undefined,
                   backgroundColor: goalBg ?? undefined,
                 }}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="text-base font-semibold">{displayTitle}</div>
                   <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full border bg-white"
-                    style={{ borderColor: c.accentHex }}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                    style={{ borderColor: accent }}
                     aria-hidden="true"
                   >
                     <div className="text-lg leading-none">{c.emoji ?? ""}</div>
@@ -533,7 +538,7 @@ export function HomePage() {
                 {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
                   <GoalProgress c={c} />
                 ) : (
-                  <div className="mt-2 text-xs font-medium text-neutral-500">
+                  <div className="mt-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     {formatWeekGlance(c, displayTitle)}
                   </div>
                 )}

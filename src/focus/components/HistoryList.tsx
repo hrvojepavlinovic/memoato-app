@@ -317,7 +317,7 @@ export function HistoryList({
                     >
                       <label className="flex flex-col gap-1">
                         <span className="label">Date & time</span>
-                        <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white">
+                        <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-950">
                           <input
                             type="datetime-local"
                             value={row.occurredAt}
@@ -327,7 +327,7 @@ export function HistoryList({
                                 [ev.id]: { ...row, occurredAt: e.target.value },
                               }))
                             }
-                            className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900"
+                            className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
                             style={{ WebkitAppearance: "none" }}
                           />
                         </div>
@@ -346,23 +346,23 @@ export function HistoryList({
                               [ev.id]: { ...row, amount: e.target.value },
                             }))
                           }
-                          className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500"
+                          className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                         />
                       </label>
                       <label className="flex flex-col gap-1">
                         <span className="label">Note</span>
-                          <input
-                            type="text"
-                            value={row.note}
-                            onChange={(e) =>
-                              setRowById((prev) => ({
-                                ...prev,
-                                [ev.id]: { ...row, note: e.target.value, noteDirty: true },
-                              }))
-                            }
-                            className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500"
-                            placeholder="Optional"
-                          />
+                        <input
+                          type="text"
+                          value={row.note}
+                          onChange={(e) =>
+                            setRowById((prev) => ({
+                              ...prev,
+                              [ev.id]: { ...row, note: e.target.value, noteDirty: true },
+                            }))
+                          }
+                          className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                          placeholder="Optional"
+                        />
                       </label>
                       <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end sm:justify-end">
                         <Button

@@ -42,9 +42,11 @@ import {
   localUpdateEvent,
 } from "../focus/local";
 import type { CategoryWithStats, CategoryEventItem } from "../focus/types";
+import { useTheme } from "../theme/ThemeProvider";
+import type { ThemePreference } from "../theme/theme";
 
 const inputClassName =
-  "h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500";
+  "h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500";
 
 function toDatetimeLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -76,6 +78,7 @@ export function ProfilePage() {
   const navigate = useNavigate();
   const q = useQuery(getProfile);
   const privacy = usePrivacy();
+  const theme = useTheme();
 
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -544,7 +547,7 @@ export function ProfilePage() {
     <div className="mx-auto w-full max-w-screen-md px-4 py-6">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold tracking-tight">Profile</h2>
-        <p className="text-sm text-neutral-500">Account, privacy, and security.</p>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">Account, privacy, security, and appearance.</p>
       </div>
 
       <div className="space-y-6">
@@ -557,7 +560,7 @@ export function ProfilePage() {
             </label>
             <label className="flex flex-col gap-1">
               <span className="label">Email</span>
-              <input value={emailLabel} disabled className={`${inputClassName} bg-neutral-100`} />
+              <input value={emailLabel} disabled className={`${inputClassName} bg-neutral-100 dark:bg-neutral-900`} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="label">First name</span>
@@ -587,11 +590,11 @@ export function ProfilePage() {
                   onChange={() => setPendingMode("cloud")}
                   className="mt-1"
                 />
-                <div>
-                  <div className="font-medium">Cloud sync</div>
-                  <div className="text-sm text-neutral-500">Data stored normally (default).</div>
-                </div>
-              </label>
+                  <div>
+                    <div className="font-medium">Cloud sync</div>
+                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Data stored normally (default).</div>
+                  </div>
+                </label>
               <label className="flex items-start gap-3">
                 <input
                   type="radio"
@@ -600,13 +603,13 @@ export function ProfilePage() {
                   onChange={() => setPendingMode("encrypted")}
                   className="mt-1"
                 />
-                <div>
-                  <div className="font-medium">Encrypted cloud</div>
-                  <div className="text-sm text-neutral-500">
-                    Titles and notes are encrypted before saving to the database.
+                  <div>
+                    <div className="font-medium">Encrypted cloud</div>
+                    <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                      Titles and notes are encrypted before saving to the database.
+                    </div>
                   </div>
-                </div>
-              </label>
+                </label>
               <label className="flex items-start gap-3">
                 <input
                   type="radio"
@@ -615,12 +618,12 @@ export function ProfilePage() {
                   onChange={() => setPendingMode("local")}
                   className="mt-1"
                 />
-                <div>
-                  <div className="font-medium">Local-only</div>
-                  <div className="text-sm text-neutral-500">Data stays on this device (server data wiped).</div>
-                </div>
-              </label>
-            </div>
+                  <div>
+                    <div className="font-medium">Local-only</div>
+                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Data stays on this device (server data wiped).</div>
+                  </div>
+                </label>
+              </div>
 
             {pendingMode === "local" ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -695,6 +698,32 @@ export function ProfilePage() {
         </div>
 
         <div className="card p-4">
+          <div className="mb-3 text-sm font-semibold">Appearance</div>
+          <div className="grid grid-cols-2 gap-2">
+            {(["light", "dark"] as ThemePreference[]).map((pref) => {
+              const active = theme.preference === pref;
+              return (
+                <button
+                  key={pref}
+                  type="button"
+                  onClick={() => theme.setPreference(pref)}
+                  aria-pressed={active}
+                  className={[
+                    "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
+                    active
+                      ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+                      : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+                  ].join(" ")}
+                >
+                  {pref === "light" ? "Light" : "Dark"}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Stored on this device.</div>
+        </div>
+
+        <div className="card p-4">
           <div className="mb-3 text-sm font-semibold">Email & security</div>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -721,7 +750,7 @@ export function ProfilePage() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-sm font-semibold">Password</div>
-                <div className="text-sm text-neutral-500">Send a reset link to your email.</div>
+                <div className="text-sm text-neutral-500 dark:text-neutral-400">Send a reset link to your email.</div>
               </div>
               <Button
                 variant="ghost"
@@ -758,7 +787,7 @@ export function ProfilePage() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-sm font-semibold">Export your data</div>
-                <div className="text-sm text-neutral-500">Downloads a JSON export of your profile, categories, and entries.</div>
+                <div className="text-sm text-neutral-500 dark:text-neutral-400">Downloads a JSON export of your profile, categories, and entries.</div>
               </div>
               <Button variant="ghost" onClick={onExport} disabled={busy === "export"} className="w-full sm:w-auto">
                 Export
@@ -767,7 +796,7 @@ export function ProfilePage() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-sm font-semibold">Session</div>
-                <div className="text-sm text-neutral-500">Sign out of this device.</div>
+                <div className="text-sm text-neutral-500 dark:text-neutral-400">Sign out of this device.</div>
               </div>
               <Button variant="ghost" onClick={logout} className="w-full sm:w-auto">
                 Log out
@@ -776,7 +805,7 @@ export function ProfilePage() {
           </div>
         </div>
 
-        {message ? <div className="text-sm text-neutral-700">{message}</div> : null}
+        {message ? <div className="text-sm text-neutral-700 dark:text-neutral-300">{message}</div> : null}
       </div>
     </div>
   );

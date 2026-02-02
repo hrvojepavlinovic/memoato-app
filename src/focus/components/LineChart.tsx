@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LinePoint } from "../types";
 import { goalLineColors } from "./goalColors";
+import { useTheme } from "../../theme/ThemeProvider";
+import { resolveAccentForTheme } from "../../theme/colors";
 
 function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
@@ -26,8 +28,10 @@ export function LineChart({
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const stroke = accentHex ?? "#0a0a0a";
-  const goalColors = goalLineColors(accentHex);
+  const theme = useTheme();
+  const resolvedAccent = resolveAccentForTheme(accentHex ?? undefined, theme.isDark);
+  const stroke = resolvedAccent ?? (theme.isDark ? "#FAFAFA" : "#0a0a0a");
+  const goalColors = goalLineColors(resolvedAccent ?? accentHex);
   const values = data.map((d) => d.value).filter((v): v is number => v != null);
   const hasValues = values.length > 0;
 
@@ -106,7 +110,7 @@ export function LineChart({
     <div className="w-full">
       <div
         ref={scrollRef}
-        className="overflow-x-auto rounded-xl border border-neutral-200 bg-white p-3 shadow-sm"
+        className="overflow-x-auto rounded-xl border border-neutral-200 bg-white p-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
       >
         <svg width={innerWidth} height={height} className="block">
           {goalY != null && (
@@ -150,7 +154,7 @@ export function LineChart({
                 x={p.x}
                 y={p.y - 8 < 12 ? p.y + 14 : p.y - 8}
                 textAnchor="middle"
-                fill="rgba(0,0,0,0.75)"
+                fill="var(--chart-text)"
                 fontSize="11"
                 fontWeight={600}
               >
@@ -165,7 +169,7 @@ export function LineChart({
               x={(idx + 0.5) * stepX}
               y={height - 8}
               textAnchor="middle"
-              fill="rgba(0,0,0,0.5)"
+              fill="var(--chart-muted)"
               fontSize="11"
               fontWeight={500}
             >
