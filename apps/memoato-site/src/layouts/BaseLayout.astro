@@ -36,6 +36,15 @@ const canonical = canonicalPath
     {description ? <meta property="og:description" content={description} /> : null}
     {canonical ? <meta property="og:url" content={canonical} /> : null}
 
+    <script
+      src="https://cdn.databuddy.cc/databuddy.js"
+      data-client-id={databuddyClientId}
+      data-track-attributes="true"
+      data-track-outgoing-links="true"
+      data-track-interactions="true"
+      crossorigin="anonymous"
+      async
+    ></script>
   </head>
   <body>
     <header class="topbar">
@@ -163,49 +172,5 @@ const canonical = canonicalPath
       </div>
     </footer>
 
-    <script is:inline>
-      (function () {
-        var allowed = { "memoato.com": true, "www.memoato.com": true };
-        try {
-          if (!allowed[window.location.hostname]) return;
-        } catch {
-          return;
-        }
-
-        var clientId = {JSON.stringify(databuddyClientId)};
-        if (!clientId) return;
-
-        function inject() {
-          if (document.querySelector('script[src="https://cdn.databuddy.cc/databuddy.js"]')) return;
-          var s = document.createElement("script");
-          s.src = "https://cdn.databuddy.cc/databuddy.js";
-          s.async = true;
-          s.crossOrigin = "anonymous";
-          s.dataset.clientId = clientId;
-          s.dataset.trackAttributes = "true";
-          s.dataset.trackOutgoingLinks = "true";
-          s.dataset.trackInteractions = "true";
-          document.head.appendChild(s);
-        }
-
-        function send() {
-          try {
-            if (window && window.databuddy && typeof window.databuddy.track === "function") {
-              window.databuddy.track("landing_view", { path: window.location.pathname });
-              return true;
-            }
-          } catch {}
-          return false;
-        }
-
-        inject();
-        if (send()) return;
-        var attempts = 0;
-        var t = setInterval(function () {
-          attempts += 1;
-          if (send() || attempts >= 30) clearInterval(t);
-        }, 100);
-      })();
-    </script>
   </body>
 </html>
