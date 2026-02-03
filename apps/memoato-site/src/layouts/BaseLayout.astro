@@ -36,15 +36,16 @@ const canonical = canonicalPath
     {description ? <meta property="og:description" content={description} /> : null}
     {canonical ? <meta property="og:url" content={canonical} /> : null}
 
-    <script
-      src="https://cdn.databuddy.cc/databuddy.js"
-      data-client-id={databuddyClientId}
-      data-track-attributes="true"
-      data-track-outgoing-links="true"
-      data-track-interactions="true"
-      crossorigin="anonymous"
-      async
-    ></script>
+    <!-- Keep as a literal <script> tag (avoid Astro hoisting to ESM import, which loses data-* attrs). -->
+    <Fragment
+      set:html={`<script src="https://cdn.databuddy.cc/databuddy.js"
+        data-client-id="${databuddyClientId}"
+        data-track-attributes="true"
+        data-track-outgoing-links="true"
+        data-track-interactions="true"
+        crossorigin="anonymous"
+        async></script>`}
+    />
   </head>
   <body>
     <header class="topbar">
