@@ -9,5 +9,3 @@ cd "${repo_root}"
 
 pm2 restart memoato-api --update-env
 pm2 restart memoato-web --update-env
-
-./scripts/moshi_enqueue.sh "Deploy complete" "memoato deployed and PM2 restarted." || true

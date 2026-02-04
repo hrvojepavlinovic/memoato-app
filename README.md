@@ -13,7 +13,6 @@ Fast, minimal habit tracking for ADHD brains: quick input, clear progress, fewer
 - Backlog: `docs/BACKLOG.md`
 - Community feedback/voting proposal: `docs/COMMUNITY_FEEDBACK.md`
 - Marketing on X: `docs/MARKETING_X.md`
-- Deploy notifications (Moshi): `docs/NOTIFICATIONS.md`
 
 ## What it is
 
@@ -44,11 +43,6 @@ To improve your Wasp development experience, we recommend installing the [Wasp e
 
 - Production deployment is documented in `docs/DEPLOY.md`.
 - The deploy script is `scripts/deploy_prod.sh` (builds, runs Prisma migrations, publishes a release, restarts PM2).
-
-## Notifications (Moshi)
-
-- Optional deploy notifications via Moshi are documented in `docs/NOTIFICATIONS.md`.
-- `scripts/deploy_prod.sh` triggers `scripts/moshi_notify.sh` if `MOSHI_WEBHOOK_TOKEN` is available in env / `.env.server`.
 
 ## Analytics (Databuddy)
 
@@ -83,4 +77,3 @@ See `LICENSE`.
 - Cloudflare Pages: `https://pages.cloudflare.com`
 - Cloudflare Tunnel: `https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/`
 - Databuddy: `https://databuddy.cc`
-- Moshi: `https://getmoshi.app`
