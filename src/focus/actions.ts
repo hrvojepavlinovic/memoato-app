@@ -322,117 +322,6 @@ function normalizeAggForChartType(v: unknown, chartType: "bar" | "line"): "sum" 
   return chartType === "line" ? "last" : "sum";
 }
 
-async function normalizeUserCategories(userId: string, entities: any): Promise<void> {
-  const categories = await entities.Category.findMany({
-    where: { userId, sourceArchivedAt: null },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      unit: true,
-      chartType: true,
-      period: true,
-      categoryType: true,
-      bucketAggregation: true,
-      goalDirection: true,
-      goalWeekly: true,
-      goalValue: true,
-    },
-  });
-
-  for (const c of categories) {
-    const update: Record<string, unknown> = {};
-
-    const unit = String(c.unit ?? "").trim().toLowerCase();
-    const slug = String(c.slug ?? "").trim().toLowerCase();
-    const title = String(c.title ?? "").trim().toLowerCase();
-    const chartType = (String(c.chartType ?? "").trim().toLowerCase() || "bar") as "bar" | "line";
-    let nextChartType: "bar" | "line" = chartType;
-
-    const waterKeywords = ["water", "hydration", "voda", "hidrat"];
-    const isWaterByName = waterKeywords.some((k) => slug.includes(k) || title.includes(k));
-    const isWater = isWaterByName && (unit === "" || unit === "ml" || unit === "l");
-    const isWeight =
-      slug === "weight" ||
-      unit === "kg" ||
-      title === "weight" ||
-      title.includes("weight");
-
-    // Fix obviously inconsistent goal fields.
-    // - Line charts use goalValue; bar charts use goalWeekly (named historically, but it means "base goal for the chosen period").
-    if (chartType === "bar" && !isBlank(c.goalValue)) {
-      if (isBlank(c.goalWeekly)) update.goalWeekly = c.goalValue;
-      update.goalValue = null;
-    }
-
-    if (chartType === "line" && !isBlank(c.goalWeekly)) {
-      // A weekly/period goal doesn't make sense for a "values" (line) series; treat as misconfigured and convert to bar totals.
-      update.chartType = "bar";
-      nextChartType = "bar";
-      if (isBlank(c.period)) update.period = "week";
-      update.bucketAggregation = "sum";
-      update.goalValue = null;
-    }
-
-    // Ensure bucket aggregation is compatible with chart type.
-    const agg = normalizeAggForChartType(c.bucketAggregation, nextChartType);
-    if (nextChartType === "bar" && agg === "last") {
-      update.bucketAggregation = "sum";
-    } else if (nextChartType === "line" && agg === "sum") {
-      update.bucketAggregation = "last";
-    } else if (!isBlank(agg) && agg !== c.bucketAggregation) {
-      update.bucketAggregation = agg;
-    } else if (isBlank(c.bucketAggregation)) {
-      // Set a stable default when missing.
-      update.bucketAggregation = nextChartType === "line" ? "last" : "sum";
-    }
-
-    // Normalize unknown goalDirection values to null so query defaults apply.
-    if (!isBlank(c.goalDirection)) {
-      const dir = String(c.goalDirection).trim().toLowerCase();
-      if (dir !== "at_least" && dir !== "at_most" && dir !== "target") {
-        update.goalDirection = null;
-      }
-    }
-
-    // Water intake should be totals, not "latest".
-    if (isWater) {
-      if (nextChartType !== "bar") {
-        update.chartType = "bar";
-        nextChartType = "bar";
-        if (isBlank(c.period)) update.period = "day";
-      }
-      if ((update.bucketAggregation ?? c.bucketAggregation) !== "sum") {
-        update.bucketAggregation = "sum";
-      }
-      // Convert any existing goalValue into the bar goal if needed.
-      if (!isBlank(c.goalValue)) {
-        if (isBlank(c.goalWeekly)) update.goalWeekly = c.goalValue;
-        update.goalValue = null;
-      }
-    }
-
-    // Weight should be a line of values.
-    if (isWeight) {
-      if (nextChartType !== "line" && !isWater) {
-        update.chartType = "line";
-        nextChartType = "line";
-        update.period = null;
-        update.goalWeekly = null;
-      }
-      if (isBlank(c.bucketAggregation) || String(update.bucketAggregation ?? "").trim() === "") {
-        update.bucketAggregation = "last";
-      }
-      if (isBlank(c.goalDirection) && !isBlank(c.goalValue)) {
-        update.goalDirection = "at_most";
-      }
-    }
-
-    if (Object.keys(update).length === 0) continue;
-    await entities.Category.update({ where: { id: c.id }, data: update });
-  }
-}
-
 type CreateCategoryArgs = {
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
@@ -674,7 +563,6 @@ export const ensureDefaultCategories: EnsureDefaultCategories<
     if (missingSlugs > 0) {
       await ensureCategorySlugs(userId, context.entities);
     }
-    await normalizeUserCategories(userId, context.entities);
     return { created: 0 };
   }
 
