@@ -259,7 +259,7 @@ export function TimelinePage() {
       total: number;
       avg: number | null;
       notePreview: string | null;
-      notes: string[];
+      notes: Array<{ occurredAt: Date; text: string }>;
     }> = [];
 
     for (const [categoryId, evs] of groups.entries()) {
@@ -283,25 +283,27 @@ export function TimelinePage() {
               (typeof evs[0]!.data?.note === "string" ? (evs[0]!.data.note as string).trim() : "") ??
               "") || null
           : null;
-      const notes: string[] = [];
+      const notes: Array<{ occurredAt: Date; text: string }> = [];
       if (isNotes) {
         for (const e of evs) {
+          const occurredAt = new Date(e.occurredAt as any);
           const fromMap = noteByEventId[e.id];
           if (fromMap) {
-            notes.push(fromMap);
+            notes.push({ occurredAt, text: fromMap });
             continue;
           }
           const plain = typeof e.data?.note === "string" ? (e.data.note as string).trim() : "";
           if (plain) {
-            notes.push(plain);
+            notes.push({ occurredAt, text: plain });
             continue;
           }
           const enc = e.data && typeof e.data === "object" && !Array.isArray(e.data) ? (e.data as any).noteEnc : null;
           if (isEncryptedString(enc)) {
-            notes.push("Locked note");
+            notes.push({ occurredAt, text: "Locked note" });
           }
         }
       }
+      notes.sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
       items.push({
         categoryId,
         title:
@@ -333,6 +335,11 @@ export function TimelinePage() {
     const hh = String(d.getHours()).padStart(2, "0");
     const mm = String(d.getMinutes()).padStart(2, "0");
     return `${hh}:${mm}`;
+  }
+
+  function fmtMaybeTime(d: Date): string | null {
+    if (Number.isNaN(d.getTime())) return null;
+    return fmtTime(d);
   }
 
   function fmtRange(first: Date, last: Date): string | null {
@@ -443,7 +450,7 @@ export function TimelinePage() {
               sub = null;
             }
 
-            const time = fmtRange(s.firstAt, s.lastAt);
+            const time = isNotes ? null : fmtRange(s.firstAt, s.lastAt);
 
             return (
               <Link
@@ -479,7 +486,12 @@ export function TimelinePage() {
                             key={`${s.categoryId}-${i}`}
                             className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200"
                           >
-                            {n}
+                            <div className="flex items-start gap-2">
+                              <div className="shrink-0 tabular-nums text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                                {fmtMaybeTime(n.occurredAt) ?? "—"}
+                              </div>
+                              <div className="min-w-0 whitespace-pre-wrap break-words">{n.text}</div>
+                            </div>
                           </div>
                         ))}
                         {s.notes.length > 3 ? (
