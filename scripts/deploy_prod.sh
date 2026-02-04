@@ -10,3 +10,6 @@ cd "${repo_root}"
 pm2 restart memoato-api --update-env
 pm2 restart memoato-web --update-env
 
+if [[ -n "${MOSHI_WEBHOOK_TOKEN:-}" || -f ".env.server" || -n "${DOTENV_CONFIG_PATH:-}" ]]; then
+  ./scripts/moshi_notify.sh "Deploy complete" "memoato deployed and PM2 restarted." || true
+fi
