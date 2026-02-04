@@ -13,7 +13,7 @@ import { BarChart } from "./components/BarChart";
 import { HistoryList } from "./components/HistoryList";
 import { LineChart } from "./components/LineChart";
 import { PeriodPicker } from "./components/PeriodPicker";
-import type { CategoryWithStats, Period } from "./types";
+import type { BucketAggregation, CategoryWithStats, Period } from "./types";
 import { parseNumberInput } from "../shared/lib/parseNumberInput";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
@@ -80,9 +80,11 @@ function scaleGoalToPeriod(args: {
   basePeriod: Period | null;
   viewPeriod: Period;
   viewOffset: number;
+  bucketAggregation?: BucketAggregation | null;
 }): number | null {
-  const { baseGoal, basePeriod, viewPeriod, viewOffset } = args;
+  const { baseGoal, basePeriod, viewPeriod, viewOffset, bucketAggregation } = args;
   if (baseGoal == null || baseGoal <= 0) return null;
+  if ((bucketAggregation ?? "").toLowerCase() === "avg") return baseGoal;
   const baseP: Period = basePeriod ?? "week";
   const ref = periodReferenceDate(viewPeriod, viewOffset);
   const baseDays = daysInPeriod(baseP, ref);
@@ -539,6 +541,7 @@ export function CategoryPage() {
               basePeriod: category.period,
               viewPeriod: period,
               viewOffset: offset,
+              bucketAggregation: category.bucketAggregation,
             })}
             goalDirection={category.goalDirection}
             unit={category.unit}

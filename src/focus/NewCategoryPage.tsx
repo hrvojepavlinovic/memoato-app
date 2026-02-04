@@ -28,6 +28,7 @@ const periodOptions: { value: Period; label: string }[] = [
 export function NewCategoryPage() {
   const navigate = useNavigate();
   const privacy = usePrivacy();
+  const [template, setTemplate] = useState<"custom" | "water" | "protein">("custom");
   const [title, setTitle] = useState("");
   const [categoryType, setCategoryType] = useState<CategoryType>("NUMBER");
   const [period, setPeriod] = useState<Period>("week");
@@ -54,6 +55,39 @@ export function NewCategoryPage() {
     const m = /^#([0-9a-fA-F]{6})$/.exec(s.trim());
     if (!m) return null;
     return `#${m[1].toUpperCase()}`;
+  }
+
+  function applyTemplate(next: "custom" | "water" | "protein") {
+    setTemplate(next);
+    if (next === "custom") return;
+
+    setCategoryType("NUMBER");
+    setChartType("bar");
+    setBarAgg("sum");
+    setGoalDirection("at_least");
+
+    if (next === "water") {
+      setTitle("Water");
+      setPeriod("day");
+      setUnit("ml");
+      setGoal("2000");
+      setGoalValue("");
+      setEmoji("💧");
+      const hex = "#0EA5E9";
+      setAccentHex(hex);
+      setAccentHexInput(hex);
+      return;
+    }
+
+    setTitle("Protein");
+    setPeriod("day");
+    setUnit("g");
+    setGoal("150");
+    setGoalValue("");
+    setEmoji("🥩");
+    const hex = "#10B981";
+    setAccentHex(hex);
+    setAccentHexInput(hex);
   }
 
   async function onCreate() {
@@ -140,6 +174,19 @@ export function NewCategoryPage() {
 
       <div className="card p-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 sm:col-span-2">
+            <span className="label">Template</span>
+            <select
+              value={template}
+              onChange={(e) => applyTemplate(e.target.value as any)}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+            >
+              <option value="custom">Custom</option>
+              <option value="water">Water intake</option>
+              <option value="protein">Protein</option>
+            </select>
+          </label>
+
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="label">Title</span>
             <input

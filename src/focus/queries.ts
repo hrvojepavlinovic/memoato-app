@@ -106,7 +106,10 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
   const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
 
   const categoryIds = categories.map((c) => String(c.id));
-  async function totalsForWindow(start: Date, end: Date): Promise<Map<string, number>> {
+  type WindowStats = { sum: number; avg: number; count: number };
+
+  async function statsForWindow(start: Date, end: Date): Promise<Map<string, WindowStats>> {
+    if (categoryIds.length === 0) return new Map();
     const totals = await context.entities.Event.groupBy({
       by: ["categoryId"],
       where: {
@@ -117,20 +120,26 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
         amount: { not: null },
       },
       _sum: { amount: true },
+      _avg: { amount: true },
+      _count: { amount: true },
     });
-    const m = new Map<string, number>();
+    const m = new Map<string, WindowStats>();
     for (const t of totals) {
       if (!t.categoryId) continue;
-      m.set(t.categoryId, t._sum.amount ?? 0);
+      m.set(t.categoryId, {
+        sum: t._sum.amount ?? 0,
+        avg: (t._avg as any)?.amount ?? 0,
+        count: (t._count as any)?.amount ?? 0,
+      });
     }
     return m;
   }
 
-  const [dayTotals, weekTotals, monthTotals, yearTotals] = await Promise.all([
-    totalsForWindow(dayStart, dayEnd),
-    totalsForWindow(weekStart, weekEnd),
-    totalsForWindow(monthStart, monthEnd),
-    totalsForWindow(yearStart, yearEnd),
+  const [dayStats, weekStats, monthStats, yearStats] = await Promise.all([
+    statsForWindow(dayStart, dayEnd),
+    statsForWindow(weekStart, weekEnd),
+    statsForWindow(monthStart, monthEnd),
+    statsForWindow(yearStart, yearEnd),
   ]);
 
   const lastOccurredAtByCategory = new Map<string, Date>();
@@ -185,42 +194,64 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     resolvedSlugById.set(c.id, candidate);
   }
 
-  const result = categories.map((c) => ({
-    id: c.id,
-    title: c.title,
-    slug: resolvedSlugById.get(c.id) ?? slugifyTitle(c.title),
-    unit: c.unit ?? null,
-    chartType: ((c.chartType ?? "bar") as CategoryChartType),
-    categoryType: c.categoryType,
-    accentHex: c.accentHex,
-    emoji: c.emoji ?? null,
-    isSystem: !!c.isSystem,
-    sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : null,
-    bucketAggregation:
-      typeof c.bucketAggregation === "string" ? (c.bucketAggregation as BucketAggregation) : null,
-    goalDirection: typeof c.goalDirection === "string" ? (c.goalDirection as GoalDirection) : null,
-    period: (c.period as Period | null) ?? null,
-    goalWeekly: c.goalWeekly ?? null,
-    goalValue: c.goalValue ?? null,
-    thisWeekTotal:
-      (c.period === "day"
-        ? dayTotals.get(c.id)
-        : c.period === "month"
-          ? monthTotals.get(c.id)
-          : c.period === "year"
-            ? yearTotals.get(c.id)
-            : weekTotals.get(c.id)) ?? 0,
-    thisYearTotal: yearTotals.get(c.id) ?? 0,
-    lastValue: lastByCategory.get(c.id) ?? null,
-  }));
-
-  function normalizeBucketAggregation(c: CategoryWithStats): BucketAggregation {
-    const v = (c.bucketAggregation ?? "").toLowerCase();
-    if (v === "avg") return "avg";
-    if (v === "last") return "last";
-    if (v === "sum") return "sum";
-    return c.chartType === "line" ? "last" : "sum";
+  function normalizePeriod(v: unknown): Period {
+    const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+    if (s === "day") return "day";
+    if (s === "week") return "week";
+    if (s === "month") return "month";
+    if (s === "year") return "year";
+    return "week";
   }
+
+  function normalizeBucketAggregation(chartType: CategoryChartType, v: unknown): BucketAggregation {
+    const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+    if (s === "sum") return "sum";
+    if (s === "avg") return "avg";
+    if (s === "last") return "last";
+    return chartType === "line" ? "last" : "sum";
+  }
+
+  function windowValue(m: Map<string, WindowStats>, categoryId: string, agg: BucketAggregation): number {
+    const row = m.get(categoryId);
+    if (!row) return 0;
+    if (agg === "avg") return row.count > 0 ? row.avg : 0;
+    return row.sum;
+  }
+
+  const result = categories.map((c) => {
+    const chartType = ((c.chartType ?? "bar") as CategoryChartType);
+    const agg = normalizeBucketAggregation(chartType, c.bucketAggregation);
+    const period = normalizePeriod(c.period);
+    const periodStats =
+      period === "day"
+        ? dayStats
+        : period === "month"
+          ? monthStats
+          : period === "year"
+            ? yearStats
+            : weekStats;
+
+    return {
+      id: c.id,
+      title: c.title,
+      slug: resolvedSlugById.get(c.id) ?? slugifyTitle(c.title),
+      unit: c.unit ?? null,
+      chartType,
+      categoryType: c.categoryType,
+      accentHex: c.accentHex,
+      emoji: c.emoji ?? null,
+      isSystem: !!c.isSystem,
+      sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : null,
+      bucketAggregation: typeof c.bucketAggregation === "string" ? (c.bucketAggregation as BucketAggregation) : null,
+      goalDirection: typeof c.goalDirection === "string" ? (c.goalDirection as GoalDirection) : null,
+      period,
+      goalWeekly: c.goalWeekly ?? null,
+      goalValue: c.goalValue ?? null,
+      thisWeekTotal: windowValue(periodStats, c.id, agg),
+      thisYearTotal: windowValue(yearStats, c.id, agg),
+      lastValue: lastByCategory.get(c.id) ?? null,
+    };
+  });
 
   function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
     const v = (c.goalDirection ?? "").toLowerCase();

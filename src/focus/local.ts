@@ -271,7 +271,13 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
   const yearStart = startOfYear(now);
   const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
 
-  const totals = {
+  const sums = {
+    day: new Map<string, number>(),
+    week: new Map<string, number>(),
+    month: new Map<string, number>(),
+    year: new Map<string, number>(),
+  };
+  const counts = {
     day: new Map<string, number>(),
     week: new Map<string, number>(),
     month: new Map<string, number>(),
@@ -285,7 +291,8 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     const t = new Date(ev.occurredAt);
     if (Number.isNaN(t.getTime())) continue;
     const categoryId = ev.categoryId;
-    const amount = ev.amount ?? 0;
+    if (ev.amount == null) continue;
+    const amount = ev.amount;
 
     const prevLast = lastOccurredAtByCategory.get(categoryId);
     if (!prevLast || t.getTime() > prevLast.getTime()) {
@@ -299,16 +306,20 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
 
     const ms = t.getTime();
     if (ms >= dayStart.getTime() && ms < dayEnd.getTime()) {
-      totals.day.set(categoryId, (totals.day.get(categoryId) ?? 0) + amount);
+      sums.day.set(categoryId, (sums.day.get(categoryId) ?? 0) + amount);
+      counts.day.set(categoryId, (counts.day.get(categoryId) ?? 0) + 1);
     }
     if (ms >= weekStart.getTime() && ms < weekEnd.getTime()) {
-      totals.week.set(categoryId, (totals.week.get(categoryId) ?? 0) + amount);
+      sums.week.set(categoryId, (sums.week.get(categoryId) ?? 0) + amount);
+      counts.week.set(categoryId, (counts.week.get(categoryId) ?? 0) + 1);
     }
     if (ms >= monthStart.getTime() && ms < monthEnd.getTime()) {
-      totals.month.set(categoryId, (totals.month.get(categoryId) ?? 0) + amount);
+      sums.month.set(categoryId, (sums.month.get(categoryId) ?? 0) + amount);
+      counts.month.set(categoryId, (counts.month.get(categoryId) ?? 0) + 1);
     }
     if (ms >= yearStart.getTime() && ms < yearEnd.getTime()) {
-      totals.year.set(categoryId, (totals.year.get(categoryId) ?? 0) + amount);
+      sums.year.set(categoryId, (sums.year.get(categoryId) ?? 0) + amount);
+      counts.year.set(categoryId, (counts.year.get(categoryId) ?? 0) + 1);
     }
   }
 
@@ -328,33 +339,63 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     if (!lastByCategory.has(ev.categoryId)) lastByCategory.set(ev.categoryId, ev.amount);
   }
 
-  const result: CategoryWithStats[] = visibleCategories.map((c) => ({
-    id: c.id,
-    title: c.title,
-    slug: c.slug ?? slugifyTitle(c.title),
-    unit: c.unit ?? null,
-    chartType: (c.chartType ?? "bar") as CategoryChartType,
-    categoryType: c.categoryType,
-    accentHex: c.accentHex,
-    emoji: c.emoji ?? null,
-    isSystem: !!(c as any).isSystem,
-    sortOrder: typeof (c as any).sortOrder === "number" ? ((c as any).sortOrder as number) : null,
-    bucketAggregation: ((c as any).bucketAggregation as any) ?? null,
-    goalDirection: ((c as any).goalDirection as any) ?? null,
-    period: c.period ?? null,
-    goalWeekly: c.goalWeekly ?? null,
-    goalValue: c.goalValue ?? null,
-    thisWeekTotal:
-      (c.period === "day"
-        ? totals.day.get(c.id)
-        : c.period === "month"
-          ? totals.month.get(c.id)
-          : c.period === "year"
-            ? totals.year.get(c.id)
-            : totals.week.get(c.id)) ?? 0,
-    thisYearTotal: totals.year.get(c.id) ?? 0,
-    lastValue: lastByCategory.get(c.id) ?? null,
-  }));
+  function normalizePeriod(v: unknown): Period {
+    const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+    if (s === "day") return "day";
+    if (s === "week") return "week";
+    if (s === "month") return "month";
+    if (s === "year") return "year";
+    return "week";
+  }
+
+  function normalizeAgg(chartType: CategoryChartType, v: unknown): BucketAggregation {
+    const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+    if (s === "sum") return "sum";
+    if (s === "avg") return "avg";
+    if (s === "last") return "last";
+    return chartType === "line" ? "last" : "sum";
+  }
+
+  function windowValue(sumMap: Map<string, number>, countMap: Map<string, number>, categoryId: string, agg: BucketAggregation): number {
+    if (agg === "avg") {
+      const count = countMap.get(categoryId) ?? 0;
+      if (count <= 0) return 0;
+      const sum = sumMap.get(categoryId) ?? 0;
+      return sum / count;
+    }
+    return sumMap.get(categoryId) ?? 0;
+  }
+
+  const result: CategoryWithStats[] = visibleCategories.map((c) => {
+    const chartType = (c.chartType ?? "bar") as CategoryChartType;
+    const agg = normalizeAgg(chartType, (c as any).bucketAggregation);
+    const period = normalizePeriod(c.period);
+    const periodSumMap =
+      period === "day" ? sums.day : period === "month" ? sums.month : period === "year" ? sums.year : sums.week;
+    const periodCountMap =
+      period === "day" ? counts.day : period === "month" ? counts.month : period === "year" ? counts.year : counts.week;
+
+    return {
+      id: c.id,
+      title: c.title,
+      slug: c.slug ?? slugifyTitle(c.title),
+      unit: c.unit ?? null,
+      chartType,
+      categoryType: c.categoryType,
+      accentHex: c.accentHex,
+      emoji: c.emoji ?? null,
+      isSystem: !!(c as any).isSystem,
+      sortOrder: typeof (c as any).sortOrder === "number" ? ((c as any).sortOrder as number) : null,
+      bucketAggregation: ((c as any).bucketAggregation as any) ?? null,
+      goalDirection: ((c as any).goalDirection as any) ?? null,
+      period,
+      goalWeekly: c.goalWeekly ?? null,
+      goalValue: c.goalValue ?? null,
+      thisWeekTotal: windowValue(periodSumMap, periodCountMap, c.id, agg),
+      thisYearTotal: windowValue(sums.year, counts.year, c.id, agg),
+      lastValue: lastByCategory.get(c.id) ?? null,
+    };
+  });
 
   const hasCustomOrder = result.some((c) => c.sortOrder != null);
 
