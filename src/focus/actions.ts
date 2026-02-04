@@ -347,29 +347,44 @@ async function normalizeUserCategories(userId: string, entities: any): Promise<v
     const slug = String(c.slug ?? "").trim().toLowerCase();
     const title = String(c.title ?? "").trim().toLowerCase();
     const chartType = (String(c.chartType ?? "").trim().toLowerCase() || "bar") as "bar" | "line";
+    let nextChartType: "bar" | "line" = chartType;
 
-    const isWater =
-      unit === "ml" ||
-      unit === "l" ||
-      slug.includes("water") ||
-      title.includes("water");
+    const waterKeywords = ["water", "hydration", "voda", "hidrat"];
+    const isWaterByName = waterKeywords.some((k) => slug.includes(k) || title.includes(k));
+    const isWater = isWaterByName && (unit === "" || unit === "ml" || unit === "l");
     const isWeight =
       slug === "weight" ||
       unit === "kg" ||
       title === "weight" ||
       title.includes("weight");
 
-    // Ensure bucket aggregation is compatible with chart type.
-    const agg = normalizeAggForChartType(c.bucketAggregation, chartType);
-    if (chartType === "bar" && agg === "last") {
+    // Fix obviously inconsistent goal fields.
+    // - Line charts use goalValue; bar charts use goalWeekly (named historically, but it means "base goal for the chosen period").
+    if (chartType === "bar" && !isBlank(c.goalValue)) {
+      if (isBlank(c.goalWeekly)) update.goalWeekly = c.goalValue;
+      update.goalValue = null;
+    }
+
+    if (chartType === "line" && !isBlank(c.goalWeekly)) {
+      // A weekly/period goal doesn't make sense for a "values" (line) series; treat as misconfigured and convert to bar totals.
+      update.chartType = "bar";
+      nextChartType = "bar";
+      if (isBlank(c.period)) update.period = "week";
       update.bucketAggregation = "sum";
-    } else if (chartType === "line" && agg === "sum") {
+      update.goalValue = null;
+    }
+
+    // Ensure bucket aggregation is compatible with chart type.
+    const agg = normalizeAggForChartType(c.bucketAggregation, nextChartType);
+    if (nextChartType === "bar" && agg === "last") {
+      update.bucketAggregation = "sum";
+    } else if (nextChartType === "line" && agg === "sum") {
       update.bucketAggregation = "last";
     } else if (!isBlank(agg) && agg !== c.bucketAggregation) {
       update.bucketAggregation = agg;
     } else if (isBlank(c.bucketAggregation)) {
       // Set a stable default when missing.
-      update.bucketAggregation = chartType === "line" ? "last" : "sum";
+      update.bucketAggregation = nextChartType === "line" ? "last" : "sum";
     }
 
     // Normalize unknown goalDirection values to null so query defaults apply.
@@ -382,23 +397,26 @@ async function normalizeUserCategories(userId: string, entities: any): Promise<v
 
     // Water intake should be totals, not "latest".
     if (isWater) {
-      if (chartType !== "bar") {
+      if (nextChartType !== "bar") {
         update.chartType = "bar";
+        nextChartType = "bar";
         if (isBlank(c.period)) update.period = "day";
       }
       if ((update.bucketAggregation ?? c.bucketAggregation) !== "sum") {
         update.bucketAggregation = "sum";
       }
-      // Water typically doesn't have a "goal value" line.
+      // Convert any existing goalValue into the bar goal if needed.
       if (!isBlank(c.goalValue)) {
+        if (isBlank(c.goalWeekly)) update.goalWeekly = c.goalValue;
         update.goalValue = null;
       }
     }
 
     // Weight should be a line of values.
     if (isWeight) {
-      if (chartType !== "line" && !isWater) {
+      if (nextChartType !== "line" && !isWater) {
         update.chartType = "line";
+        nextChartType = "line";
         update.period = null;
         update.goalWeekly = null;
       }
