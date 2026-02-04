@@ -17,6 +17,7 @@ Fast, minimal habit tracking for ADHD brains: quick input, clear progress, fewer
 ## What it is
 
 - **Categories** with goals + charts (bar totals or line values)
+- **Manual category ordering** on Home (drag-and-drop reorder mode)
 - **Timeline** view with human-readable daily summaries
 - **Privacy options** (cloud sync / encrypted cloud / local-only)
 - **PWA-ready** (Add to Home Screen)
@@ -30,6 +31,12 @@ Fast, minimal habit tracking for ADHD brains: quick input, clear progress, fewer
   ```
 
 ## Development
+
+## Codex usage (local)
+
+If you use Codex CLI to work on this repo, see `docs/CODEX_HANDOVER.md` for:
+- Running Codex with full permissions (no approvals/sandbox)
+- Telegram notification helper (`send-telegram-message`)
 
 Local setup details live in `docs/DEV_SETUP.md`. Quick start:
 

@@ -16,9 +16,10 @@ Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuz
 | Phase | Focus | Success metrics |
 | --- | --- | --- |
 | 1. Foundation | Wasp + Prisma schema, DB setup (`memoato`), default categories, basic dashboard + category detail, import plan drafted. | `wasp db migrate-dev` succeeds, default categories seeded, user can add/edit events, profile page available. |
-| 2. Experience polish | Accent-based progress bars, strikethrough goal lines, history editing/deletion, responsive layout tweaks (period picker placement, mobile-friendly charts, button alignment). | All categories show colored progress bars or glances, charts auto-scroll to latest period, history entries are editable. |
+| 2. Experience polish | Accent-based progress bars, strikethrough goal lines, history editing/deletion, responsive layout tweaks (period picker placement, mobile-friendly charts, button alignment). | All categories show colored progress bars or glances, categories can be reordered on Home, charts auto-scroll to latest period, history entries are editable. |
 | 3. Ops & analytics | PM2+Cloudflare deployment, Databuddy instrumentation, PWA install prompts, manifest + icons, default 404, log rotation, `/sudo` admin insights. | App accessible via `app.memoato.com`, analytics dashboard shows events, install prompt triggers on Android/iOS, `/sudo` works for admins. |
 | 4. Import & export | JSON import path defined, raw payload stored, profile export available, admin insights include import metadata. | JSON exports can be ingested, profile export downloads categories/events, admin sees counts per user. |
+| 5. Coach Mode | Optional AI insights + planning that stays tracking-first (see `docs/COACH_MODE.md`). | Users can generate a Daily Plan, complete plan items by logging real entries, and get a Weekly Review; Pro pricing/BYOK path defined. |
 
 ## Monetization (hypothesis)
 
@@ -35,6 +36,7 @@ Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuz
 5. Automate PM2 log rotation (e.g., `pm2 install pm2-logrotate`) and surface any errors from `pm2 logs`.
 6. Expand `/sudo` to show total users/categories/entries + per-user stats and optionally last login time (post-auth integration).
 7. Ensure Databuddy works on `app.memoato.com` (origin must match `https://app.memoato.com`).
+8. Coach Mode: ship non-AI Daily Plan first, then AI Weekly Review behind a Pro gate (cloud-sync only; explicit opt-in).
 
 ## Questions for you (please answer in order so we can iterate)
 

@@ -6,6 +6,19 @@
 ./scripts/deploy_prod.sh
 ```
 
+## Standard workflow (commit → push → deploy)
+
+This repo is open source: **every push is public**.
+
+For each change:
+
+1. Run tests (at minimum): `npm test`
+2. Commit + push:
+   - Landing (Astro) deploys automatically on push to `main` via Cloudflare Pages (“Connect to Git”).
+3. Deploy App (Wasp) on the server:
+   - `./scripts/deploy_prod.sh`
+   - This builds Wasp artifacts, runs Prisma migrations (`migrate deploy`), publishes a new immutable release under `deploy/releases/`, repoints `deploy/current`, then restarts PM2 processes.
+
 ## Environment
 
 Create `.env.server` based on `.env.server.example` and fill:

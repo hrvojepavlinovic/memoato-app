@@ -14,6 +14,8 @@
 
 - `User`: account profile + role
 - `Category`: a user-owned tracker (title/slug/type/period/goals/accent/emoji)
+  - Optional `sortOrder` supports manual ordering on the Home dashboard.
+- `CategoryTemplate`: preset category definitions used on “New category” (defaults, emoji, accent, goals, aggregation).
 - `Event`: a logged data point (amount + timestamps) tied to a category
 
 Key timestamps:
@@ -32,4 +34,3 @@ Key timestamps:
 - `memoato-api` (PM2): serves the API on `127.0.0.1:5051`
 - Cloudflare Tunnel maps `app.<domain>` + `api.<domain>` to those ports.
 - Landing deploys separately via Cloudflare Pages.
-

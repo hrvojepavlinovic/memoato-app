@@ -2,6 +2,13 @@
 
 Thanks for considering a contribution.
 
+## Public repo (important)
+
+Memoato is an open-source project: **every push is public**.
+
+- Don’t commit secrets (`.env*`, tokens, credentials) or private data.
+- Assume commit messages, diffs, and issue/PR discussions are permanent.
+
 ## Repo layout
 - App (Wasp): `/` (root)
 - Landing (Astro): `apps/memoato-site/`

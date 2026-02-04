@@ -35,6 +35,11 @@ Memoato is:
     - `goalDirection`: `at_least` (higher is better) or `at_most` (lower is better).
   - Multiple entries per bucket:
     - `bucketAggregation`: `sum` | `avg` | `last` (bar charts use `sum`/`avg`; line charts use `last`/`avg`).
+  - Optional manual ordering:
+    - `sortOrder` is used by the Home dashboard when the user sets a custom order (drag-and-drop reorder mode).
+    - New categories created after a custom order is set appear at the bottom until reordered (or the order is reset).
+  - Category templates:
+    - Built-in presets (emoji/accent/goals/aggregation) are stored as `CategoryTemplate` rows and shown on the “New category” page.
 
 ### Events
 
@@ -59,11 +64,12 @@ More categories can be added by the user; each one can pick a type (track number
 
 ## Home dashboard
 
-- Categories are grouped/sorted:
+- Categories are grouped/sorted (default):
   - First: categories with progress bars (non-line categories that have a weekly goal).
   - Second: simple tracking numbers without goals.
   - Last: line/goal-value categories (e.g., weight).
   - Within each group, goal-reached cards move to the bottom to celebrate “off” status.
+- If the user enables manual ordering (Home → Edit → drag handles), the custom order is used instead of the default auto ordering.
 - Each card shows:
   - Emoji inside a rounded accent-border blob and the title.
   - Small “this week” / “this year” / “last value/goal” line with tabular numbers.
