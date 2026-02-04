@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createCategory } from "wasp/client/operations";
+import { createCategory, getCategoryTemplates, useQuery } from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
 import type { GoalDirection, Period } from "./types";
 import { usePrivacy } from "../privacy/PrivacyProvider";
@@ -25,10 +25,27 @@ const periodOptions: { value: Period; label: string }[] = [
   { value: "year", label: "Year" },
 ];
 
+type CategoryTemplateItem = {
+  key: string;
+  title: string;
+  categoryType: CategoryType;
+  chartType: ChartType;
+  period: Period | null;
+  unit: string | null;
+  bucketAggregation: string | null;
+  goalDirection: string | null;
+  goalWeekly: number | null;
+  goalValue: number | null;
+  accentHex: string;
+  emoji: string | null;
+};
+
 export function NewCategoryPage() {
   const navigate = useNavigate();
   const privacy = usePrivacy();
-  const [template, setTemplate] = useState<"custom" | "water" | "protein">("custom");
+  const templatesQuery = useQuery(getCategoryTemplates);
+  const templates = (templatesQuery.data ?? []) as CategoryTemplateItem[];
+  const [templateKey, setTemplateKey] = useState<string>("custom");
   const [title, setTitle] = useState("");
   const [categoryType, setCategoryType] = useState<CategoryType>("NUMBER");
   const [period, setPeriod] = useState<Period>("week");
@@ -57,35 +74,31 @@ export function NewCategoryPage() {
     return `#${m[1].toUpperCase()}`;
   }
 
-  function applyTemplate(next: "custom" | "water" | "protein") {
-    setTemplate(next);
-    if (next === "custom") return;
+  function applyTemplateByKey(nextKey: string) {
+    setTemplateKey(nextKey);
+    if (nextKey === "custom") return;
+    const t = templates.find((x) => x.key === nextKey);
+    if (!t) return;
 
-    setCategoryType("NUMBER");
-    setChartType("bar");
-    setBarAgg("sum");
-    setGoalDirection("at_least");
-
-    if (next === "water") {
-      setTitle("Water");
-      setPeriod("day");
-      setUnit("ml");
-      setGoal("2000");
+    setTitle(t.title);
+    setCategoryType(t.categoryType);
+    setChartType(t.chartType);
+    if (t.chartType === "bar") {
+      setPeriod(t.period ?? "week");
+      const agg = (t.bucketAggregation ?? "").toLowerCase();
+      setBarAgg(agg === "avg" ? "avg" : "sum");
+      setGoal(String(t.goalWeekly ?? ""));
       setGoalValue("");
-      setEmoji("💧");
-      const hex = "#0EA5E9";
-      setAccentHex(hex);
-      setAccentHexInput(hex);
-      return;
+    } else {
+      setLineAgg(((t.bucketAggregation ?? "").toLowerCase() === "avg" ? "avg" : "last") as LineAgg);
+      setGoal("");
+      setGoalValue(String(t.goalValue ?? ""));
     }
-
-    setTitle("Protein");
-    setPeriod("day");
-    setUnit("g");
-    setGoal("150");
-    setGoalValue("");
-    setEmoji("🥩");
-    const hex = "#10B981";
+    const dir = (t.goalDirection ?? "").toLowerCase() as GoalDirection;
+    setGoalDirection(dir === "at_most" || dir === "target" ? dir : "at_least");
+    setUnit(t.unit ?? "");
+    setEmoji(t.emoji ?? "");
+    const hex = normalizeHexInput(t.accentHex) ?? "#0A0A0A";
     setAccentHex(hex);
     setAccentHexInput(hex);
   }
@@ -177,13 +190,16 @@ export function NewCategoryPage() {
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="label">Template</span>
             <select
-              value={template}
-              onChange={(e) => applyTemplate(e.target.value as any)}
+              value={templateKey}
+              onChange={(e) => applyTemplateByKey(e.target.value)}
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               <option value="custom">Custom</option>
-              <option value="water">Water intake</option>
-              <option value="protein">Protein</option>
+              {templates.map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.title}
+                </option>
+              ))}
             </select>
           </label>
 

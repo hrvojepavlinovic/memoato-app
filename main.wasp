@@ -153,6 +153,11 @@ query getCategoryEvents {
   entities: [Event, Category]
 }
 
+query getCategoryTemplates {
+  fn: import { getCategoryTemplates } from "@src/focus/templateQueries",
+  entities: [CategoryTemplate]
+}
+
 query getSudoOverview {
   fn: import { getSudoOverview } from "@src/admin/queries",
   entities: [User, Category, Event]
