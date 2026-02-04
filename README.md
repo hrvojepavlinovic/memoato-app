@@ -1,5 +1,7 @@
 # Memoato
 
+Fast, minimal habit tracking for ADHD brains: quick input, clear progress, fewer decisions.
+
 - Product spec: `docs/PRODUCT_SPEC.md`
 - Import plan (JSON export): `docs/IMPORT_PLAN.md`
 - Dev setup (Postgres socket + Wasp): `docs/DEV_SETUP.md`
@@ -11,6 +13,14 @@
 - Backlog: `docs/BACKLOG.md`
 - Community feedback/voting proposal: `docs/COMMUNITY_FEEDBACK.md`
 - Marketing on X: `docs/MARKETING_X.md`
+- Deploy notifications (Moshi): `docs/NOTIFICATIONS.md`
+
+## What it is
+
+- **Categories** with goals + charts (bar totals or line values)
+- **Timeline** view with human-readable daily summaries
+- **Privacy options** (cloud sync / encrypted cloud / local-only)
+- **PWA-ready** (Add to Home Screen)
 
 ## Prerequisites
 
@@ -22,13 +32,23 @@
 
 ## Development
 
-To start the application locally for development or preview purposes:
+Local setup details live in `docs/DEV_SETUP.md`. Quick start:
 
-1. Run `wasp db migrate-dev` to migrate the database to the latest migration
-2. Run `wasp start` to start the Wasp application. If running for the first time, this will also install the client and the server dependencies for you.
-3. The application should be running on `localhost:3000`. Open in it your browser to access the client.
+1. `wasp db migrate-dev`
+2. `wasp start`
+3. Open `http://localhost:3000`
 
 To improve your Wasp development experience, we recommend installing the [Wasp extension for VSCode](https://marketplace.visualstudio.com/items?itemName=wasp-lang.wasp).
+
+## Deployment
+
+- Production deployment is documented in `docs/DEPLOY.md`.
+- The deploy script is `scripts/deploy_prod.sh` (builds, runs Prisma migrations, publishes a release, restarts PM2).
+
+## Notifications (Moshi)
+
+- Optional deploy notifications via Moshi are documented in `docs/NOTIFICATIONS.md`.
+- `scripts/deploy_prod.sh` triggers `scripts/moshi_notify.sh` if `MOSHI_WEBHOOK_TOKEN` is available in env / `.env.server`.
 
 ## Analytics (Databuddy)
 
@@ -43,6 +63,24 @@ Quick prod sanity checks:
 
 The landing site lives in `apps/memoato-site/` (Astro) and is deployed via Cloudflare Pages “Connect to Git”.
 
-## Learn more
+## Contributing
 
-To find out more about Wasp, visit out [docs](https://wasp.sh/docs).
+See `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
+
+## Security
+
+See `SECURITY.md`.
+
+## License
+
+See `LICENSE`.
+
+## References
+
+- Wasp: `https://wasp.sh`
+- Prisma: `https://www.prisma.io`
+- PM2: `https://pm2.keymetrics.io`
+- Cloudflare Pages: `https://pages.cloudflare.com`
+- Cloudflare Tunnel: `https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/`
+- Databuddy: `https://databuddy.cc`
+- Moshi: `https://getmoshi.app`
