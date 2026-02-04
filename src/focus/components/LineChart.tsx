@@ -22,7 +22,7 @@ export function LineChart({
 }: {
   data: LinePoint[];
   goal: number | null;
-  goalDirection?: "at_least" | "at_most" | null;
+  goalDirection?: "at_least" | "at_most" | "target" | null;
   unit: string | null;
   accentHex?: string;
 }) {
@@ -104,7 +104,8 @@ export function LineChart({
 
   const goalY = goal == null ? null : yFor(goal);
   const unitSuffix = unit ? ` ${unit}` : "";
-  const goalPrefix = goalDirection === "at_most" ? "≤" : "≥";
+  const goalPrefix =
+    goalDirection === "at_most" ? "≤" : goalDirection === "target" ? "≈" : "≥";
 
   return (
     <div className="w-full">

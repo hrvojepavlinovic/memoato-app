@@ -9,7 +9,7 @@ export type SeriesBucket = {
 export type CategoryChartType = "bar" | "line";
 
 export type BucketAggregation = "sum" | "avg" | "last";
-export type GoalDirection = "at_least" | "at_most";
+export type GoalDirection = "at_least" | "at_most" | "target";
 
 export type CategoryWithStats = {
   id: string;

@@ -311,6 +311,110 @@ async function applyKnownCategoryDefaults(
   }
 }
 
+function isBlank(v: unknown): boolean {
+  return v == null || (typeof v === "string" && v.trim() === "");
+}
+
+function normalizeAggForChartType(v: unknown, chartType: "bar" | "line"): "sum" | "avg" | "last" | null {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  if (s === "") return null;
+  if (s === "sum" || s === "avg" || s === "last") return s;
+  return chartType === "line" ? "last" : "sum";
+}
+
+async function normalizeUserCategories(userId: string, entities: any): Promise<void> {
+  const categories = await entities.Category.findMany({
+    where: { userId, sourceArchivedAt: null },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      unit: true,
+      chartType: true,
+      period: true,
+      categoryType: true,
+      bucketAggregation: true,
+      goalDirection: true,
+      goalWeekly: true,
+      goalValue: true,
+    },
+  });
+
+  for (const c of categories) {
+    const update: Record<string, unknown> = {};
+
+    const unit = String(c.unit ?? "").trim().toLowerCase();
+    const slug = String(c.slug ?? "").trim().toLowerCase();
+    const title = String(c.title ?? "").trim().toLowerCase();
+    const chartType = (String(c.chartType ?? "").trim().toLowerCase() || "bar") as "bar" | "line";
+
+    const isWater =
+      unit === "ml" ||
+      unit === "l" ||
+      slug.includes("water") ||
+      title.includes("water");
+    const isWeight =
+      slug === "weight" ||
+      unit === "kg" ||
+      title === "weight" ||
+      title.includes("weight");
+
+    // Ensure bucket aggregation is compatible with chart type.
+    const agg = normalizeAggForChartType(c.bucketAggregation, chartType);
+    if (chartType === "bar" && agg === "last") {
+      update.bucketAggregation = "sum";
+    } else if (chartType === "line" && agg === "sum") {
+      update.bucketAggregation = "last";
+    } else if (!isBlank(agg) && agg !== c.bucketAggregation) {
+      update.bucketAggregation = agg;
+    } else if (isBlank(c.bucketAggregation)) {
+      // Set a stable default when missing.
+      update.bucketAggregation = chartType === "line" ? "last" : "sum";
+    }
+
+    // Normalize unknown goalDirection values to null so query defaults apply.
+    if (!isBlank(c.goalDirection)) {
+      const dir = String(c.goalDirection).trim().toLowerCase();
+      if (dir !== "at_least" && dir !== "at_most" && dir !== "target") {
+        update.goalDirection = null;
+      }
+    }
+
+    // Water intake should be totals, not "latest".
+    if (isWater) {
+      if (chartType !== "bar") {
+        update.chartType = "bar";
+        if (isBlank(c.period)) update.period = "day";
+      }
+      if ((update.bucketAggregation ?? c.bucketAggregation) !== "sum") {
+        update.bucketAggregation = "sum";
+      }
+      // Water typically doesn't have a "goal value" line.
+      if (!isBlank(c.goalValue)) {
+        update.goalValue = null;
+      }
+    }
+
+    // Weight should be a line of values.
+    if (isWeight) {
+      if (chartType !== "line" && !isWater) {
+        update.chartType = "line";
+        update.period = null;
+        update.goalWeekly = null;
+      }
+      if (isBlank(c.bucketAggregation) || String(update.bucketAggregation ?? "").trim() === "") {
+        update.bucketAggregation = "last";
+      }
+      if (isBlank(c.goalDirection) && !isBlank(c.goalValue)) {
+        update.goalDirection = "at_most";
+      }
+    }
+
+    if (Object.keys(update).length === 0) continue;
+    await entities.Category.update({ where: { id: c.id }, data: update });
+  }
+}
+
 type CreateCategoryArgs = {
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
@@ -355,8 +459,8 @@ function normalizeBucketAggregation(v: unknown, chartType: "bar" | "line"): stri
 function normalizeGoalDirection(v: unknown): string | null {
   const s = typeof v === "string" ? v.trim().toLowerCase() : "";
   if (s === "") return null;
-  if (s === "at_least" || s === "at_most") return s;
-  throw new HttpError(400, "Goal direction must be 'at_least' or 'at_most'.");
+  if (s === "at_least" || s === "at_most" || s === "target") return s;
+  throw new HttpError(400, "Goal direction must be 'at_least', 'at_most', or 'target'.");
 }
 
 export const createCategory: CreateCategory<CreateCategoryArgs, Category> = async (
@@ -552,6 +656,7 @@ export const ensureDefaultCategories: EnsureDefaultCategories<
     if (missingSlugs > 0) {
       await ensureCategorySlugs(userId, context.entities);
     }
+    await normalizeUserCategories(userId, context.entities);
     return { created: 0 };
   }
 

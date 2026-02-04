@@ -224,6 +224,7 @@ function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
   const v = (c.goalDirection ?? "").toLowerCase();
   if (v === "at_most") return "at_most";
   if (v === "at_least") return "at_least";
+  if (v === "target") return "target";
   if ((c.slug ?? "").toLowerCase() === "weight") return "at_most";
   if (c.categoryType === "DONT") return "at_most";
   return "at_least";
@@ -233,12 +234,17 @@ function isGoalReached(c: CategoryWithStats): boolean {
   if (c.chartType === "line") {
     if (c.goalValue == null || c.lastValue == null) return false;
     const dir = normalizeGoalDirection(c);
-    return dir === "at_most" ? c.lastValue <= c.goalValue : c.lastValue >= c.goalValue;
+    if (dir === "at_most") return c.lastValue <= c.goalValue;
+    if (dir === "at_least") return c.lastValue >= c.goalValue;
+    const tol = Math.max(0.1, Math.abs(c.goalValue) * 0.01);
+    return Math.abs(c.lastValue - c.goalValue) <= tol;
   }
   if (c.goalWeekly == null || c.goalWeekly <= 0) return false;
   const dir = normalizeGoalDirection(c);
-  if (dir === "at_most") return false;
-  return c.thisWeekTotal >= c.goalWeekly;
+  if (dir === "at_most") return c.thisWeekTotal <= c.goalWeekly;
+  if (dir === "at_least") return c.thisWeekTotal >= c.goalWeekly;
+  const tol = Math.max(1, Math.abs(c.goalWeekly) * 0.02);
+  return Math.abs(c.thisWeekTotal - c.goalWeekly) <= tol;
 }
 
 export async function localListCategories(userId: string): Promise<LocalCategory[]> {

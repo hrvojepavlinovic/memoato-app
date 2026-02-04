@@ -20,6 +20,7 @@ import {
   localResetCategoryOrder,
   localSetCategoryOrder,
 } from "./local";
+import type { GoalDirection } from "./types";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -69,10 +70,11 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
   );
 }
 
-function normalizeGoalDirection(c: CategoryWithStats): "at_least" | "at_most" {
+function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
   const v = (c.goalDirection ?? "").toLowerCase();
   if (v === "at_most") return "at_most";
   if (v === "at_least") return "at_least";
+  if (v === "target") return "target";
   if ((c.slug ?? "").toLowerCase() === "weight") return "at_most";
   if (c.categoryType === "DONT") return "at_most";
   return "at_least";
@@ -84,7 +86,7 @@ function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
     const goal = c.goalValue == null ? null : formatValue(c.goalValue);
     const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
     const dir = normalizeGoalDirection(c);
-    const prefix = dir === "at_most" ? "≤" : "≥";
+    const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
     return goal ? `${last}${unit} · Goal ${prefix} ${goal}${unit}` : `${last}${unit}`;
   }
 
@@ -97,6 +99,22 @@ function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
     return `This year: ${formatValue(c.thisYearTotal)}`;
   }
   return `${periodLabel(c.period)}: ${formatValue(c.thisWeekTotal)}`;
+}
+
+function isGoalReached(c: CategoryWithStats): boolean {
+  const dir = normalizeGoalDirection(c);
+  if (c.chartType === "line") {
+    if (c.goalValue == null || c.lastValue == null) return false;
+    if (dir === "at_most") return c.lastValue <= c.goalValue;
+    if (dir === "at_least") return c.lastValue >= c.goalValue;
+    const tol = Math.max(0.1, Math.abs(c.goalValue) * 0.01);
+    return Math.abs(c.lastValue - c.goalValue) <= tol;
+  }
+  if (c.goalWeekly == null || c.goalWeekly <= 0) return false;
+  if (dir === "at_most") return c.thisWeekTotal <= c.goalWeekly;
+  if (dir === "at_least") return c.thisWeekTotal >= c.goalWeekly;
+  const tol = Math.max(1, Math.abs(c.goalWeekly) * 0.02);
+  return Math.abs(c.thisWeekTotal - c.goalWeekly) <= tol;
 }
 
 export function HomePage() {
@@ -503,14 +521,7 @@ export function HomePage() {
             const displayTitle = displayTitleById[c.id] ?? c.title;
             const accent = resolveAccentForTheme(c.accentHex, theme.isDark) ?? c.accentHex;
 
-            const goalReached =
-              c.chartType === "line"
-                ? c.goalValue != null &&
-                  c.lastValue != null &&
-                  (normalizeGoalDirection(c) === "at_most"
-                    ? c.lastValue <= c.goalValue
-                    : c.lastValue >= c.goalValue)
-                : c.goalWeekly != null && c.goalWeekly > 0 && c.thisWeekTotal >= c.goalWeekly;
+            const goalReached = isGoalReached(c);
 
             const goalBg = goalReached ? withHexAlpha(accent, "08") : null;
 

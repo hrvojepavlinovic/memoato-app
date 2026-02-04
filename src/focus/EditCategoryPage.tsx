@@ -58,6 +58,7 @@ export function EditCategoryPage() {
     const dir = (c?.goalDirection ?? "").toLowerCase();
     if (dir === "at_most") return "at_most";
     if (dir === "at_least") return "at_least";
+    if (dir === "target") return "target";
     const slug = String(c?.slug ?? "").toLowerCase();
     if (slug === "weight") return "at_most";
     if (c?.categoryType === "DONT") return "at_most";
@@ -333,7 +334,7 @@ export function EditCategoryPage() {
                   onChange={(e) => setBarAgg(e.target.value as BarAgg)}
                   className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
-                  <option value="sum">Sum</option>
+                  <option value="sum">Total (sum)</option>
                   <option value="avg">Average</option>
                 </select>
               ) : (
@@ -342,7 +343,7 @@ export function EditCategoryPage() {
                   onChange={(e) => setLineAgg(e.target.value as LineAgg)}
                   className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
-                  <option value="last">Last</option>
+                  <option value="last">Latest</option>
                   <option value="avg">Average</option>
                 </select>
               )}
@@ -424,6 +425,7 @@ export function EditCategoryPage() {
             >
               <option value="at_least">At least</option>
               <option value="at_most">At most</option>
+              <option value="target">Target</option>
             </select>
           </label>
         </div>

@@ -226,6 +226,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     const v = (c.goalDirection ?? "").toLowerCase();
     if (v === "at_most") return "at_most";
     if (v === "at_least") return "at_least";
+    if (v === "target") return "target";
     // Defaults: weight is "at_most", don'ts are "at_most", everything else "at_least".
     if ((c.slug ?? "").toLowerCase() === "weight") return "at_most";
     if (c.categoryType === "DONT") return "at_most";
@@ -242,13 +243,17 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     if (c.chartType === "line") {
       if (c.goalValue == null || c.lastValue == null) return false;
       const dir = normalizeGoalDirection(c);
-      return dir === "at_most" ? c.lastValue <= c.goalValue : c.lastValue >= c.goalValue;
+      if (dir === "at_most") return c.lastValue <= c.goalValue;
+      if (dir === "at_least") return c.lastValue >= c.goalValue;
+      const tol = Math.max(0.1, Math.abs(c.goalValue) * 0.01);
+      return Math.abs(c.lastValue - c.goalValue) <= tol;
     }
     if (c.goalWeekly == null || c.goalWeekly <= 0) return false;
     const dir = normalizeGoalDirection(c);
-    // For per-period totals, default is "at_least". "at_most" is treated as a limit and doesn't count as "reached" here.
-    if (dir === "at_most") return false;
-    return c.thisWeekTotal >= c.goalWeekly;
+    if (dir === "at_most") return c.thisWeekTotal <= c.goalWeekly;
+    if (dir === "at_least") return c.thisWeekTotal >= c.goalWeekly;
+    const tol = Math.max(1, Math.abs(c.goalWeekly) * 0.02);
+    return Math.abs(c.thisWeekTotal - c.goalWeekly) <= tol;
   }
 
   const hasCustomOrder = result.some((c) => c.sortOrder != null);
@@ -335,6 +340,7 @@ function normalizeDir(v: unknown): GoalDirection | null {
   const s = typeof v === "string" ? v.trim().toLowerCase() : "";
   if (s === "at_least") return "at_least";
   if (s === "at_most") return "at_most";
+  if (s === "target") return "target";
   return null;
 }
 

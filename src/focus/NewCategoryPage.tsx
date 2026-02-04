@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createCategory } from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
-import type { Period } from "./types";
+import type { GoalDirection, Period } from "./types";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { encryptUtf8ToEncryptedString } from "../privacy/crypto";
 import { localCreateCategory } from "./local";
@@ -11,7 +11,6 @@ type CategoryType = "NUMBER" | "DO" | "DONT";
 type ChartType = "bar" | "line";
 type BarAgg = "sum" | "avg";
 type LineAgg = "last" | "avg";
-type GoalDirection = "at_least" | "at_most";
 
 const typeOptions: { value: CategoryType; label: string; hint: string }[] = [
   { value: "NUMBER", label: "Track number", hint: "Counts, minutes, kcal, etc." },
@@ -204,7 +203,7 @@ export function NewCategoryPage() {
                   onChange={(e) => setBarAgg(e.target.value as BarAgg)}
                   className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
-                  <option value="sum">Sum</option>
+                  <option value="sum">Total (sum)</option>
                   <option value="avg">Average</option>
                 </select>
               ) : (
@@ -213,7 +212,7 @@ export function NewCategoryPage() {
                   onChange={(e) => setLineAgg(e.target.value as LineAgg)}
                   className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
-                  <option value="last">Last</option>
+                  <option value="last">Latest</option>
                   <option value="avg">Average</option>
                 </select>
               )}
@@ -295,6 +294,7 @@ export function NewCategoryPage() {
             >
               <option value="at_least">At least (higher is better)</option>
               <option value="at_most">At most (lower is better)</option>
+              <option value="target">Target (hit the value)</option>
             </select>
           </label>
         </div>
