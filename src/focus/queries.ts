@@ -16,6 +16,9 @@ import type {
   Period,
   SeriesBucket,
 } from "./types";
+import { startMoshiRelay } from "../notifications/moshiRelay";
+
+startMoshiRelay();
 
 function slugifyTitle(title: string): string {
   const s = title
