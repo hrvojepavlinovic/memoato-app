@@ -484,25 +484,22 @@ export function TimelinePage() {
 	                        {s.notes.slice(0, 3).map((n, i) => {
 	                          const t = fmtMaybeTime(n.occurredAt);
 	                          return (
-	                            <div
-	                              key={`${s.categoryId}-${i}`}
-	                              className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200"
-	                            >
-	                              <div className="flex items-start justify-between gap-3">
+	                            <div key={`${s.categoryId}-${i}`} className="flex items-start justify-between gap-3">
+	                              <div className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
 	                                <div className="min-w-0 whitespace-pre-wrap break-words">{n.text}</div>
-	                                {t ? (
-	                                  <div className="shrink-0 tabular-nums text-xs font-semibold text-neutral-500 dark:text-neutral-400">
-	                                    {t}
-	                                  </div>
-	                                ) : null}
 	                              </div>
+	                              {t ? (
+	                                <div className="shrink-0 text-right tabular-nums text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+	                                  {t}
+	                                </div>
+	                              ) : null}
 	                            </div>
 	                          );
 	                        })}
 	                        {s.notes.length > 3 ? (
 	                          <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">+{s.notes.length - 3} more</div>
 	                        ) : null}
-                      </div>
+	                      </div>
                     ) : null}
                   </div>
                 </div>
