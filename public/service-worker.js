@@ -1,6 +1,6 @@
 // NOTE: Keep this version in sync with deployments.
 // We intentionally bump it when the app bundle changes to avoid serving stale HTML/JS.
-const CACHE_NAME = "memoato-cache-v4";
+const CACHE_NAME = "memoato-cache-v5";
 const PRECACHE_URLS = [
   "/android-chrome-192x192.png",
   "/android-chrome-512x512.png",

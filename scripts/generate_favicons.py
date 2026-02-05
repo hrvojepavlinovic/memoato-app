@@ -109,8 +109,10 @@ def generate_into(public_dir: Path) -> list[Path]:
     icon_16 = _make_rounded_square_icon(src, 16, bg, padding_ratio=0.12, radius_ratio=0.28)
     icon_32 = _make_rounded_square_icon(src, 32, bg, padding_ratio=0.12, radius_ratio=0.28)
     icon_180 = _make_square_icon(src, 180, bg, padding_ratio=0.10)
-    icon_192 = _make_square_icon(src, 192, bg, padding_ratio=0.10)
-    icon_512 = _make_square_icon(src, 512, bg, padding_ratio=0.10)
+    # Non-maskable Android icons: bake in rounded corners so launchers that don't
+    # apply their own masking (or cache older shapes) still look like an app icon.
+    icon_192 = _make_rounded_square_icon(src, 192, bg, padding_ratio=0.10, radius_ratio=0.22)
+    icon_512 = _make_rounded_square_icon(src, 512, bg, padding_ratio=0.10, radius_ratio=0.22)
     icon_maskable_192 = _make_maskable_icon(src, 192, bg, padding_ratio=0.14)
     icon_maskable_512 = _make_maskable_icon(src, 512, bg, padding_ratio=0.14)
 

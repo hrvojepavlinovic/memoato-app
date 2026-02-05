@@ -258,8 +258,8 @@ export function NewCategoryPage() {
                 disabled={categoryType !== "NUMBER"}
                 className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
               >
-                <option value="bar">Bar (totals)</option>
-                <option value="line">Line (values)</option>
+                <option value="bar">Bar</option>
+                <option value="line">Line</option>
               </select>
               <SelectChevron disabled={categoryType !== "NUMBER"} />
             </div>
