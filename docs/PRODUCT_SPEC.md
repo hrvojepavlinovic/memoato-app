@@ -51,14 +51,18 @@ Memoato is:
 
 ## Default categories & goals
 
+Memoato starts with a built-in, non-deletable **Notes** system category.
+
+For everything else, new users are guided through a first-run onboarding where they **multi-select templates** (weight, water, push ups, etc.).
+Templates are backed by `CategoryTemplate` rows and can be reused later from the “New category” template picker.
+
+Example starter templates:
+
 | Title | Period | Goal | Chart | Emoji | Accent | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| Active kcal | week | 5 000 kcal/week | bar | 🔥 | `#EF4444` | Weekly calorie burn total |
-| Pull ups | week | 150 reps/week | bar | 💪 | `#3B82F6` | Weekly goal with progress bar |
-| Push ups | week | 300 reps/week | bar | 💪 | `#F59E0B` | Weekly goal; accent border when goal reached |
-| Weight | N/A | 85 kg target | line | ⚖️ | `#0EA5E9` | Line chart with goal line; highlight when current weight below goal |
-| Padel | week | N/A | bar | 🎾 | `#22C55E` | Show “This year” totals instead of weekly when no explicit goal |
-| Termin | week | N/A | bar | ⚽ | `#A855F7` | Track appointments; weekly total and yearly summary |
+| Water | day | 2 000 ml/day | bar | 💧 | `#0EA5E9` | Daily target |
+| Push ups | week | 300 reps/week | bar | 💪 | `#F59E0B` | Weekly goal |
+| Weight | N/A | 85 kg target | line | ⚖️ | `#0EA5E9` | Line chart with target |
 
 More categories can be added by the user; each one can pick a type (track number, do’s, don’ts, or goal value) plus a period. Every card stores an optional emoji that sits inside a round pill with an accent border.
 
@@ -78,6 +82,14 @@ More categories can be added by the user; each one can pick a type (track number
   - Optionally, show a quick “+ Add” or inline input so entries can be recorded from the grid without navigating (future iteration).
   - Cards highlight (border + light tint) when goals are achieved and offer a `Link` to `/c/:slug`.
 - The page includes a prominent “Add category” button and more padding between the header and main grid for clarity.
+
+## Onboarding (first run)
+
+When a user has no non-system categories, Memoato opens an onboarding screen:
+
+- The user selects a few starter templates (multi-select).
+- “Create selected” creates real categories (and the user can edit goals later).
+- Notes is always present and can’t be deleted.
 
 ## Category detail
 

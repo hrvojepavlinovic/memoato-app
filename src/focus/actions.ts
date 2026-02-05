@@ -566,62 +566,11 @@ export const ensureDefaultCategories: EnsureDefaultCategories<
     return { created: 0 };
   }
 
-  // No global categories: starter categories are created per-user when they first land in the app.
-  const now = new Date();
-  const created = await context.entities.Category.createMany({
-    data: [
-      {
-        userId,
-        source: "memoato",
-        title: "Weight",
-        slug: "weight",
-        categoryType: "NUMBER",
-        chartType: "line",
-        unit: "kg",
-        bucketAggregation: "last",
-        goalDirection: "at_most",
-        goalValue: 85,
-        accentHex: "#0A0A0A",
-        emoji: "⚖️",
-        kind: "amount",
-        type: "Simple",
-        createdAt: now,
-      },
-      {
-        userId,
-        source: "memoato",
-        title: "Push ups",
-        slug: "push-ups",
-        categoryType: "NUMBER",
-        chartType: "bar",
-        period: "week",
-        goalWeekly: 300,
-        accentHex: "#F59E0B",
-        emoji: "💪",
-        kind: "amount",
-        type: "Simple",
-        createdAt: now,
-      },
-      {
-        userId,
-        source: "memoato",
-        title: "Notes",
-        slug: "notes",
-        categoryType: "NUMBER",
-        chartType: "bar",
-        period: "day",
-        accentHex: "#0A0A0A",
-        emoji: "📝",
-        kind: "note",
-        type: "Simple",
-        isSystem: true,
-        createdAt: now,
-      },
-    ],
-    skipDuplicates: true,
-  });
+  // First-run: always create a system Notes category.
+  // The rest of the user's setup is handled via onboarding/templates.
+  await ensureNotesCategory(userId, context.entities);
   await ensureCategorySlugs(userId, context.entities);
-  return { created: created.count };
+  return { created: 1 };
 };
 
 type DeleteCategoryArgs = {

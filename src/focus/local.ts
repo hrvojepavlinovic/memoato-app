@@ -510,6 +510,7 @@ export async function localGetCategoryEvents(args: {
 export async function localCreateCategory(args: {
   userId: string;
   title: string;
+  slug?: string | null;
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
   chartType?: CategoryChartType;
   period?: Period;
@@ -520,19 +521,29 @@ export async function localCreateCategory(args: {
   emoji?: string | null;
   bucketAggregation?: BucketAggregation | null;
   goalDirection?: GoalDirection | null;
+  isSystem?: boolean | null;
 }): Promise<Pick<CategoryWithStats, "id" | "slug">> {
   const db = await openDb();
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
   const cleanTitle = args.title.trim();
-  const base = slugifyTitle(cleanTitle);
   const existing = await getAllByIndex<LocalCategory>(db, "categories", "byUser", args.userId);
   const used = new Set(existing.map((c) => c.slug));
-  let slug = base;
-  let n = 2;
-  while (used.has(slug)) {
-    slug = `${base}-${n}`;
-    n += 1;
+  let slug = "";
+  const forcedSlug = typeof args.slug === "string" ? args.slug.trim() : "";
+  if (forcedSlug) {
+    if (used.has(forcedSlug)) {
+      throw new Error(`Category slug '${forcedSlug}' already exists.`);
+    }
+    slug = forcedSlug;
+  } else {
+    const base = slugifyTitle(cleanTitle);
+    slug = base;
+    let n = 2;
+    while (used.has(slug)) {
+      slug = `${base}-${n}`;
+      n += 1;
+    }
   }
   const chartType: CategoryChartType = args.chartType ?? (args.categoryType === "GOAL" ? "line" : "bar");
   const needsPeriod = chartType !== "line";
@@ -548,7 +559,7 @@ export async function localCreateCategory(args: {
     unit: args.unit && args.unit.trim().length > 0 ? args.unit : null,
     accentHex: args.accentHex,
     emoji: args.emoji && args.emoji.trim().length > 0 ? args.emoji : null,
-    isSystem: false,
+    isSystem: !!args.isSystem,
     bucketAggregation: args.bucketAggregation ?? null,
     goalDirection: args.goalDirection ?? null,
     goalWeekly: needsPeriod ? args.goal ?? null : null,

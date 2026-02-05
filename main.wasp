@@ -87,6 +87,12 @@ page HomePage {
   component: import { HomePage } from "@src/focus/HomePage"
 }
 
+route OnboardingRoute { path: "/onboarding", to: OnboardingPage }
+page OnboardingPage {
+  authRequired: true,
+  component: import { OnboardingPage } from "@src/onboarding/OnboardingPage"
+}
+
 route TimelineRoute { path: "/timeline", to: TimelinePage }
 route TimelineDayRoute { path: "/timeline/:occurredOn", to: TimelinePage }
 page TimelinePage {

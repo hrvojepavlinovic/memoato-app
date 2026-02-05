@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Link, routes } from "wasp/client/router";
 import {
   ensureDefaultCategories,
@@ -20,7 +21,7 @@ import {
   localResetCategoryOrder,
   localSetCategoryOrder,
 } from "./local";
-import type { GoalDirection } from "./types";
+import type { BucketAggregation, GoalDirection } from "./types";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -118,6 +119,7 @@ function isGoalReached(c: CategoryWithStats): boolean {
 }
 
 export function HomePage() {
+  const navigate = useNavigate();
   const privacy = usePrivacy();
   const theme = useTheme();
   const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
@@ -134,6 +136,13 @@ export function HomePage() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const dragPointerIdRef = useRef<number | null>(null);
   const reorderItemByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const onboardingDone = useMemo(() => {
+    try {
+      return localStorage.getItem("memoato:onboardingDone") === "1";
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     if (privacy.mode === "local") return;
@@ -157,30 +166,19 @@ export function HomePage() {
         if (cats.length === 0) {
           await localCreateCategory({
             userId: privacy.userId!,
-            title: "Push ups",
+            title: "Notes",
             categoryType: "NUMBER",
             chartType: "bar",
-            bucketAggregation: "sum",
-            goalDirection: "at_least",
-            period: "week",
+            bucketAggregation: "sum" satisfies BucketAggregation,
+            goalDirection: "at_least" satisfies GoalDirection,
+            period: "day",
             unit: null,
-            goal: 300,
-            goalValue: null,
-            accentHex: "#F59E0B",
-            emoji: "💪",
-          });
-          await localCreateCategory({
-            userId: privacy.userId!,
-            title: "Weight",
-            categoryType: "NUMBER",
-            chartType: "line",
-            bucketAggregation: "last",
-            goalDirection: "at_most",
-            unit: "kg",
             goal: null,
-            goalValue: 85,
-            accentHex: "#0EA5E9",
-            emoji: "⚖️",
+            goalValue: null,
+            accentHex: "#0A0A0A",
+            emoji: "📝",
+            slug: "notes",
+            isSystem: true,
           });
           cats = await localGetCategoriesWithStats(privacy.userId!);
         }
@@ -237,6 +235,18 @@ export function HomePage() {
     if (draftOrderIds.length > 0) return;
     setDraftOrderIds(categories.map((c) => c.id));
   }, [orderMode, categories, draftOrderIds.length]);
+
+  useEffect(() => {
+    if (onboardingDone) return;
+    if (orderMode) return;
+    if (isLoading) return;
+    if (!isSuccess) return;
+
+    const hasNonSystem = categories.some((c) => !c.isSystem);
+    if (!hasNonSystem) {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [categories, isLoading, isSuccess, navigate, onboardingDone, orderMode]);
 
   useEffect(() => {
     if (!orderMode) {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-02-05
+
+- Onboarding: first-run template multi-select at `/onboarding` (Notes is always included).
+- Templates: added Weight + Push ups to `CategoryTemplate` seeds.
+
 ## 2026-02-04
 
 - Categories: templates are stored in `CategoryTemplate` (used by “New category” template picker).
