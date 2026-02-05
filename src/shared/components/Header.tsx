@@ -4,6 +4,7 @@ import { getProfile, useQuery } from "wasp/client/operations";
 import { useLocation } from "react-router-dom";
 import LogoFallback from "../../assets/logo.svg";
 import { ButtonLink } from "./Button";
+import { useInstallPrompt } from "../../pwa/useInstallPrompt";
 
 export function Header() {
   const { data: user, isLoading } = useAuth();
@@ -11,6 +12,7 @@ export function Header() {
   const path = location.pathname || "/";
   const onLogin = path.startsWith("/login");
   const onSignup = path.startsWith("/signup");
+  const { canInstall, promptInstall } = useInstallPrompt();
   const profileQuery = useQuery(getProfile, undefined, { enabled: !!user, retry: false });
   const needsEmailVerification =
     !!user && profileQuery.isSuccess && profileQuery.data && !profileQuery.data.isEmailVerified;
@@ -36,6 +38,17 @@ export function Header() {
           <ul className="flex gap-4 font-semibold">
             {isLoading ? null : user ? (
               <>
+                {canInstall ? (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => void promptInstall()}
+                      className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+                    >
+                      Install
+                    </button>
+                  </li>
+                ) : null}
                 <li>
                   <ButtonLink to="/timeline" variant="ghost">
                     Timeline
@@ -58,6 +71,17 @@ export function Header() {
               </>
             ) : (
               <>
+                {canInstall ? (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => void promptInstall()}
+                      className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+                    >
+                      Install
+                    </button>
+                  </li>
+                ) : null}
                 {!onSignup ? (
                   <li>
                     <ButtonLink to="/signup">Sign up</ButtonLink>
