@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --memoato-install-banner-h: 0px;
+}
+
 html {
   scrollbar-gutter: stable;
 }
