@@ -192,7 +192,7 @@ export function NewCategoryPage() {
             <select
               value={templateKey}
               onChange={(e) => applyTemplateByKey(e.target.value)}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               <option value="custom">Custom</option>
               {templates.map((t) => (
@@ -218,7 +218,7 @@ export function NewCategoryPage() {
             <select
               value={categoryType}
               onChange={(e) => setCategoryType(e.target.value as CategoryType)}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               {typeOptions.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -234,7 +234,7 @@ export function NewCategoryPage() {
               value={effectiveChartType}
               onChange={(e) => setChartType(e.target.value as ChartType)}
               disabled={categoryType !== "NUMBER"}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
             >
               <option value="bar">Bar (totals)</option>
               <option value="line">Line (values)</option>
@@ -247,7 +247,7 @@ export function NewCategoryPage() {
               value={period}
               onChange={(e) => setPeriod(e.target.value as Period)}
               disabled={!needsPeriod}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
             >
               {periodOptions.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -264,7 +264,7 @@ export function NewCategoryPage() {
                 <select
                   value={barAgg}
                   onChange={(e) => setBarAgg(e.target.value as BarAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                  className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
                   <option value="sum">Total (sum)</option>
                   <option value="avg">Average</option>
@@ -273,7 +273,7 @@ export function NewCategoryPage() {
                 <select
                   value={lineAgg}
                   onChange={(e) => setLineAgg(e.target.value as LineAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                  className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
                 >
                   <option value="last">Latest</option>
                   <option value="avg">Average</option>
@@ -353,7 +353,7 @@ export function NewCategoryPage() {
             <select
               value={goalDirection}
               onChange={(e) => setGoalDirection(e.target.value as GoalDirection)}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               <option value="at_least">At least (higher is better)</option>
               <option value="at_most">At most (lower is better)</option>
