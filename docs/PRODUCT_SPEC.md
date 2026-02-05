@@ -148,6 +148,7 @@ Memoato supports three privacy/storage modes (set in **Profile → Privacy**):
   - Manifest lists `Memoato` name, dark theme color, rounded high-res icons, maskable icon to deploy proper shape on Android (Galaxy).
   - Service worker caches the shell + icons. `app.memoato.com` should show the “Add to home screen” prompt on Android + iOS (Safari) with proper icons.
   - `favicon.ico` and PNG versions derive from the transparent white “m” logo with black circular background.
+  - Regenerate icons via `python3 scripts/generate_favicons.py --also-landing`.
 
 ## Deployment & operations
 

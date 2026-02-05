@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import argparse
 
 from PIL import Image, ImageDraw
 
@@ -95,9 +96,7 @@ def _make_maskable_icon(
     return canvas
 
 
-def main() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    public_dir = repo_root / "public"
+def generate_into(public_dir: Path) -> list[Path]:
     src_path = public_dir / "logo.png"
     if not src_path.exists():
         raise SystemExit(f"Missing source logo: {src_path}")
@@ -115,26 +114,52 @@ def main() -> None:
     icon_maskable_192 = _make_maskable_icon(src, 192, bg, padding_ratio=0.14)
     icon_maskable_512 = _make_maskable_icon(src, 512, bg, padding_ratio=0.14)
 
-    # Save PNGs via PIL so headers/metadata are correct.
-    icon_16.save(public_dir / "favicon-16x16.png", format="PNG", optimize=True)
-    icon_32.save(public_dir / "favicon-32x32.png", format="PNG", optimize=True)
-    icon_180.save(public_dir / "apple-touch-icon.png", format="PNG", optimize=True)
-    icon_192.save(public_dir / "android-chrome-192x192.png", format="PNG", optimize=True)
-    icon_512.save(public_dir / "android-chrome-512x512.png", format="PNG", optimize=True)
-    icon_maskable_192.save(public_dir / "android-chrome-maskable-192x192.png", format="PNG", optimize=True)
-    icon_maskable_512.save(public_dir / "android-chrome-maskable-512x512.png", format="PNG", optimize=True)
+    out: list[Path] = []
 
-    # Keep `public/favicon.ico` as-is (browser caching is aggressive and it's useful
-    # to manage it manually).
+    def save_png(img: Image.Image, name: str) -> None:
+        p = public_dir / name
+        img.save(p, format="PNG", optimize=True)
+        out.append(p)
+
+    save_png(icon_16, "favicon-16x16.png")
+    save_png(icon_32, "favicon-32x32.png")
+    save_png(icon_180, "apple-touch-icon.png")
+    save_png(icon_192, "android-chrome-192x192.png")
+    save_png(icon_512, "android-chrome-512x512.png")
+    save_png(icon_maskable_192, "android-chrome-maskable-192x192.png")
+    save_png(icon_maskable_512, "android-chrome-maskable-512x512.png")
+
+    # favicon.ico is aggressively cached; keep it generated but expect browsers
+    # may take time to pick up changes.
+    ico_base = _make_rounded_square_icon(src, 256, bg, padding_ratio=0.10, radius_ratio=0.28)
+    ico_path = public_dir / "favicon.ico"
+    ico_base.save(ico_path, format="ICO", sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128)])
+    out.append(ico_path)
+
+    return out
+
+
+def main() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    parser = argparse.ArgumentParser(description="Generate memoato favicon and PWA icons.")
+    parser.add_argument(
+        "--also-landing",
+        action="store_true",
+        help="Also generate icons for apps/memoato-site/public.",
+    )
+    args = parser.parse_args()
+
+    targets = [repo_root / "public"]
+    if args.also_landing:
+        targets.append(repo_root / "apps" / "memoato-site" / "public")
+
+    generated: list[Path] = []
+    for d in targets:
+        generated.extend(generate_into(d))
 
     print("Generated:")
-    print(f"- {public_dir / 'favicon-16x16.png'}")
-    print(f"- {public_dir / 'favicon-32x32.png'}")
-    print(f"- {public_dir / 'apple-touch-icon.png'}")
-    print(f"- {public_dir / 'android-chrome-192x192.png'}")
-    print(f"- {public_dir / 'android-chrome-512x512.png'}")
-    print(f"- {public_dir / 'android-chrome-maskable-192x192.png'}")
-    print(f"- {public_dir / 'android-chrome-maskable-512x512.png'}")
+    for p in generated:
+        print(f"- {p}")
 
 
 if __name__ == "__main__":

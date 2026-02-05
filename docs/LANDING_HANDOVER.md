@@ -33,6 +33,9 @@ Env var:
 
 ## Assets
 - Logo + favicons live in `apps/memoato-site/public/`
+- Regenerate favicons/PWA icons (app + landing) from `public/logo.png` via:
+  - `python3 scripts/generate_favicons.py --also-landing`
+  - This also regenerates `favicon.ico` (note: browsers can cache it aggressively).
 - Screenshot placeholders are referenced on the home page; recommended sizes:
   - Desktop hero: `1600×900` (16:9)
   - Mobile: `1080×1350` (4:5)
