@@ -1,17 +1,18 @@
 // NOTE: Keep this version in sync with deployments.
 // We intentionally bump it when the app bundle changes to avoid serving stale HTML/JS.
-const CACHE_NAME = "memoato-cache-v6";
+const CACHE_NAME = "memoato-cache-v7";
 const PRECACHE_URLS = [
-  "/android-chrome-192x192.png?v=6",
-  "/android-chrome-512x512.png?v=6",
-  "/android-chrome-maskable-192x192.png?v=6",
-  "/android-chrome-maskable-512x512.png?v=6",
+  "/android-chrome-192x192.png?v=7",
+  "/android-chrome-512x512.png?v=7",
+  "/android-chrome-maskable-192x192.png?v=7",
+  "/android-chrome-maskable-512x512.png?v=7",
   "/apple-touch-icon.png",
   "/favicon.ico",
   "/favicon-32x32.png",
   "/favicon-16x16.png",
   "/logo.png",
   "/manifest.webmanifest",
+  "/manifest.json",
 ];
 
 self.addEventListener("install", (event) => {
