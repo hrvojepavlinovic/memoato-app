@@ -40,6 +40,21 @@ type CategoryTemplateItem = {
   emoji: string | null;
 };
 
+function SelectChevron({ disabled }: { disabled?: boolean }) {
+  return (
+    <div
+      className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${
+        disabled ? "text-neutral-400 dark:text-neutral-500" : "text-neutral-500 dark:text-neutral-400"
+      }`}
+      aria-hidden="true"
+    >
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </div>
+  );
+}
+
 export function NewCategoryPage() {
   const navigate = useNavigate();
   const privacy = usePrivacy();
@@ -189,18 +204,21 @@ export function NewCategoryPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="label">Template</span>
-            <select
-              value={templateKey}
-              onChange={(e) => applyTemplateByKey(e.target.value)}
-              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-            >
-              <option value="custom">Custom</option>
-              {templates.map((t) => (
-                <option key={t.key} value={t.key}>
-                  {t.title}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={templateKey}
+                onChange={(e) => applyTemplateByKey(e.target.value)}
+                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              >
+                <option value="custom">Custom</option>
+                {templates.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </div>
           </label>
 
           <label className="flex flex-col gap-1 sm:col-span-2">
@@ -215,69 +233,84 @@ export function NewCategoryPage() {
 
           <label className="flex flex-col gap-1">
             <span className="label">Type</span>
-            <select
-              value={categoryType}
-              onChange={(e) => setCategoryType(e.target.value as CategoryType)}
-              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-            >
-              {typeOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={categoryType}
+                onChange={(e) => setCategoryType(e.target.value as CategoryType)}
+                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              >
+                {typeOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </div>
           </label>
 
           <label className="flex flex-col gap-1">
             <span className="label">Chart</span>
-            <select
-              value={effectiveChartType}
-              onChange={(e) => setChartType(e.target.value as ChartType)}
-              disabled={categoryType !== "NUMBER"}
-              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
-            >
-              <option value="bar">Bar (totals)</option>
-              <option value="line">Line (values)</option>
-            </select>
+            <div className="relative">
+              <select
+                value={effectiveChartType}
+                onChange={(e) => setChartType(e.target.value as ChartType)}
+                disabled={categoryType !== "NUMBER"}
+                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
+              >
+                <option value="bar">Bar (totals)</option>
+                <option value="line">Line (values)</option>
+              </select>
+              <SelectChevron disabled={categoryType !== "NUMBER"} />
+            </div>
           </label>
 
           <label className="flex flex-col gap-1">
             <span className="label">Period</span>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as Period)}
-              disabled={!needsPeriod}
-              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
-            >
-              {periodOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value as Period)}
+                disabled={!needsPeriod}
+                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
+              >
+                {periodOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron disabled={!needsPeriod} />
+            </div>
           </label>
 
           {categoryType === "NUMBER" ? (
             <label className="flex flex-col gap-1">
               <span className="label">Multiple entries</span>
               {effectiveChartType === "bar" ? (
-                <select
-                  value={barAgg}
-                  onChange={(e) => setBarAgg(e.target.value as BarAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-                >
-                  <option value="sum">Total (sum)</option>
-                  <option value="avg">Average</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={barAgg}
+                    onChange={(e) => setBarAgg(e.target.value as BarAgg)}
+                    className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                  >
+                    <option value="sum">Total (sum)</option>
+                    <option value="avg">Average</option>
+                  </select>
+                  <SelectChevron />
+                </div>
               ) : (
-                <select
-                  value={lineAgg}
-                  onChange={(e) => setLineAgg(e.target.value as LineAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-                >
-                  <option value="last">Latest</option>
-                  <option value="avg">Average</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={lineAgg}
+                    onChange={(e) => setLineAgg(e.target.value as LineAgg)}
+                    className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                  >
+                    <option value="last">Latest</option>
+                    <option value="avg">Average</option>
+                  </select>
+                  <SelectChevron />
+                </div>
               )}
             </label>
           ) : null}
@@ -350,15 +383,18 @@ export function NewCategoryPage() {
 
           <label className="flex flex-col gap-1">
             <span className="label">Goal direction</span>
-            <select
-              value={goalDirection}
-              onChange={(e) => setGoalDirection(e.target.value as GoalDirection)}
-              className="w-full rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-            >
-              <option value="at_least">At least (higher is better)</option>
-              <option value="at_most">At most (lower is better)</option>
-              <option value="target">Target (hit the value)</option>
-            </select>
+            <div className="relative">
+              <select
+                value={goalDirection}
+                onChange={(e) => setGoalDirection(e.target.value as GoalDirection)}
+                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              >
+                <option value="at_least">At least (higher is better)</option>
+                <option value="at_most">At most (lower is better)</option>
+                <option value="target">Target (hit the value)</option>
+              </select>
+              <SelectChevron />
+            </div>
           </label>
         </div>
 
