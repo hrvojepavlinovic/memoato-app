@@ -6,17 +6,78 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   <section class="section">
     <div class="container prose">
       <h1 class="page-title">Help & FAQ</h1>
+      <p>
+        Quick links: <a href="https://app.memoato.com">Open the app</a> · <a href="/privacy">Privacy</a> ·
+        <a href="/open-source">Open source</a>
+      </p>
+
+      <h2>Getting started</h2>
+      <p>
+        On your first run, memoato helps you pick a few common trackers (templates) like Weight, Water, and Push ups.
+        You can always change goals, chart type, and colors later.
+      </p>
+
+      <h2>Templates (starter trackers)</h2>
+      <p>
+        Templates are prefilled categories with sensible defaults (emoji, accent color, chart type, period, goal, and how
+        multiple entries are counted). You can use them:
+      </p>
+      <ul>
+        <li><strong>Onboarding</strong>: shown automatically when you have no non-system categories.</li>
+        <li><strong>New category</strong>: choose a template from the Template dropdown.</li>
+      </ul>
+
+      <h2>Notes (built-in)</h2>
+      <p>
+        Notes is a built-in system category. It’s always created automatically and <strong>can’t be deleted</strong>.
+        Use it for quick daily notes. In the Timeline, each note shows its own timestamp.
+      </p>
+
       <h2>How do I log something?</h2>
-      <p>Open a category and add a number. Adjust date/time when logging past events.</p>
-      <h2>Can I edit history?</h2>
-      <p>Yes - open a category, scroll history, edit or delete entries.</p>
+      <p>
+        Open a category and add a number (or a note for Notes). You can also backfill by changing the date before
+        adding.
+      </p>
+
+      <h2>Can I edit or delete history?</h2>
+      <p>
+        Yes. Open a category, scroll to history, then edit values or delete entries. System categories (like Notes) can’t
+        be deleted, but their entries can be edited/deleted.
+      </p>
+
+      <h2>Can I reorder categories on Home?</h2>
+      <p>
+        Yes. On Home, tap <strong>Edit</strong> to enter reorder mode, then drag the handle to rearrange categories. You
+        can reset back to automatic ordering from the same screen.
+      </p>
+
+      <h2>What is the Timeline?</h2>
+      <p>
+        Timeline groups your day into readable summaries (totals and entries) so you can see what happened at a glance.
+        Notes show individual timestamps per note.
+      </p>
+
+      <h2>Privacy options</h2>
+      <p>
+        memoato supports three storage modes: cloud sync, encrypted cloud, and local-only. Open the app, then go to
+        <strong>Profile → Privacy</strong>.
+      </p>
+      <ul>
+        <li><strong>Cloud sync</strong>: normal server storage for multi-device access.</li>
+        <li><strong>Encrypted cloud</strong>: category titles and notes are encrypted client-side before saving.</li>
+        <li><strong>Local-only</strong>: data stays on your device.</li>
+      </ul>
+
+      <h2>What’s coming next (Coach Mode)</h2>
+      <p>
+        We’re exploring an optional “Coach Mode” that turns goals into a small daily plan and a weekly review (opt-in,
+        privacy-conscious).
+      </p>
+
       <h2>Where do I send feedback?</h2>
       <p>
-        For now, email <a href="mailto:hello@memoato.com">hello@memoato.com</a>. A public voting board is planned.
-      </p>
-      <h2>Do you have privacy options?</h2>
-      <p>
-        Yes: cloud sync, encrypted cloud, and local-only. Open the app, then go to <strong>Profile → Privacy</strong>.
+        Email <a href="mailto:hello@memoato.com">hello@memoato.com</a> or open an issue on the
+        <a href="https://github.com/hrvojepavlinovic/memoato-app" rel="noopener noreferrer">GitHub repo</a>.
       </p>
     </div>
   </section>
