@@ -410,6 +410,28 @@ a:hover {
   gap: 0.9rem;
 }
 
+.value {
+  padding-top: 0.5rem;
+}
+
+.value-header {
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+}
+
+.value-features {
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 1.25rem;
+}
+
+.value-actions {
+  justify-content: center;
+}
+
 .feature-line {
   display: grid;
   grid-template-columns: 42px 1fr;
