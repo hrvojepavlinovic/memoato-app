@@ -166,45 +166,47 @@ export function RemindersPage() {
         </p>
       </div>
 
-      {!isNative ? (
-        <div className="card p-4">
-          <div className="text-sm font-semibold">Mobile app required</div>
-          <div className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-            Install memoato on your phone to enable reminders.
+      <div className="space-y-3">
+        {!isNative ? (
+          <div className="card p-4">
+            <div className="text-sm font-semibold">Mobile app required</div>
+            <div className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+              Install memoato on your phone to enable reminders.
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      <div className="card p-4">
-        <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
-            className="h-4 w-4"
-          />
-          <span className="text-sm font-semibold">Daily reminder</span>
-        </label>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-          <label className="flex flex-col gap-1">
-            <span className="label">Time</span>
+        <div className="card p-4">
+          <label className="flex items-center gap-3">
             <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+              className="h-4 w-4"
             />
+            <span className="text-sm font-semibold">Daily reminder</span>
           </label>
-          <Button onClick={onSave} disabled={busy === "save"} className="h-10 w-full sm:w-auto">
-            Save
-          </Button>
-        </div>
 
-        <div className="mt-3 flex justify-end">
-          <Button variant="ghost" onClick={onTest} disabled={busy === "test"} className="w-full sm:w-auto">
-            Test notification
-          </Button>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+            <label className="flex flex-col gap-1">
+              <span className="label">Time</span>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+              />
+            </label>
+            <Button onClick={onSave} disabled={busy === "save"} className="h-10 w-full sm:w-auto">
+              Save
+            </Button>
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <Button variant="ghost" onClick={onTest} disabled={busy === "test"} className="w-full sm:w-auto">
+              Test notification
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -212,4 +214,3 @@ export function RemindersPage() {
     </div>
   );
 }
-
