@@ -166,16 +166,14 @@ export function RemindersPage() {
         </p>
       </div>
 
-      <div className="space-y-3">
-        {!isNative ? (
-          <div className="card p-4">
-            <div className="text-sm font-semibold">Mobile app required</div>
-            <div className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-              Install memoato on your phone to enable reminders.
-            </div>
+      {!isNative ? (
+        <div className="card p-4">
+          <div className="text-sm font-semibold">Mobile app required</div>
+          <div className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+            Reminders are available only in the iOS/Android app (native wrapper).
           </div>
-        ) : null}
-
+        </div>
+      ) : (
         <div className="card p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -189,7 +187,6 @@ export function RemindersPage() {
               <input
                 type="checkbox"
                 checked={enabled}
-                disabled={!isNative}
                 onChange={(e) => setEnabled(e.target.checked)}
                 className="peer sr-only"
               />
@@ -198,7 +195,6 @@ export function RemindersPage() {
                   "relative h-7 w-12 cursor-pointer rounded-full border transition-colors",
                   "border-neutral-300 bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-800",
                   "peer-checked:border-neutral-950 peer-checked:bg-neutral-950 dark:peer-checked:border-white dark:peer-checked:bg-white",
-                  !isNative ? "cursor-not-allowed opacity-60" : "",
                 ].join(" ")}
                 aria-hidden="true"
               >
@@ -218,7 +214,7 @@ export function RemindersPage() {
               <input
                 type="time"
                 value={time}
-                disabled={!isNative || !enabled}
+                disabled={!enabled}
                 onChange={(e) => setTime(e.target.value)}
                 className="h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
               />
@@ -228,7 +224,7 @@ export function RemindersPage() {
                 variant="ghost"
                 size="sm"
                 onClick={onTest}
-                disabled={!isNative || busy === "test"}
+                disabled={busy === "test"}
                 className="h-10 w-full sm:w-auto"
               >
                 Test
@@ -236,7 +232,7 @@ export function RemindersPage() {
               <Button
                 size="sm"
                 onClick={onSave}
-                disabled={!isNative || busy === "save"}
+                disabled={busy === "save"}
                 className="h-10 w-full sm:w-auto"
               >
                 Save
@@ -244,7 +240,7 @@ export function RemindersPage() {
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {message ? <div className="mt-3 text-sm text-neutral-700 dark:text-neutral-300">{message}</div> : null}
     </div>
