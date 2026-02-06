@@ -17,6 +17,15 @@ we use a thin native wrapper via Capacitor.
 
 This repo is open source: **never commit secrets** (Firebase configs, keystores, certs, provisioning profiles).
 
+## App identity (HILLS Lab)
+
+Default Capacitor identity is set to:
+
+- App name: `Memoato`
+- Bundle/application ID: `hr.hillslab.memoato` (derived from `hills-lab.hr`, without the hyphen)
+
+If your Apple/Google accounts require a different identifier, update `apps/mobile/capacitor.config.ts`.
+
 ## Phase 1 (MVP): wrapper loads `https://app.memoato.com`
 
 In `apps/mobile/capacitor.config.ts`, production uses:
@@ -92,4 +101,3 @@ Bundling the web app (instead of `server.url`) needs extra work:
 - Offline strategy + asset caching
 
 Do this after Phase 1 ships and reminders are validated.
-

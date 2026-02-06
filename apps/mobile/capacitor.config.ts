@@ -4,8 +4,8 @@ const isLiveReload = process.env.CAPACITOR_LIVE_RELOAD === "1";
 const serverUrl = process.env.CAPACITOR_SERVER_URL?.trim();
 
 const config: CapacitorConfig = {
-  appId: "com.memoato.app",
-  appName: "memoato",
+  appId: "hr.hillslab.memoato",
+  appName: "Memoato",
   webDir: "web",
   bundledWebRuntime: false,
   // Phase 1 (MVP): load the production web app so auth/API stay same-origin.
@@ -23,4 +23,3 @@ const config: CapacitorConfig = {
 };
 
 export default config;
-
