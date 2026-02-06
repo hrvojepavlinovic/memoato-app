@@ -125,17 +125,17 @@ a:hover {
 }
 
 .btn.primary {
-  background: #0a0a0a;
+  background: var(--accent);
   color: #ffffff;
 }
 
 .btn.primary:hover {
-  background: #171717;
+  background: rgb(var(--accent-rgb) / 0.92);
   text-decoration: none;
 }
 
 .btn.primary:active {
-  background: #262626;
+  background: rgb(var(--accent-rgb) / 0.84);
 }
 
 .grid {
@@ -160,16 +160,27 @@ a:hover {
 }
 
 .donate-card {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
   border-color: rgb(var(--accent-rgb) / 0.22);
-  background: rgb(var(--accent-rgb) / 0.06);
+  background: rgb(var(--accent-rgb) / 0.04);
 }
 
 .donate-card .muted {
-  margin-left: auto;
-  margin-right: auto;
   max-width: 68ch;
   line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .donate-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .donate-card .btn {
+    width: 100%;
+  }
 }
 
 .muted {
@@ -334,13 +345,15 @@ a:hover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
   margin-top: 1.5rem;
+  justify-items: center;
 }
 
 .stat {
   border: 1px solid rgb(var(--accent-rgb) / 0.25);
-  border-radius: 999px;
+  border-radius: 50%;
   background: rgb(var(--accent-rgb) / 0.06);
   aspect-ratio: 1 / 1;
+  width: clamp(92px, 18vw, 140px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -540,7 +553,6 @@ a:hover {
 .post-card {
   display: block;
   padding: 1.25rem;
-  transition: background 120ms ease, border-color 120ms ease;
 }
 
 .post-card:hover {

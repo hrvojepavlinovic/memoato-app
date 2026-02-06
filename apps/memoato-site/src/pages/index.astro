@@ -96,27 +96,63 @@ import StatsRow from "../components/StatsRow.astro";
 
         <div class="card">
           <div class="h2">ADHD-friendly by design</div>
-          <div class="muted" style="max-width: 70ch">Built to reduce friction and decision fatigue so you keep showing up.</div>
-          <div class="feature-list" style="margin-top: 1rem">
-            <div class="feature">
-              <div class="feature-title">Fewer decisions</div>
-              <div class="muted">Sane defaults and templates so you don’t start from a blank page.</div>
+          <div class="muted" style="max-width: 70ch">Built to reduce decision fatigue so you keep showing up.</div>
+
+          <div class="feature-grid">
+            <div class="feature-line">
+              <div class="feature-icon" aria-hidden="true">
+                <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 6h13" />
+                  <path d="M8 12h13" />
+                  <path d="M8 18h13" />
+                  <path d="M3 6h.01" />
+                  <path d="M3 12h.01" />
+                  <path d="M3 18h.01" />
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Less decision fatigue</div>
+                <div class="muted">Sane defaults and templates so you don’t start from a blank page.</div>
+              </div>
             </div>
-            <div class="feature">
-              <div class="feature-title">Immediate feedback</div>
-              <div class="muted">Progress stays visible, so the reward loop is obvious.</div>
+
+            <div class="feature-line">
+              <div class="feature-icon" aria-hidden="true">
+                <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 3v18h18" />
+                  <path d="m7 15 4-4 3 3 6-7" />
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Visible reward loop</div>
+                <div class="muted">Progress stays in view, so the feedback is immediate.</div>
+              </div>
             </div>
-            <div class="feature">
-              <div class="feature-title">Forgiving workflow</div>
-              <div class="muted">Miss a day? No punishment. Just keep going.</div>
+
+            <div class="feature-line">
+              <div class="feature-icon" aria-hidden="true">
+                <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12a9 9 0 1 1-3-6.7" />
+                  <path d="M21 3v7h-7" />
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Forgiving workflow</div>
+                <div class="muted">Miss a day? No punishment. Just keep going.</div>
+              </div>
             </div>
-            <div class="feature">
-              <div class="feature-title">Low cognitive load</div>
-              <div class="muted">Minimal UI, consistent patterns, fewer settings.</div>
-            </div>
-            <div class="feature">
-              <div class="feature-title">Privacy-first</div>
-              <div class="muted">Track sensitive things without anxiety (cloud / encrypted / local-only).</div>
+
+            <div class="feature-line">
+              <div class="feature-icon" aria-hidden="true">
+                <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+                  <path d="M6 11h12v10H6V11Z" />
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Privacy-first options</div>
+                <div class="muted">Cloud sync, encrypted cloud, or local-only on device.</div>
+              </div>
             </div>
           </div>
 
@@ -133,13 +169,11 @@ import StatsRow from "../components/StatsRow.astro";
   <section class="section">
     <div class="container">
       <div class="card donate-card">
-        <div class="h2">Support development</div>
-        <div class="muted">
-          memoato is free and open-source. If it helps you, you can support its development.
+        <div>
+          <div class="h2">Support development</div>
+          <div class="muted">memoato is free and open-source. If it helps you, consider supporting development.</div>
         </div>
-        <div class="hero-actions" style="margin-top: 1rem">
-          <a class="btn primary" href="https://buymeacoffee.com/0xhp10" rel="noopener noreferrer">Support memoato</a>
-        </div>
+        <a class="btn primary" href="https://buymeacoffee.com/0xhp10" rel="noopener noreferrer">Support memoato</a>
       </div>
     </div>
   </section>
