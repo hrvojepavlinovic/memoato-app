@@ -44,6 +44,7 @@ import {
 import type { CategoryWithStats, CategoryEventItem } from "../focus/types";
 import { useTheme } from "../theme/ThemeProvider";
 import type { ThemePreference } from "../theme/theme";
+import { Capacitor } from "@capacitor/core";
 
 const inputClassName =
   "h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500";
@@ -79,6 +80,7 @@ export function ProfilePage() {
   const q = useQuery(getProfile);
   const privacy = usePrivacy();
   const theme = useTheme();
+  const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
 
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -721,6 +723,25 @@ export function ProfilePage() {
             })}
           </div>
           <div className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Stored on this device.</div>
+        </div>
+
+        <div className="card p-4">
+          <div className="mb-3 text-sm font-semibold">Reminders</div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold">Daily reminder</div>
+              <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                {isNative ? "Schedule local notifications." : "Available in the mobile app."}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/reminders")}
+              className="w-full sm:w-auto"
+            >
+              Open reminders
+            </Button>
+          </div>
         </div>
 
         <div className="card p-4">

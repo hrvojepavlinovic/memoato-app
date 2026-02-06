@@ -20,3 +20,6 @@
 - Check PM2 status: `pm2 status`
 - Check log sizes (pm2-logrotate): `pm2 logs --lines 50`
 
+## Mobile releases
+
+- See `docs/MOBILE.md` (TestFlight + Play Store workflow; do not commit signing assets).

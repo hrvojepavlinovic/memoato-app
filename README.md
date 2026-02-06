@@ -9,6 +9,7 @@ Fast, minimal habit tracking for ADHD brains: quick input, clear progress, fewer
 - Architecture: `docs/ARCHITECTURE.md`
 - Self-hosting: `docs/SELF_HOSTING.md`
 - Landing handover (Astro + Cloudflare Pages): `docs/LANDING_HANDOVER.md`
+- Mobile apps (Capacitor + TestFlight/Play): `docs/MOBILE.md`
 - Open-source checklist: `docs/OPEN_SOURCE_TASKS.md`
 - Backlog: `docs/BACKLOG.md`
 - Community feedback/voting proposal: `docs/COMMUNITY_FEEDBACK.md`

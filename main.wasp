@@ -111,6 +111,12 @@ page ProfilePage {
   component: import { ProfilePage } from "@src/profile/ProfilePage"
 }
 
+route RemindersRoute { path: "/reminders", to: RemindersPage }
+page RemindersPage {
+  authRequired: true,
+  component: import { RemindersPage } from "@src/pwa/RemindersPage"
+}
+
 route ConfirmEmailChangeRoute { path: "/profile/email-change", to: ConfirmEmailChangePage }
 page ConfirmEmailChangePage {
   component: import { ConfirmEmailChangePage } from "@src/profile/ConfirmEmailChangePage"
