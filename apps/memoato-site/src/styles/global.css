@@ -124,17 +124,17 @@ a:hover {
 }
 
 .btn.primary {
-  background: var(--accent);
+  background: #0a0a0a;
   color: #ffffff;
 }
 
 .btn.primary:hover {
-  background: var(--accent);
+  background: #171717;
   text-decoration: none;
 }
 
 .btn.primary:active {
-  background: var(--accent);
+  background: #262626;
 }
 
 .grid {
