@@ -137,6 +137,20 @@ a:hover {
   background: #262626;
 }
 
+.btn.accent {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.btn.accent:hover {
+  background: var(--accent);
+  text-decoration: none;
+}
+
+.btn.accent:active {
+  background: var(--accent);
+}
+
 .grid {
   display: grid;
   gap: 1rem;
@@ -163,7 +177,7 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  border-top: 3px solid rgba(0, 0, 0, 0.9);
+  border-top: 3px solid var(--accent);
 }
 
 .donate-card .muted {
@@ -341,21 +355,21 @@ a:hover {
 .stats-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-top: 1.5rem;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
 .stat {
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
-  padding: 0.85rem 0.75rem;
-  background: rgba(0, 0, 0, 0.02);
+  border-radius: 18px;
+  padding: 1.1rem 1rem;
+  background: rgba(0, 0, 0, 0.015);
   min-width: 0;
   text-align: center;
 }
 
 .stat-number {
-  font-size: 1.35rem;
+  font-size: 1.55rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: rgba(10, 10, 10, 0.92);
@@ -363,7 +377,7 @@ a:hover {
 
 .stat-label {
   color: rgba(10, 10, 10, 0.68);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 @media (max-width: 420px) {
@@ -410,26 +424,48 @@ a:hover {
   gap: 0.9rem;
 }
 
-.value {
-  padding-top: 0.5rem;
+.value-surface {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 18px;
+  padding: 2.25rem 1.25rem;
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .value-header {
   text-align: center;
   display: grid;
   justify-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .value-features {
   max-width: 860px;
   margin-left: auto;
   margin-right: auto;
-  margin-top: 1.25rem;
+  margin-top: 2rem;
+  gap: 1.15rem;
 }
 
 .value-actions {
+  margin-top: 2rem;
   justify-content: center;
+}
+
+.value-surface .feature-icon {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.value-surface .feature-line {
+  gap: 1rem;
+  grid-template-columns: 44px 1fr;
+}
+
+@media (min-width: 840px) {
+  .value-surface {
+    padding: 2.75rem 2rem;
+  }
 }
 
 .feature-line {
