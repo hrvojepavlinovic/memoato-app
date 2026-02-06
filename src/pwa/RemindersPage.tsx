@@ -170,7 +170,7 @@ export function RemindersPage() {
         <div className="card p-4">
           <div className="text-sm font-semibold">Mobile app required</div>
           <div className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-            Reminders are available only in the iOS/Android app (native wrapper).
+            Reminders are available only in the iOS/Android app.
           </div>
         </div>
       ) : (
