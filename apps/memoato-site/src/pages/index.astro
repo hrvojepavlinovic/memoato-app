@@ -27,119 +27,104 @@ import StatsRow from "../components/StatsRow.astro";
 
   <section class="section" style="padding-top: 1.5rem">
     <div class="container">
-      <div class="card">
-        <div class="h2">Designed for low friction</div>
-        <div class="muted" style="max-width: 70ch">
-          Log fast, see progress clearly, review your day in a timeline, and adjust as you go.
-        </div>
-        <div class="feature-grid">
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" />
-              </svg>
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="h2">Designed for low friction</div>
+          <div class="muted" style="max-width: 70ch">
+            Log fast, see progress clearly, review your day in a timeline, and adjust as you go.
+          </div>
+          <div class="feature-grid">
+            <div class="feature-line">
+              <div class="feature-icon" aria-hidden="true">
+                <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" />
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Fast capture</div>
+                <div class="muted">No project setup, no fiddling, just log.</div>
+              </div>
             </div>
-            <div>
-              <div class="feature-title">Fast capture</div>
-              <div class="muted">No project setup, no fiddling, just log.</div>
+            <div class="feature-line">
+              <div class="feature-icon" aria-hidden="true">
+                <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 3v18h18" />
+                  <path d="m7 15 4-4 3 3 6-7" />
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Readable charts</div>
+                <div class="muted">Goals and trends that are obvious at a glance.</div>
+              </div>
+            </div>
+            <div class="feature-line">
+              <div class="feature-icon" aria-hidden="true">
+                <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 6h13" />
+                  <path d="M8 12h13" />
+                  <path d="M8 18h13" />
+                  <path d="M3 6h.01" />
+                  <path d="M3 12h.01" />
+                  <path d="M3 18h.01" />
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Daily timeline</div>
+                <div class="muted">A day view that groups entries by category.</div>
+              </div>
+            </div>
+            <div class="feature-line">
+              <div class="feature-icon" aria-hidden="true">
+                <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+                  <path d="M6 11h12v10H6V11Z" />
+                </svg>
+              </div>
+              <div>
+                <div class="feature-title">Privacy modes</div>
+                <div class="muted">Cloud sync, encrypted cloud, or local-only on device.</div>
+              </div>
             </div>
           </div>
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 3v18h18" />
-                <path d="m7 15 4-4 3 3 6-7" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Readable charts</div>
-              <div class="muted">Goals and trends that are obvious at a glance.</div>
-            </div>
-          </div>
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M8 6h13" />
-                <path d="M8 12h13" />
-                <path d="M8 18h13" />
-                <path d="M3 6h.01" />
-                <path d="M3 12h.01" />
-                <path d="M3 18h.01" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Daily timeline</div>
-              <div class="muted">A human-readable day view that groups entries by category.</div>
-            </div>
-          </div>
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2v2" />
-                <path d="M12 20v2" />
-                <path d="M4.93 4.93l1.41 1.41" />
-                <path d="M17.66 17.66l1.41 1.41" />
-                <path d="M2 12h2" />
-                <path d="M20 12h2" />
-                <path d="M6.34 17.66l-1.41 1.41" />
-                <path d="M19.07 4.93l-1.41 1.41" />
-                <path d="M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10Z" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Flexible categories</div>
-              <div class="muted">Choose bar or line, set goals, and control how multiple entries are counted.</div>
-            </div>
-          </div>
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg class="feature-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 11V8a5 5 0 0 1 10 0v3" />
-                <path d="M6 11h12v10H6V11Z" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Privacy modes</div>
-              <div class="muted">Cloud sync, encrypted cloud, or local-only on device.</div>
-            </div>
+
+          <div class="card-actions">
+            <a class="btn" href="/help">Help & FAQ</a>
+            <a class="btn" href="/privacy">Privacy</a>
+            <a class="btn" href="/open-source">Open source</a>
           </div>
         </div>
 
-        <div class="h2" style="margin-top: 1.75rem">ADHD-friendly by design</div>
-        <div class="muted" style="max-width: 70ch">
-          Built to reduce friction and decision fatigue — so you can keep showing up.
-        </div>
-        <div class="feature-list" style="margin-top: 1rem">
-          <div class="feature">
-            <div class="feature-title">Fast capture</div>
-            <div class="muted">Log in a couple taps. No ceremony, no setup.</div>
+        <div class="card">
+          <div class="h2">ADHD-friendly by design</div>
+          <div class="muted" style="max-width: 70ch">Built to reduce friction and decision fatigue so you keep showing up.</div>
+          <div class="feature-list" style="margin-top: 1rem">
+            <div class="feature">
+              <div class="feature-title">Fewer decisions</div>
+              <div class="muted">Sane defaults and templates so you don’t start from a blank page.</div>
+            </div>
+            <div class="feature">
+              <div class="feature-title">Immediate feedback</div>
+              <div class="muted">Progress stays visible, so the reward loop is obvious.</div>
+            </div>
+            <div class="feature">
+              <div class="feature-title">Forgiving workflow</div>
+              <div class="muted">Miss a day? No punishment. Just keep going.</div>
+            </div>
+            <div class="feature">
+              <div class="feature-title">Low cognitive load</div>
+              <div class="muted">Minimal UI, consistent patterns, fewer settings.</div>
+            </div>
+            <div class="feature">
+              <div class="feature-title">Privacy-first</div>
+              <div class="muted">Track sensitive things without anxiety (cloud / encrypted / local-only).</div>
+            </div>
           </div>
-          <div class="feature">
-            <div class="feature-title">Fewer decisions</div>
-            <div class="muted">Sane defaults and templates so you don’t start from a blank page.</div>
-          </div>
-          <div class="feature">
-            <div class="feature-title">Immediate feedback</div>
-            <div class="muted">Progress stays visible, so the reward loop is obvious.</div>
-          </div>
-          <div class="feature">
-            <div class="feature-title">Forgiving workflow</div>
-            <div class="muted">Miss a day? No punishment. Just keep going.</div>
-          </div>
-          <div class="feature">
-            <div class="feature-title">Low cognitive load</div>
-            <div class="muted">Minimal UI, consistent patterns, fewer settings.</div>
-          </div>
-          <div class="feature">
-            <div class="feature-title">Privacy-first</div>
-            <div class="muted">Track sensitive things without anxiety (cloud / encrypted / local-only).</div>
-          </div>
-        </div>
 
-        <div class="hero-actions" style="margin-top: 1.25rem">
-          <a class="btn" href="/privacy">Privacy</a>
-          <a class="btn" href="/blog/timeline">Timeline</a>
-          <a class="btn" href="/open-source">Open source</a>
+          <div class="card-actions">
+            <a class="btn" href="/blog/why-memoato">Why memoato</a>
+            <a class="btn" href="/blog/timeline">Timeline</a>
+            <a class="btn" href="/help">How it works</a>
+          </div>
         </div>
       </div>
     </div>
@@ -148,6 +133,7 @@ import StatsRow from "../components/StatsRow.astro";
   <section class="section">
     <div class="container">
       <div class="card donate-card">
+        <div class="h2">Support development</div>
         <div class="muted">
           memoato is free and open-source. If it helps you, you can support its development.
         </div>

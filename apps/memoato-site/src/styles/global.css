@@ -5,6 +5,8 @@
   --card: rgba(0, 0, 0, 0.03);
   --border: rgba(0, 0, 0, 0.1);
   --shadow: rgba(0, 0, 0, 0.08);
+  --accent-rgb: 37 99 235;
+  --accent: rgb(var(--accent-rgb));
 }
 
 * {
@@ -64,11 +66,11 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgb(var(--accent-rgb) / 0.22);
+  background: rgb(var(--accent-rgb) / 0.06);
   border-radius: 999px;
   padding: 0.375rem 0.75rem;
-  color: var(--muted);
+  color: rgba(10, 10, 10, 0.72);
   font-size: 0.875rem;
 }
 
@@ -159,6 +161,8 @@ a:hover {
 
 .donate-card {
   text-align: center;
+  border-color: rgb(var(--accent-rgb) / 0.22);
+  background: rgb(var(--accent-rgb) / 0.06);
 }
 
 .donate-card .muted {
@@ -299,12 +303,28 @@ a:hover {
   justify-content: center;
 }
 
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  justify-content: flex-start;
+}
+
 @media (max-width: 639px) {
   .hero-actions {
     display: grid;
     grid-template-columns: 1fr;
   }
   .hero-actions .btn {
+    width: 100%;
+  }
+
+  .card-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .card-actions .btn {
     width: 100%;
   }
 }
@@ -317,10 +337,15 @@ a:hover {
 }
 
 .stat {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
-  padding: 0.85rem 0.75rem;
-  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgb(var(--accent-rgb) / 0.25);
+  border-radius: 999px;
+  background: rgb(var(--accent-rgb) / 0.06);
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem 0.75rem;
   min-width: 0;
   text-align: center;
 }
@@ -329,10 +354,11 @@ a:hover {
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  color: var(--accent);
 }
 
 .stat-label {
-  color: rgba(10, 10, 10, 0.62);
+  color: rgba(10, 10, 10, 0.68);
   font-size: 0.9rem;
 }
 
@@ -393,9 +419,9 @@ a:hover {
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  color: rgba(10, 10, 10, 0.9);
+  background: rgb(var(--accent-rgb) / 0.08);
+  border: 1px solid rgb(var(--accent-rgb) / 0.18);
+  color: rgb(var(--accent-rgb) / 0.95);
 }
 
 .feature-svg {
