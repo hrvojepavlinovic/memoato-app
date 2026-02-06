@@ -177,15 +177,40 @@ export function RemindersPage() {
         ) : null}
 
         <div className="card p-4">
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-              className="h-4 w-4"
-            />
-            <span className="text-sm font-semibold">Daily reminder</span>
-          </label>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">Daily reminder</div>
+              <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                Sends a generic notification at your chosen time.
+              </div>
+            </div>
+
+            <label className="inline-flex shrink-0 items-center">
+              <input
+                type="checkbox"
+                checked={enabled}
+                disabled={!isNative}
+                onChange={(e) => setEnabled(e.target.checked)}
+                className="peer sr-only"
+              />
+              <span
+                className={[
+                  "relative h-7 w-12 cursor-pointer rounded-full border transition-colors",
+                  "border-neutral-300 bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-800",
+                  "peer-checked:border-neutral-950 peer-checked:bg-neutral-950 dark:peer-checked:border-white dark:peer-checked:bg-white",
+                  !isNative ? "cursor-not-allowed opacity-60" : "",
+                ].join(" ")}
+                aria-hidden="true"
+              >
+                <span
+                  className={[
+                    "absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform",
+                    "peer-checked:translate-x-5 dark:bg-neutral-950 dark:peer-checked:bg-neutral-950",
+                  ].join(" ")}
+                />
+              </span>
+            </label>
+          </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <label className="flex flex-col gap-1">
@@ -193,19 +218,30 @@ export function RemindersPage() {
               <input
                 type="time"
                 value={time}
+                disabled={!isNative || !enabled}
                 onChange={(e) => setTime(e.target.value)}
-                className="h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                className="h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
               />
             </label>
-            <Button onClick={onSave} disabled={busy === "save"} className="h-10 w-full sm:w-auto">
-              Save
-            </Button>
-          </div>
-
-          <div className="mt-3 flex justify-end">
-            <Button variant="ghost" onClick={onTest} disabled={busy === "test"} className="w-full sm:w-auto">
-              Test notification
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onTest}
+                disabled={!isNative || busy === "test"}
+                className="h-10 w-full sm:w-auto"
+              >
+                Test
+              </Button>
+              <Button
+                size="sm"
+                onClick={onSave}
+                disabled={!isNative || busy === "save"}
+                className="h-10 w-full sm:w-auto"
+              >
+                Save
+              </Button>
+            </div>
           </div>
         </div>
       </div>
