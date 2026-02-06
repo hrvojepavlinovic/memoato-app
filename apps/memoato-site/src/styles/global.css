@@ -5,8 +5,7 @@
   --card: rgba(0, 0, 0, 0.03);
   --border: rgba(0, 0, 0, 0.1);
   --shadow: rgba(0, 0, 0, 0.08);
-  --accent-rgb: 37 99 235;
-  --accent: rgb(var(--accent-rgb));
+  --accent: #ef4444;
 }
 
 * {
@@ -66,8 +65,8 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid rgb(var(--accent-rgb) / 0.22);
-  background: rgb(var(--accent-rgb) / 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.02);
   border-radius: 999px;
   padding: 0.375rem 0.75rem;
   color: rgba(10, 10, 10, 0.72);
@@ -130,12 +129,12 @@ a:hover {
 }
 
 .btn.primary:hover {
-  background: rgb(var(--accent-rgb) / 0.92);
+  background: var(--accent);
   text-decoration: none;
 }
 
 .btn.primary:active {
-  background: rgb(var(--accent-rgb) / 0.84);
+  background: var(--accent);
 }
 
 .grid {
@@ -164,8 +163,7 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  border-color: rgb(var(--accent-rgb) / 0.22);
-  background: rgb(var(--accent-rgb) / 0.04);
+  border-top: 3px solid var(--accent);
 }
 
 .donate-card .muted {
@@ -345,20 +343,13 @@ a:hover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
   margin-top: 1.5rem;
-  justify-items: center;
 }
 
 .stat {
-  border: 1px solid rgb(var(--accent-rgb) / 0.25);
-  border-radius: 50%;
-  background: rgb(var(--accent-rgb) / 0.06);
-  aspect-ratio: 1 / 1;
-  width: clamp(92px, 18vw, 140px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0.9rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 0.85rem 0.75rem;
+  background: rgba(0, 0, 0, 0.02);
   min-width: 0;
   text-align: center;
 }
@@ -432,9 +423,9 @@ a:hover {
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: rgb(var(--accent-rgb) / 0.08);
-  border: 1px solid rgb(var(--accent-rgb) / 0.18);
-  color: rgb(var(--accent-rgb) / 0.95);
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--accent);
 }
 
 .feature-svg {
