@@ -112,11 +112,6 @@ function tileTypeChip(c: CategoryWithStats): string {
   return "total";
 }
 
-function tilePeriodChip(c: CategoryWithStats): string {
-  if (c.chartType === "line") return "Latest";
-  return periodLabel(c.period);
-}
-
 function tileGlance(c: CategoryWithStats, displayTitle: string): { value: string; label: string } {
   if (c.chartType === "line") {
     const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
@@ -578,7 +573,6 @@ export function HomePage() {
               const goalReached = isGoalReached(c);
               const goalBg = goalReached ? withHexAlpha(accent, "08") : null;
               const typeChip = tileTypeChip(c);
-              const periodChip = tilePeriodChip(c);
               const glance = tileGlance(c, displayTitle);
 
               return (
@@ -616,9 +610,6 @@ export function HomePage() {
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
                           <div className="inline-flex rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
                             {typeChip}
-                          </div>
-                          <div className="inline-flex rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
-                            {periodChip}
                           </div>
                         </div>
                       </div>
