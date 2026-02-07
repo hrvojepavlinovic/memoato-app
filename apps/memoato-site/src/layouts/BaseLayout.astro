@@ -4,17 +4,19 @@ type Props = {
   description?: string;
   canonicalPath?: string;
   ogType?: "website" | "article";
+  ogImagePath?: string;
 };
 
 import "../styles/global.css";
 
-const { title, description, canonicalPath, ogType = "website" } = Astro.props;
+const { title, description, canonicalPath, ogType = "website", ogImagePath = "/og.png" } = Astro.props;
 const databuddyClientId =
   import.meta.env.PUBLIC_DATABUDDY_CLIENT_ID?.trim() || "c1678578-eedf-4cbc-bbc6-8dfa541712dc";
 
 const canonical = canonicalPath
   ? new URL(canonicalPath, Astro.site ?? "https://memoato.com").toString()
   : undefined;
+const ogImage = ogImagePath ? new URL(ogImagePath, Astro.site ?? "https://memoato.com").toString() : undefined;
 
 const baseJsonLd = {
   "@context": "https://schema.org",
@@ -60,12 +62,18 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
     <meta property="og:title" content={title} />
     {description ? <meta property="og:description" content={description} /> : null}
     {canonical ? <meta property="og:url" content={canonical} /> : null}
+    {ogImage ? <meta property="og:image" content={ogImage} /> : null}
+    {ogImage ? <meta property="og:image:width" content="1200" /> : null}
+    {ogImage ? <meta property="og:image:height" content="630" /> : null}
+    {ogImage ? <meta property="og:image:alt" content="memoato: minimal habit tracking" /> : null}
 
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
     <meta name="twitter:site" content="@memoatoo" />
     <meta name="twitter:title" content={title} />
     {description ? <meta name="twitter:description" content={description} /> : null}
     {canonical ? <meta name="twitter:url" content={canonical} /> : null}
+    {ogImage ? <meta name="twitter:image" content={ogImage} /> : null}
+    {ogImage ? <meta name="twitter:image:alt" content="memoato: minimal habit tracking" /> : null}
 
     <script type="application/ld+json" set:html={baseJsonLdString} />
 
