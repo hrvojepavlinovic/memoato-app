@@ -53,6 +53,12 @@ Pages environment variables:
 - `PUBLIC_DATABUDDY_CLIENT_ID` (dedicated Databuddy project for `memoato.com`)
 - `MEMOATO_API_ORIGIN` (optional; defaults to `https://api.memoato.com`)
 
+## SEO + LLM discoverability
+- `apps/memoato-site/public/robots.txt`
+- `apps/memoato-site/src/pages/sitemap.xml.ts` → `/sitemap.xml`
+- `apps/memoato-site/public/llms.txt`
+- JSON-LD structured data is injected in `apps/memoato-site/src/layouts/BaseLayout.astro` and extended per page/layout.
+
 ## Local dev
 ```bash
 cd apps/memoato-site

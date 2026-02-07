@@ -3,17 +3,41 @@ type Props = {
   title: string;
   description?: string;
   canonicalPath?: string;
+  ogType?: "website" | "article";
 };
 
 import "../styles/global.css";
 
-const { title, description, canonicalPath } = Astro.props;
+const { title, description, canonicalPath, ogType = "website" } = Astro.props;
 const databuddyClientId =
   import.meta.env.PUBLIC_DATABUDDY_CLIENT_ID?.trim() || "c1678578-eedf-4cbc-bbc6-8dfa541712dc";
 
 const canonical = canonicalPath
   ? new URL(canonicalPath, Astro.site ?? "https://memoato.com").toString()
   : undefined;
+
+const baseJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://memoato.com/#organization",
+      name: "HILLS Lab",
+      url: "https://hills-lab.hr",
+      brand: { "@type": "Brand", name: "memoato" },
+      sameAs: ["https://x.com/memoatoo", "https://github.com/hrvojepavlinovic/memoato-app"],
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://memoato.com/#website",
+      url: "https://memoato.com",
+      name: "memoato",
+      inLanguage: "en",
+      publisher: { "@id": "https://memoato.com/#organization" },
+    },
+  ],
+};
+const baseJsonLdString = JSON.stringify(baseJsonLd);
 ---
 
 <!doctype html>
@@ -32,9 +56,20 @@ const canonical = canonicalPath
 
     <meta name="theme-color" content="#ffffff" />
     <meta property="og:site_name" content="memoato" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:title" content={title} />
     {description ? <meta property="og:description" content={description} /> : null}
     {canonical ? <meta property="og:url" content={canonical} /> : null}
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@memoatoo" />
+    <meta name="twitter:title" content={title} />
+    {description ? <meta name="twitter:description" content={description} /> : null}
+    {canonical ? <meta name="twitter:url" content={canonical} /> : null}
+
+    <script type="application/ld+json" set:html={baseJsonLdString} />
+
+    <slot name="head" />
 
     <!-- Keep as a literal <script> tag (avoid Astro hoisting to ESM import, which loses data-* attrs). -->
     <Fragment

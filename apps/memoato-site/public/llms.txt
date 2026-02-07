@@ -1,0 +1,23 @@
+# memoato (llms.txt)
+Last updated: 2026-02-07
+
+memoato is a minimal habit tracker built for low friction and ADHD brains. It helps you log quickly, see progress, and review your day in a timeline.
+
+Key links:
+- Homepage: https://memoato.com/
+- App: https://app.memoato.com/
+- Help & FAQ: https://memoato.com/help
+- About: https://memoato.com/about
+- Timeline (blog): https://memoato.com/blog/timeline
+- Privacy modes (blog): https://memoato.com/blog/privacy-modes
+- Privacy policy: https://memoato.com/privacy
+- Open source: https://memoato.com/open-source
+- GitHub repo: https://github.com/hrvojepavlinovic/memoato-app
+- Contact: https://memoato.com/contact
+
+Product highlights:
+- Templates (starter trackers) to reduce decision fatigue
+- Notes is a built-in system category (cannot be deleted)
+- Storage modes: cloud sync, encrypted cloud, local-only
+- PWA friendly (Add to Home Screen); mobile apps are in progress
+

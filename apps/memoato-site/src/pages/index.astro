@@ -1,6 +1,19 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import StatsRow from "../components/StatsRow.astro";
+
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "memoato",
+  operatingSystem: "Web",
+  applicationCategory: "HealthApplication",
+  url: "https://app.memoato.com",
+  description: "A fast, minimal habit tracker for ADHD brains: quick input, clear progress, fewer decisions.",
+  publisher: { "@id": "https://memoato.com/#organization" },
+  isAccessibleForFree: true,
+};
+const softwareJsonLdString = JSON.stringify(softwareJsonLd);
 ---
 
 <BaseLayout
@@ -8,6 +21,8 @@ import StatsRow from "../components/StatsRow.astro";
   description="A fast, minimal habit tracker for ADHD brains: quick input, clear progress, fewer decisions."
   canonicalPath="/"
 >
+  <script slot="head" type="application/ld+json" set:html={softwareJsonLdString} />
+
   <section class="container hero">
     <div class="pill">Minimal · Timeline · Privacy</div>
     <h1 class="h1" style="margin-top: 1rem">Track what matters.</h1>

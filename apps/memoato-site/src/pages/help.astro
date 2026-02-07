@@ -1,8 +1,82 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "How do I get started?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "On first run, memoato suggests a few starter trackers (templates) like Weight, Water, and Push ups. You can always edit goals, chart type, and colors later.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What are templates (starter trackers)?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Templates are prefilled categories with sensible defaults (emoji, unit, chart, period, goal, and how multiple entries are counted). You can use them during onboarding or when creating a new category.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is Notes?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Notes is a built-in system category that is created automatically and cannot be deleted. In the Timeline, each note shows its own timestamp.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How do I log something quickly?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Open a category and add a value (or a note for Notes). On Home, you can also tap the + button on a category tile to quick-add.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can I edit or delete history?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Open a category, scroll to history, then edit values or delete entries. System categories (like Notes) cannot be deleted, but their entries can be edited/deleted.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is the Timeline?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Timeline groups your day into readable summaries so you can see what happened at a glance, including totals and individual entries where relevant.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What privacy options are available?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "memoato supports cloud sync, encrypted cloud, and local-only storage. Open the app and go to Profile → Privacy to switch modes.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Where do I send feedback?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Email hello@memoato.com or open an issue on the GitHub repo.",
+      },
+    },
+  ],
+};
+const faqJsonLdString = JSON.stringify(faqJsonLd);
 ---
 
 <BaseLayout title="Help · memoato" description="FAQ and quick start." canonicalPath="/help">
+  <script slot="head" type="application/ld+json" set:html={faqJsonLdString} />
+
   <section class="section">
     <div class="container prose">
       <h1 class="page-title">Help & FAQ</h1>

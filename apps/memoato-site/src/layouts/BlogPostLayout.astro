@@ -9,9 +9,27 @@ const title = frontmatter?.title?.trim() || "Blog";
 const description = frontmatter?.description?.trim();
 const date = frontmatter?.date ? new Date(frontmatter.date) : null;
 const dateLabel = date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" }) : null;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? "https://memoato.com").toString();
+const blogJsonLd: Record<string, unknown> = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: title,
+  description,
+  mainEntityOfPage: { "@type": "WebPage", "@id": canonicalUrl },
+  author: { "@type": "Person", name: "Hrvoje Pavlinovic", url: "https://hrvoje.pavlinovic.com" },
+  publisher: { "@id": "https://memoato.com/#organization" },
+  isPartOf: { "@type": "Blog", "@id": "https://memoato.com/blog", name: "memoato Blog" },
+};
+if (date && !Number.isNaN(date.getTime())) {
+  blogJsonLd.datePublished = date.toISOString();
+}
+const blogJsonLdString = JSON.stringify(blogJsonLd);
 ---
 
-<BaseLayout title={`${title} · memoato`} description={description} canonicalPath={Astro.url.pathname}>
+<BaseLayout title={`${title} · memoato`} description={description} canonicalPath={Astro.url.pathname} ogType="article">
+  <script slot="head" type="application/ld+json" set:html={blogJsonLdString} />
+
   <section class="section">
     <div class="container">
       <div class="prose">
@@ -28,4 +46,3 @@ const dateLabel = date && !Number.isNaN(date.getTime()) ? date.toLocaleDateStrin
     </div>
   </section>
 </BaseLayout>
-
