@@ -608,14 +608,14 @@ export function HomePage() {
                         <div className="text-lg leading-none">{c.emoji ?? ""}</div>
                       </div>
                       <div className="min-w-0">
-                        <div
-                          className="truncate pr-8 text-base font-semibold leading-tight text-neutral-950 dark:text-neutral-100"
-                          title={displayTitle}
-                        >
-                          {displayTitle}
-                        </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <div className="inline-flex rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
+                        <div className="flex items-center gap-2 pr-10">
+                          <div
+                            className="min-w-0 truncate text-base font-semibold leading-tight text-neutral-950 dark:text-neutral-100"
+                            title={displayTitle}
+                          >
+                            {displayTitle}
+                          </div>
+                          <div className="inline-flex flex-none rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
                             {typeChip}
                           </div>
                         </div>
