@@ -536,7 +536,7 @@ export function HomePage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {orderedCategories.map((c) => {
               const displayTitle = displayTitleById[c.id] ?? c.title;
               const accent = resolveAccentForTheme(c.accentHex, theme.isDark) ?? c.accentHex;
@@ -548,7 +548,7 @@ export function HomePage() {
               return (
                 <div
                   key={c.id}
-                  className="card relative flex min-h-24 flex-col justify-between gap-3 p-4"
+                  className="card relative flex min-h-24 flex-col justify-between gap-3 p-4 sm:min-h-28"
                   style={{
                     borderColor: goalReached ? accent : undefined,
                     backgroundColor: goalBg ?? undefined,
@@ -571,7 +571,10 @@ export function HomePage() {
                         <div className="text-lg leading-none">{c.emoji ?? ""}</div>
                       </div>
                       <div className="min-w-0">
-                        <div className="break-words pr-8 text-base font-semibold leading-tight text-neutral-950 dark:text-neutral-100">
+                        <div
+                          className="truncate pr-8 text-base font-semibold leading-tight text-neutral-950 dark:text-neutral-100"
+                          title={displayTitle}
+                        >
                           {displayTitle}
                         </div>
                         {unit ? (

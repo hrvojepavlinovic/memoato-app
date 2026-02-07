@@ -98,7 +98,7 @@ export function QuickAddDialog({
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <div className="m-auto w-[92vw] max-w-md">
+      <div className="mx-auto mt-[18vh] w-[92vw] max-w-md">
         <div className="card p-4 shadow-lg">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -177,4 +177,3 @@ export function QuickAddDialog({
     </Dialog>
   );
 }
-
