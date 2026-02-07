@@ -54,7 +54,7 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
 
   return (
-    <div className="mt-2">
+    <div className="mt-0">
       <div className="flex items-center justify-between text-[11px] font-medium text-neutral-500">
         <span>{periodLabel(c.period)}</span>
         <span className="tabular-nums">
@@ -84,7 +84,7 @@ function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
 
 function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
   if (c.chartType === "line") {
-    const last = c.lastValue == null ? "—" : formatValue(c.lastValue);
+    const last = c.lastValue == null ? "n/a" : formatValue(c.lastValue);
     const goal = c.goalValue == null ? null : formatValue(c.goalValue);
     const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
     const dir = normalizeGoalDirection(c);
@@ -101,6 +101,40 @@ function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
     return `This year: ${formatValue(c.thisYearTotal)}`;
   }
   return `${periodLabel(c.period)}: ${formatValue(c.thisWeekTotal)}`;
+}
+
+function tileTypeChip(c: CategoryWithStats): string {
+  const u = (c.unit ?? "").trim();
+  if (u && u !== "x") return u;
+  if ((c.slug ?? "").toLowerCase() === "notes") return "note";
+  if (c.chartType === "line") return "value";
+  if (c.categoryType === "DO" || c.categoryType === "DONT") return "count";
+  return "total";
+}
+
+function tilePeriodChip(c: CategoryWithStats): string {
+  if (c.chartType === "line") return "Latest";
+  return periodLabel(c.period);
+}
+
+function tileGlance(c: CategoryWithStats, displayTitle: string): { value: string; label: string } {
+  if (c.chartType === "line") {
+    const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
+    const last = c.lastValue == null ? "n/a" : `${formatValue(c.lastValue)}${unit}`;
+    if (c.goalValue != null) {
+      const goal = `${formatValue(c.goalValue)}${unit}`;
+      const dir = normalizeGoalDirection(c);
+      const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
+      return { value: last, label: `Goal ${prefix} ${goal}` };
+    }
+    return { value: last, label: "Latest" };
+  }
+
+  const k = titleKey(displayTitle);
+  if (k === "padel" || k === "football") {
+    return { value: formatValue(c.thisYearTotal), label: "This year" };
+  }
+  return { value: formatValue(c.thisWeekTotal), label: periodLabel(c.period) };
 }
 
 function isGoalReached(c: CategoryWithStats): boolean {
@@ -543,7 +577,9 @@ export function HomePage() {
 
               const goalReached = isGoalReached(c);
               const goalBg = goalReached ? withHexAlpha(accent, "08") : null;
-              const unit = c.unit && c.unit !== "x" ? c.unit : null;
+              const typeChip = tileTypeChip(c);
+              const periodChip = tilePeriodChip(c);
+              const glance = tileGlance(c, displayTitle);
 
               return (
                 <div
@@ -577,11 +613,14 @@ export function HomePage() {
                         >
                           {displayTitle}
                         </div>
-                        {unit ? (
-                          <div className="mt-1 inline-flex rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
-                            {unit}
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <div className="inline-flex rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
+                            {typeChip}
                           </div>
-                        ) : null}
+                          <div className="inline-flex rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
+                            {periodChip}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -605,12 +644,17 @@ export function HomePage() {
                   </div>
 
                   {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
-                    <div className="relative">
+                    <div className="relative min-h-[46px] pt-1">
                       <GoalProgress c={c} />
                     </div>
                   ) : (
-                    <div className="relative mt-1 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                      {formatWeekGlance(c, displayTitle)}
+                    <div className="relative min-h-[46px] pt-1">
+                      <div className="text-lg font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
+                        {glance.value}
+                      </div>
+                      <div className="mt-0.5 text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
+                        {glance.label}
+                      </div>
                     </div>
                   )}
                 </div>
