@@ -452,9 +452,9 @@ a:hover {
 }
 
 .value-surface .feature-icon {
-  background: transparent;
-  border-color: var(--accent);
-  color: var(--accent);
+  background: rgba(0, 0, 0, 0.92);
+  border-color: rgba(0, 0, 0, 0.92);
+  color: #ffffff;
 }
 
 .value-surface .feature-line {
