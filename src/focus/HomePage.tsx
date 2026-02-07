@@ -22,6 +22,7 @@ import {
   localSetCategoryOrder,
 } from "./local";
 import type { BucketAggregation, GoalDirection } from "./types";
+import { QuickAddDialog } from "./components/QuickAddDialog";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -134,6 +135,7 @@ export function HomePage() {
   const [draftOrderIds, setDraftOrderIds] = useState<string[]>([]);
   const [savingOrder, setSavingOrder] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [quickAddCategoryId, setQuickAddCategoryId] = useState<string | null>(null);
   const dragPointerIdRef = useRef<number | null>(null);
   const reorderItemByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const onboardingDone = useMemo(() => {
@@ -277,6 +279,13 @@ export function HomePage() {
         .map((id) => categories.find((c) => c.id === id))
         .filter((c): c is CategoryWithStats => !!c)
     : categories;
+
+  const quickAddCategory = orderedCategories.find((c) => c.id === quickAddCategoryId) ?? null;
+  const quickAddTitle = quickAddCategory ? displayTitleById[quickAddCategory.id] ?? quickAddCategory.title : null;
+  const quickAddAccent =
+    quickAddCategory
+      ? resolveAccentForTheme(quickAddCategory.accentHex, theme.isDark) ?? quickAddCategory.accentHex
+      : "#0A0A0A";
 
   function moveId(list: string[], from: number, to: number): string[] {
     if (from === to) return list;
@@ -526,47 +535,94 @@ export function HomePage() {
           })}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {orderedCategories.map((c) => {
-            const displayTitle = displayTitleById[c.id] ?? c.title;
-            const accent = resolveAccentForTheme(c.accentHex, theme.isDark) ?? c.accentHex;
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {orderedCategories.map((c) => {
+              const displayTitle = displayTitleById[c.id] ?? c.title;
+              const accent = resolveAccentForTheme(c.accentHex, theme.isDark) ?? c.accentHex;
 
-            const goalReached = isGoalReached(c);
+              const goalReached = isGoalReached(c);
+              const goalBg = goalReached ? withHexAlpha(accent, "08") : null;
+              const unit = c.unit && c.unit !== "x" ? c.unit : null;
 
-            const goalBg = goalReached ? withHexAlpha(accent, "08") : null;
+              return (
+                <div
+                  key={c.id}
+                  className="card relative flex min-h-24 flex-col justify-between gap-3 p-4"
+                  style={{
+                    borderColor: goalReached ? accent : undefined,
+                    backgroundColor: goalBg ?? undefined,
+                  }}
+                >
+                  <Link
+                    to={routes.CategoryRoute.to}
+                    params={{ categorySlug: c.slug }}
+                    className="absolute inset-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                    aria-label={`Open ${displayTitle}`}
+                  />
 
-            return (
-              <Link
-                key={c.id}
-                to={routes.CategoryRoute.to}
-                params={{ categorySlug: c.slug }}
-                className="card flex min-h-20 flex-col justify-between p-4 active:scale-[0.99]"
-                style={{
-                  borderColor: goalReached ? accent : undefined,
-                  backgroundColor: goalBg ?? undefined,
-                }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="text-base font-semibold">{displayTitle}</div>
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
-                    style={{ borderColor: accent }}
-                    aria-hidden="true"
-                  >
-                    <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                  <div className="relative flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                        style={{ borderColor: accent }}
+                        aria-hidden="true"
+                      >
+                        <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="break-words pr-8 text-base font-semibold leading-tight text-neutral-950 dark:text-neutral-100">
+                          {displayTitle}
+                        </div>
+                        {unit ? (
+                          <div className="mt-1 inline-flex rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
+                            {unit}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="relative z-10 inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                      style={{ borderColor: accent }}
+                      aria-label={`Quick add to ${displayTitle}`}
+                      title="Quick add"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setQuickAddCategoryId(c.id);
+                      }}
+                    >
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 5v14" />
+                        <path d="M5 12h14" />
+                      </svg>
+                    </button>
                   </div>
+
+                  {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
+                    <div className="relative">
+                      <GoalProgress c={c} />
+                    </div>
+                  ) : (
+                    <div className="relative mt-1 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                      {formatWeekGlance(c, displayTitle)}
+                    </div>
+                  )}
                 </div>
-                {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
-                  <GoalProgress c={c} />
-                ) : (
-                  <div className="mt-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                    {formatWeekGlance(c, displayTitle)}
-                  </div>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          <QuickAddDialog
+            open={!!quickAddCategoryId}
+            onClose={() => setQuickAddCategoryId(null)}
+            category={quickAddCategory}
+            displayTitle={quickAddTitle}
+            accentHex={quickAddAccent}
+          />
+        </>
       )}
     </div>
   );
