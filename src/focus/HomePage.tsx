@@ -640,11 +640,16 @@ export function HomePage() {
                     </div>
                   ) : (
                     <div className="relative min-h-[46px] pt-1">
-                      <div className="text-lg font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
-                        {glance.value}
-                      </div>
-                      <div className="mt-0.5 text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
-                        {glance.label}
+                      <div className="flex items-baseline justify-between gap-2">
+                        <div className="min-w-0 flex-none text-base font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
+                          {glance.value}
+                        </div>
+                        <div
+                          className="min-w-0 truncate text-[11px] font-medium text-neutral-500 dark:text-neutral-400"
+                          title={glance.label}
+                        >
+                          {glance.label}
+                        </div>
                       </div>
                     </div>
                   )}
