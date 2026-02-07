@@ -594,7 +594,7 @@ export function HomePage() {
                   <Link
                     to={routes.CategoryRoute.to}
                     params={{ categorySlug: c.slug }}
-                    className="absolute inset-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                    className="absolute inset-0 z-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
                     aria-label={`Open ${displayTitle}`}
                   />
 
@@ -624,7 +624,7 @@ export function HomePage() {
 
                     <button
                       type="button"
-                      className="relative z-10 inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                      className="relative z-20 inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
                       style={{ borderColor: accent }}
                       aria-label={`Quick add to ${displayTitle}`}
                       title="Quick add"
