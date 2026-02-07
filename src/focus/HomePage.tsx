@@ -125,6 +125,13 @@ function tileGlance(c: CategoryWithStats, displayTitle: string): { value: string
     return { value: last, label: "Latest" };
   }
 
+  const isNotes = (c.slug ?? "").toLowerCase() === "notes";
+  if (isNotes) {
+    const n = c.thisWeekTotal ?? 0;
+    const word = n === 1 ? "note" : "notes";
+    return { value: `${formatValue(n)} ${word}`, label: periodLabel(c.period) };
+  }
+
   const k = titleKey(displayTitle);
   if (k === "padel" || k === "football") {
     return { value: formatValue(c.thisYearTotal), label: "This year" };
@@ -640,12 +647,12 @@ export function HomePage() {
                     </div>
                   ) : (
                     <div className="relative min-h-[46px] pt-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <div className="min-w-0 flex-none text-base font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
+                      <div className="flex items-baseline gap-2">
+                        <div className="min-w-0 flex-none text-lg font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
                           {glance.value}
                         </div>
                         <div
-                          className="min-w-0 truncate text-[11px] font-medium text-neutral-500 dark:text-neutral-400"
+                          className="min-w-0 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400"
                           title={glance.label}
                         >
                           {glance.label}
