@@ -264,6 +264,11 @@ export function CategoryPage() {
   const theme = useTheme();
   const today = todayIso();
 
+  function clampOccurredOn(next: string): string {
+    if (!next) return today;
+    return next > today ? today : next;
+  }
+
   const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
   const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>([]);
   const categories = privacy.mode === "local" ? localCategories : categoriesQuery.data ?? [];
@@ -445,7 +450,7 @@ export function CategoryPage() {
                     type="date"
                     value={occurredOn}
                     max={today}
-                    onChange={(e) => setOccurredOn(e.target.value)}
+                    onChange={(e) => setOccurredOn(clampOccurredOn(e.target.value))}
                     className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
                     style={{ WebkitAppearance: "none" }}
                   />
@@ -467,7 +472,7 @@ export function CategoryPage() {
                   type="date"
                   value={occurredOn}
                   max={today}
-                  onChange={(e) => setOccurredOn(e.target.value)}
+                  onChange={(e) => setOccurredOn(clampOccurredOn(e.target.value))}
                   className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
                   style={{ WebkitAppearance: "none" }}
                 />

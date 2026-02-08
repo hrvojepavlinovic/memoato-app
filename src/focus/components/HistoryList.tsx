@@ -60,6 +60,7 @@ export function HistoryList({
   const [rowById, setRowById] = useState<Record<string, RowState>>({});
   const privacy = usePrivacy();
   const isLocal = privacy.mode === "local";
+  const maxOccurredAt = endOfTodayDatetimeInputMax();
 
   const eventsQuery = useQuery(getCategoryEvents, { categoryId, take: 50 }, { enabled: !isLocal });
   const [localItems, setLocalItems] = useState<CategoryEventItem[] | null>(null);
@@ -341,11 +342,14 @@ export function HistoryList({
                           <input
                             type="datetime-local"
                             value={row.occurredAt}
-                            max={endOfTodayDatetimeInputMax()}
+                            max={maxOccurredAt}
                             onChange={(e) =>
                               setRowById((prev) => ({
                                 ...prev,
-                                [ev.id]: { ...row, occurredAt: e.target.value },
+                                [ev.id]: {
+                                  ...row,
+                                  occurredAt: e.target.value > maxOccurredAt ? maxOccurredAt : e.target.value,
+                                },
                               }))
                             }
                             className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
