@@ -53,15 +53,14 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
   const done = c.thisWeekTotal;
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const dir = normalizeGoalDirection(c);
-  const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal });
+  const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
+  const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
 
   return (
     <div className="mt-0">
       <div className="flex items-center justify-between text-[11px] font-medium text-neutral-500">
         <span>{periodLabel(c.period)}</span>
-        <span className="tabular-nums">
-          {formatValue(done)} / {formatValue(goal)} · {status}
-        </span>
+        <span className="tabular-nums">{status}</span>
       </div>
       <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
         <div
@@ -89,27 +88,30 @@ function goalDeltaLabel(args: {
   kind: "total" | "value";
   done: number;
   goal: number;
+  unit?: string;
 }): string {
-  const { direction, kind, done, goal } = args;
+  const { direction, kind, done, goal, unit = "" } = args;
   const delta = goal - done;
 
   if (direction === "target") {
     const diff = Math.abs(delta);
     const tol = Math.max(0.1, Math.abs(goal) * 0.01);
-    return diff <= tol ? "on target" : `${formatValue(diff)} away`;
+    return diff <= tol ? "on target" : `${formatValue(diff)}${unit} away`;
   }
 
   if (direction === "at_most") {
     if (done <= goal) {
       const remaining = Math.max(0, goal - done);
-      return kind === "value" ? `${formatValue(remaining)} under goal` : `${formatValue(remaining)} left`;
+      return kind === "value"
+        ? `${formatValue(remaining)}${unit} under goal`
+        : `${formatValue(remaining)}${unit} left`;
     }
-    return `${formatValue(done - goal)} over`;
+    return `${formatValue(done - goal)}${unit} over`;
   }
 
   // at_least
   if (done >= goal) return "done";
-  return `${formatValue(goal - done)} to go`;
+  return `${formatValue(goal - done)}${unit} to go`;
 }
 
 function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
@@ -120,7 +122,7 @@ function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
     const dir = normalizeGoalDirection(c);
     const status =
       c.goalValue != null && c.lastValue != null
-        ? goalDeltaLabel({ direction: dir, kind: "value", done: c.lastValue, goal: c.goalValue })
+        ? goalDeltaLabel({ direction: dir, kind: "value", done: c.lastValue, goal: c.goalValue, unit })
         : null;
     return goal ? `${last}${unit} · Goal ${goal}${unit}${status ? ` · ${status}` : ""}` : `${last}${unit}`;
   }
@@ -154,7 +156,7 @@ function tileGlance(c: CategoryWithStats, displayTitle: string): { value: string
       if (c.lastValue != null) {
         return {
           value: last,
-          label: goalDeltaLabel({ direction: dir, kind: "value", done: c.lastValue, goal: c.goalValue }),
+          label: goalDeltaLabel({ direction: dir, kind: "value", done: c.lastValue, goal: c.goalValue, unit }),
         };
       }
       return { value: last, label: `Goal ${formatValue(c.goalValue)}${unit}` };
@@ -256,11 +258,9 @@ function CoachCard({
 
           if (c.chartType === "line") {
             const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
-            const last = c.lastValue == null ? "n/a" : `${formatValue(c.lastValue)}${unit}`;
-            const goal = c.goalValue == null ? null : `${formatValue(c.goalValue)}${unit}`;
             const status =
               c.goalValue != null && c.lastValue != null
-                ? goalDeltaLabel({ direction: dir, kind: "value", done: c.lastValue, goal: c.goalValue })
+                ? goalDeltaLabel({ direction: dir, kind: "value", done: c.lastValue, goal: c.goalValue, unit })
                 : null;
             return (
               <div
@@ -279,9 +279,7 @@ function CoachCard({
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">{displayTitle}</div>
                     <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                      Latest: {last}
-                      {goal ? ` · Goal ${goal}` : ""}
-                      {status ? ` · ${status}` : ""}
+                      {status ? status : "Goal set"}
                     </div>
                   </div>
                 </div>
@@ -304,16 +302,8 @@ function CoachCard({
 
           const goal = c.goalWeekly ?? 0;
           const donePeriod = c.thisWeekTotal ?? 0;
-          const doneToday = c.todayTotal ?? 0;
-          const dailyTarget =
-            c.period === "week" && goal > 0
-              ? goal / 7
-              : null;
           const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
-          const todayLine = dailyTarget
-            ? `Today: ${formatValue(doneToday)}${unit} · ${goalDeltaLabel({ direction: dir, kind: "total", done: doneToday, goal: dailyTarget })}`
-            : `Today: ${formatValue(doneToday)}${unit}`;
-          const periodLine = `${periodLabel(c.period)}: ${formatValue(donePeriod)} / ${formatValue(goal)}${unit} · ${goalDeltaLabel({ direction: dir, kind: "total", done: donePeriod, goal })}`;
+          const periodStatus = goalDeltaLabel({ direction: dir, kind: "total", done: donePeriod, goal, unit });
 
           return (
             <div
@@ -333,8 +323,7 @@ function CoachCard({
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">{displayTitle}</div>
                     <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                      {todayLine}
-                      {` · ${periodLine}`}
+                      {periodStatus}
                     </div>
                   </div>
                 </div>
