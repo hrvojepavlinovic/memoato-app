@@ -262,6 +262,7 @@ export function CategoryPage() {
   const [displayTitle, setDisplayTitle] = useState<string | null>(null);
   const privacy = usePrivacy();
   const theme = useTheme();
+  const today = todayIso();
 
   const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
   const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>([]);
@@ -323,6 +324,11 @@ export function CategoryPage() {
 
   async function onAdd() {
     if (!category?.id) return;
+    if (occurredOn > today) {
+      window.alert("Future dates are not allowed.");
+      setOccurredOn(today);
+      return;
+    }
     const isNotes = (category.slug ?? "") === "notes";
     const n = isNotes ? 1 : parseNumberInput(amount);
     if (!isNotes && (n == null || n <= 0)) {
@@ -438,6 +444,7 @@ export function CategoryPage() {
                   <input
                     type="date"
                     value={occurredOn}
+                    max={today}
                     onChange={(e) => setOccurredOn(e.target.value)}
                     className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
                     style={{ WebkitAppearance: "none" }}
@@ -459,6 +466,7 @@ export function CategoryPage() {
                 <input
                   type="date"
                   value={occurredOn}
+                  max={today}
                   onChange={(e) => setOccurredOn(e.target.value)}
                   className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
                   style={{ WebkitAppearance: "none" }}

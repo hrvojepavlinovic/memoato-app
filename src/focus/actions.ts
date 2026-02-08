@@ -667,6 +667,8 @@ function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Dat
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   const todayIso = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
 
   if (!occurredOn || occurredOn === todayIso) {
     const on = new Date(now);
@@ -677,6 +679,9 @@ function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Dat
   const [y, m, d] = occurredOn.split("-").map((x) => Number(x));
   const on = new Date(y, m - 1, d);
   on.setHours(0, 0, 0, 0);
+  if (on.getTime() > startOfToday.getTime()) {
+    throw new HttpError(400, "Future dates are not allowed.");
+  }
   const at = new Date(on);
   at.setHours(now.getHours(), now.getMinutes(), 0, 0);
   return { occurredAt: at, occurredOn: on };
@@ -740,6 +745,11 @@ function parseOccurredAt(occurredAt: string): { occurredAt: Date; occurredOn: Da
   }
   const on = new Date(d);
   on.setHours(0, 0, 0, 0);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  if (on.getTime() > startOfToday.getTime()) {
+    throw new HttpError(400, "Future dates are not allowed.");
+  }
   return { occurredAt: d, occurredOn: on };
 }
 

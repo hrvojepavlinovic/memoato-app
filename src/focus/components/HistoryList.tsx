@@ -25,6 +25,11 @@ function toLocalDatetimeInputValue(d: Date): string {
   );
 }
 
+function endOfTodayDatetimeInputMax(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}T23:59`;
+}
+
 function formatValue(v: number | null): string {
   if (v == null) return "";
   if (Number.isInteger(v)) return String(v);
@@ -187,6 +192,21 @@ export function HistoryList({
       window.alert("Pick a date/time.");
       return;
     }
+    {
+      const d = new Date(row.occurredAt);
+      if (Number.isNaN(d.getTime())) {
+        window.alert("Pick a valid date/time.");
+        return;
+      }
+      const on = new Date(d);
+      on.setHours(0, 0, 0, 0);
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      if (on.getTime() > startOfToday.getTime()) {
+        window.alert("Future dates are not allowed.");
+        return;
+      }
+    }
     setRowById((prev) => ({ ...prev, [ev.id]: { ...row, saving: true } }));
     try {
       const note = row.note.trim();
@@ -321,6 +341,7 @@ export function HistoryList({
                           <input
                             type="datetime-local"
                             value={row.occurredAt}
+                            max={endOfTodayDatetimeInputMax()}
                             onChange={(e) =>
                               setRowById((prev) => ({
                                 ...prev,
