@@ -53,14 +53,14 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
   const done = c.thisWeekTotal;
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const dir = normalizeGoalDirection(c);
-  const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
+  const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal });
 
   return (
     <div className="mt-0">
       <div className="flex items-center justify-between text-[11px] font-medium text-neutral-500">
         <span>{periodLabel(c.period)}</span>
         <span className="tabular-nums">
-          {formatValue(done)} / {prefix} {formatValue(goal)}
+          {formatValue(done)} / {formatValue(goal)} · {status}
         </span>
       </div>
       <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
@@ -84,14 +84,45 @@ function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
   return "at_least";
 }
 
+function goalDeltaLabel(args: {
+  direction: GoalDirection;
+  kind: "total" | "value";
+  done: number;
+  goal: number;
+}): string {
+  const { direction, kind, done, goal } = args;
+  const delta = goal - done;
+
+  if (direction === "target") {
+    const diff = Math.abs(delta);
+    const tol = Math.max(0.1, Math.abs(goal) * 0.01);
+    return diff <= tol ? "on target" : `${formatValue(diff)} away`;
+  }
+
+  if (direction === "at_most") {
+    if (done <= goal) {
+      const remaining = Math.max(0, goal - done);
+      return kind === "value" ? `${formatValue(remaining)} under goal` : `${formatValue(remaining)} left`;
+    }
+    return `${formatValue(done - goal)} over`;
+  }
+
+  // at_least
+  if (done >= goal) return "done";
+  return `${formatValue(goal - done)} to go`;
+}
+
 function formatWeekGlance(c: CategoryWithStats, displayTitle: string): string {
   if (c.chartType === "line") {
     const last = c.lastValue == null ? "n/a" : formatValue(c.lastValue);
     const goal = c.goalValue == null ? null : formatValue(c.goalValue);
     const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
     const dir = normalizeGoalDirection(c);
-    const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
-    return goal ? `${last}${unit} · Goal ${prefix} ${goal}${unit}` : `${last}${unit}`;
+    const status =
+      c.goalValue != null && c.lastValue != null
+        ? goalDeltaLabel({ direction: dir, kind: "value", done: c.lastValue, goal: c.goalValue })
+        : null;
+    return goal ? `${last}${unit} · Goal ${goal}${unit}${status ? ` · ${status}` : ""}` : `${last}${unit}`;
   }
 
   if (c.goalWeekly != null && c.goalWeekly > 0) {
@@ -119,10 +150,14 @@ function tileGlance(c: CategoryWithStats, displayTitle: string): { value: string
     const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
     const last = c.lastValue == null ? "n/a" : `${formatValue(c.lastValue)}${unit}`;
     if (c.goalValue != null) {
-      const goal = `${formatValue(c.goalValue)}${unit}`;
       const dir = normalizeGoalDirection(c);
-      const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
-      return { value: last, label: `Goal ${prefix} ${goal}` };
+      if (c.lastValue != null) {
+        return {
+          value: last,
+          label: goalDeltaLabel({ direction: dir, kind: "value", done: c.lastValue, goal: c.goalValue }),
+        };
+      }
+      return { value: last, label: `Goal ${formatValue(c.goalValue)}${unit}` };
     }
     return { value: last, label: "Latest" };
   }
@@ -223,7 +258,10 @@ function CoachCard({
             const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
             const last = c.lastValue == null ? "n/a" : `${formatValue(c.lastValue)}${unit}`;
             const goal = c.goalValue == null ? null : `${formatValue(c.goalValue)}${unit}`;
-            const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
+            const status =
+              c.goalValue != null && c.lastValue != null
+                ? goalDeltaLabel({ direction: dir, kind: "value", done: c.lastValue, goal: c.goalValue })
+                : null;
             return (
               <div
                 key={c.id}
@@ -242,7 +280,8 @@ function CoachCard({
                     <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">{displayTitle}</div>
                     <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
                       Latest: {last}
-                      {goal ? ` · Goal ${prefix} ${goal}` : ""}
+                      {goal ? ` · Goal ${goal}` : ""}
+                      {status ? ` · ${status}` : ""}
                     </div>
                   </div>
                 </div>
@@ -270,11 +309,11 @@ function CoachCard({
             c.period === "week" && goal > 0
               ? goal / 7
               : null;
-          const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
           const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
           const todayLine = dailyTarget
-            ? `Today: ${formatValue(doneToday)} / ${prefix} ${formatValue(dailyTarget)}${unit}`
-            : null;
+            ? `Today: ${formatValue(doneToday)}${unit} · ${goalDeltaLabel({ direction: dir, kind: "total", done: doneToday, goal: dailyTarget })}`
+            : `Today: ${formatValue(doneToday)}${unit}`;
+          const periodLine = `${periodLabel(c.period)}: ${formatValue(donePeriod)} / ${formatValue(goal)}${unit} · ${goalDeltaLabel({ direction: dir, kind: "total", done: donePeriod, goal })}`;
 
           return (
             <div
@@ -294,8 +333,8 @@ function CoachCard({
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">{displayTitle}</div>
                     <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                      {todayLine ? todayLine : `Today: ${formatValue(doneToday)}${unit}`}
-                      {` · ${periodLabel(c.period)}: ${formatValue(donePeriod)} / ${prefix} ${formatValue(goal)}${unit}`}
+                      {todayLine}
+                      {` · ${periodLine}`}
                     </div>
                   </div>
                 </div>
