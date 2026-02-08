@@ -6,6 +6,8 @@ export async function GET() {
     "/about",
     "/help",
     "/adhd",
+    "/minimal-habit-tracker",
+    "/privacy-first",
     "/changelog",
     "/blog",
     "/open-source",

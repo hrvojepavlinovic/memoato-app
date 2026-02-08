@@ -1,0 +1,43 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Privacy-first habit tracking · memoato"
+  description="A privacy-first habit tracker with cloud sync, encrypted cloud, and local-only storage modes."
+  canonicalPath="/privacy-first"
+>
+  <section class="section">
+    <div class="container prose">
+      <h1 class="page-title">Privacy-first habit tracking</h1>
+      <p class="muted">If it doesn’t feel safe, you won’t log. So we give you options.</p>
+
+      <p>
+        memoato supports multiple privacy modes so you can choose the trade-off that fits your life (and still get the
+        benefits of a simple timeline and clear progress).
+      </p>
+
+      <h2>Privacy modes</h2>
+      <ul>
+        <li><strong>Cloud sync</strong>: multi-device access with normal server storage.</li>
+        <li><strong>Encrypted cloud</strong>: sensitive tracker titles and notes are encrypted client-side before saving.</li>
+        <li><strong>Local-only</strong>: data stays on your device (IndexedDB).</li>
+      </ul>
+
+      <p>
+        Read the details in the <a href="/privacy">Privacy policy</a>.
+      </p>
+
+      <h2>Try it</h2>
+      <p>
+        If you want “private by default”, start in local-only and switch later if you need multi-device sync.
+      </p>
+      <div class="cta-row">
+        <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">Open app</a>
+        <a class="btn" href="/privacy">Privacy policy</a>
+        <a class="btn" href="/help">Help & FAQ</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+

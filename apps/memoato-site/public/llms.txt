@@ -1,5 +1,5 @@
 # memoato (llms.txt)
-Last updated: 2026-02-07
+Last updated: 2026-02-08
 
 memoato is a minimal habit tracker built for low friction and ADHD brains. It helps you log quickly, see progress, and review your day in a timeline.
 
@@ -8,6 +8,8 @@ Key links:
 - App: https://app.memoato.com/
 - Help & FAQ: https://memoato.com/help
 - ADHD-friendly: https://memoato.com/adhd
+- Minimal habit tracker: https://memoato.com/minimal-habit-tracker
+- Privacy-first: https://memoato.com/privacy-first
 - Changelog: https://memoato.com/changelog
 - About: https://memoato.com/about
 - Timeline (blog): https://memoato.com/blog/timeline

@@ -12,6 +12,8 @@ Static marketing site (Astro) served from Cloudflare Pages.
 - `/about`
 - `/help`
 - `/adhd`
+- `/minimal-habit-tracker`
+- `/privacy-first`
 - `/changelog`
 - `/blog` (Markdown files in `apps/memoato-site/src/pages/blog/`)
 - `/privacy`

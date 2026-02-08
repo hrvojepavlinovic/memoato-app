@@ -677,3 +677,54 @@ a:hover:not(.btn):not(.icon-btn) {
 .post-desc {
   color: rgba(10, 10, 10, 0.72);
 }
+
+.usecase-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+@media (min-width: 840px) {
+  .usecase-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.card-link {
+  display: block;
+}
+
+.card-link:hover {
+  text-decoration: none;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.card-kicker {
+  color: rgba(10, 10, 10, 0.7);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-size: 0.875rem;
+}
+
+.card-title {
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-size: 1.15rem;
+  line-height: 1.25;
+  margin-top: 0.25rem;
+}
+
+.card-body {
+  margin-top: 0.5rem;
+  color: rgba(10, 10, 10, 0.72);
+  line-height: 1.6;
+}
+
+.card-cta {
+  margin-top: 0.9rem;
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-weight: 700;
+}
