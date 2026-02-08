@@ -48,19 +48,20 @@ function withHexAlpha(hex: unknown, alphaHex: string): string | null {
   return `${h}${alphaHex}`;
 }
 
-function GoalProgress({ c }: { c: CategoryWithStats }) {
+function GoalProgress({ c, right = "status" }: { c: CategoryWithStats; right?: "status" | "goal" }) {
   const goal = c.goalWeekly ?? 0;
   const done = c.thisWeekTotal;
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const dir = normalizeGoalDirection(c);
   const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
   const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
+  const rightLabel = right === "goal" ? `Goal ${formatValue(goal)}${unit}` : status;
 
   return (
     <div className="mt-0">
       <div className="flex items-center justify-between text-[11px] font-medium text-neutral-500">
         <span>{periodLabel(c.period)}</span>
-        <span className="tabular-nums">{status}</span>
+        <span className="tabular-nums">{rightLabel}</span>
       </div>
       <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
         <div
@@ -106,7 +107,9 @@ function goalDeltaLabel(args: {
         ? `${formatValue(remaining)}${unit} under goal`
         : `${formatValue(remaining)}${unit} left`;
     }
-    return `${formatValue(done - goal)}${unit} over`;
+    return kind === "value"
+      ? `${formatValue(done - goal)}${unit} to go`
+      : `${formatValue(done - goal)}${unit} over`;
   }
 
   // at_least
@@ -344,7 +347,7 @@ function CoachCard({
               </div>
 
               <div className="mt-2">
-                <GoalProgress c={c} />
+                <GoalProgress c={c} right="goal" />
               </div>
             </div>
           );
