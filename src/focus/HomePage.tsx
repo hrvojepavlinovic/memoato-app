@@ -205,14 +205,11 @@ function CoachCard({
     <div className="card mb-4 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Coach mode</div>
+          <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Suggestions</div>
           <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-            A small plan from your goals. Review your day in the Timeline.
+            Based on your goals.
           </div>
         </div>
-        <ButtonLink to="/timeline" variant="ghost" size="sm" className="h-10 px-3">
-          Timeline
-        </ButtonLink>
       </div>
 
       <div className="mt-3 space-y-2">
@@ -324,12 +321,6 @@ function CoachCard({
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <ButtonLink to="/timeline" variant="ghost" size="sm" className="h-10 px-3">
-          End-of-day review
-        </ButtonLink>
       </div>
     </div>
   );
