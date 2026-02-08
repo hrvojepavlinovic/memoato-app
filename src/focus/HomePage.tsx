@@ -23,6 +23,7 @@ import {
 } from "./local";
 import type { BucketAggregation, GoalDirection } from "./types";
 import { QuickAddDialog } from "./components/QuickAddDialog";
+import { readNextUpPreference } from "./nextUpPreference";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -38,13 +39,6 @@ function periodLabel(p: CategoryWithStats["period"]): string {
   if (p === "month") return "This month";
   if (p === "year") return "This year";
   return "This week";
-}
-
-function toLocalIsoDate(d: Date): string {
-  const yyyy = String(d.getFullYear());
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
 }
 
 function withHexAlpha(hex: unknown, alphaHex: string): string | null {
@@ -241,41 +235,8 @@ function CoachCard({
   themeIsDark: boolean;
   onQuickAdd: (categoryId: string) => void;
 }) {
-  const hiddenKey = "memoato_next_up_hidden_on";
-  const todayKey = toLocalIsoDate(new Date());
-  const [hiddenForToday, setHiddenForToday] = useState(false);
-
-  useEffect(() => {
-    try {
-      setHiddenForToday(window.localStorage.getItem(hiddenKey) === todayKey);
-    } catch {
-      // Ignore.
-    }
-  }, [hiddenKey, todayKey]);
-
-  const hideForToday = () => {
-    setHiddenForToday(true);
-    try {
-      window.localStorage.setItem(hiddenKey, todayKey);
-    } catch {
-      // Ignore.
-    }
-  };
-
-  const hideButton = (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-10 px-3"
-      onClick={hideForToday}
-      aria-label="Hide Next up for today"
-      title="Hide"
-    >
-      <span>Hide</span>
-    </Button>
-  );
-
-  if (hiddenForToday) return null;
+  const pref = useMemo(() => readNextUpPreference(), []);
+  if (pref === "hide") return null;
 
   const coachCategories = categories
     .filter((c) => (c.goalWeekly != null && c.goalWeekly > 0) || c.goalValue != null)
@@ -290,15 +251,8 @@ function CoachCard({
   if (remaining.length === 0) {
     return (
       <div className="card mb-4 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Next up</div>
-            <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-              You&apos;re on track.
-            </div>
-          </div>
-          {hideButton}
-        </div>
+        <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Next up</div>
+        <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">You&apos;re on track.</div>
       </div>
     );
   }
@@ -322,7 +276,6 @@ function CoachCard({
             Small wins stack up.
           </div>
         </div>
-        {hideButton}
       </div>
 
       <div className="mt-3 space-y-2">

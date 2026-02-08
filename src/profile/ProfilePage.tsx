@@ -42,6 +42,8 @@ import {
   localUpdateEvent,
 } from "../focus/local";
 import type { CategoryWithStats, CategoryEventItem } from "../focus/types";
+import type { NextUpPreference } from "../focus/nextUpPreference";
+import { persistNextUpPreference, readNextUpPreference } from "../focus/nextUpPreference";
 import { useTheme } from "../theme/ThemeProvider";
 import type { ThemePreference } from "../theme/theme";
 import { Capacitor } from "@capacitor/core";
@@ -81,6 +83,7 @@ export function ProfilePage() {
   const privacy = usePrivacy();
   const theme = useTheme();
   const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
+  const [nextUpPref, setNextUpPref] = useState<NextUpPreference>(() => readNextUpPreference());
 
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -718,6 +721,39 @@ export function ProfilePage() {
                   ].join(" ")}
                 >
                   {pref === "light" ? "Light" : "Dark"}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Stored on this device.</div>
+        </div>
+
+        <div className="card p-4">
+          <div className="mb-3 text-sm font-semibold">Home</div>
+          <div className="mb-2 text-sm font-semibold">Next up</div>
+          <div className="text-sm text-neutral-500 dark:text-neutral-400">
+            Motivational suggestions based on your goals.
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {(["show", "hide"] as NextUpPreference[]).map((pref) => {
+              const active = nextUpPref === pref;
+              return (
+                <button
+                  key={pref}
+                  type="button"
+                  onClick={() => {
+                    setNextUpPref(pref);
+                    persistNextUpPreference(pref);
+                  }}
+                  aria-pressed={active}
+                  className={[
+                    "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
+                    active
+                      ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+                      : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+                  ].join(" ")}
+                >
+                  {pref === "show" ? "Show" : "Hide"}
                 </button>
               );
             })}
