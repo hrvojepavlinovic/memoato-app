@@ -245,6 +245,11 @@ action setNextUpEnabled {
   entities: [User]
 }
 
+action setThemePreference {
+  fn: import { setThemePreference } from "@src/profile/actions",
+  entities: [User]
+}
+
 action requestEmailChange {
   fn: import { requestEmailChange } from "@src/profile/actions",
   entities: [User]

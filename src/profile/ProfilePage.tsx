@@ -729,7 +729,9 @@ export function ProfilePage() {
               );
             })}
           </div>
-          <div className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Stored on this device.</div>
+          <div className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+            Synced to your account.
+          </div>
         </div>
 
         <div className="card p-4">
@@ -777,7 +779,6 @@ export function ProfilePage() {
               );
             })}
           </div>
-          <div className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Stored in your account.</div>
         </div>
 
         <div className="card p-4">

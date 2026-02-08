@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useAuth } from "wasp/client/auth";
+import { getProfile, setThemePreference, useQuery } from "wasp/client/operations";
 import type { ThemePreference } from "./theme";
 import { applyThemePreference, persistThemePreference, readThemePreference } from "./theme";
 
@@ -11,10 +13,19 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { data: user } = useAuth();
+  const profileQuery = useQuery(getProfile, undefined, { enabled: !!user, retry: false });
   const [preference, setPreferenceState] = useState<ThemePreference>(() => {
     if (typeof document !== "undefined" && document.documentElement.classList.contains("dark")) return "dark";
     return readThemePreference() ?? "light";
   });
+
+  useEffect(() => {
+    if (!profileQuery.isSuccess || !profileQuery.data) return;
+    if (!profileQuery.data.themePreference) return;
+    const pref = profileQuery.data.themePreference === "dark" ? "dark" : "light";
+    setPreferenceState(pref);
+  }, [profileQuery.isSuccess, profileQuery.data?.themePreference]);
 
   useEffect(() => {
     applyThemePreference(preference);
@@ -31,13 +42,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  const setPreference = useCallback<ThemeContextValue["setPreference"]>(
+    (pref) => {
+      setPreferenceState(pref);
+      if (!user) return;
+      setThemePreference({ preference: pref }).catch(() => {
+        // Ignore; we already updated local UI.
+      });
+    },
+    [user],
+  );
+
   const value = useMemo<ThemeContextValue>(
     () => ({
       preference,
       isDark: preference === "dark",
-      setPreference: setPreferenceState,
+      setPreference,
     }),
-    [preference],
+    [preference, setPreference],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -48,4 +70,3 @@ export function useTheme(): ThemeContextValue {
   if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
   return ctx;
 }
-

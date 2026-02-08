@@ -10,6 +10,7 @@ import type {
   RequestEmailChange,
   SendPasswordResetForCurrentUser,
   SetNextUpEnabled,
+  SetThemePreference,
   UpdateProfile,
 } from "wasp/server/operations";
 import { createPasswordResetLink, sendPasswordResetEmail } from "wasp/server/auth/email/utils";
@@ -128,6 +129,19 @@ export const setNextUpEnabled: SetNextUpEnabled<{ enabled: boolean }, { success:
   await context.entities.User.update({
     where: { id: userId },
     data: { nextUpEnabled: args.enabled === true },
+  });
+  return { success: true };
+};
+
+export const setThemePreference: SetThemePreference<{ preference: "light" | "dark" }, { success: true }> = async (
+  args,
+  context,
+) => {
+  const { userId } = requireAuth(context);
+  const pref = args.preference === "dark" ? "dark" : "light";
+  await context.entities.User.update({
+    where: { id: userId },
+    data: { themePreference: pref },
   });
   return { success: true };
 };

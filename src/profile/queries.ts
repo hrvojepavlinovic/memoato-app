@@ -24,6 +24,7 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
       firstName: true,
       lastName: true,
       nextUpEnabled: true,
+      themePreference: true,
     },
   });
   if (!user) {
@@ -51,6 +52,8 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
     firstName: user.firstName,
     lastName: user.lastName,
     nextUpEnabled: user.nextUpEnabled,
+    themePreference:
+      user.themePreference === "dark" ? "dark" : user.themePreference === "light" ? "light" : null,
     email: email && email.includes("@") ? email : null,
     isEmailVerified,
   };
