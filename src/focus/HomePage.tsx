@@ -52,13 +52,15 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
   const goal = c.goalWeekly ?? 0;
   const done = c.thisWeekTotal;
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
+  const dir = normalizeGoalDirection(c);
+  const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
 
   return (
     <div className="mt-0">
       <div className="flex items-center justify-between text-[11px] font-medium text-neutral-500">
         <span>{periodLabel(c.period)}</span>
         <span className="tabular-nums">
-          {formatValue(done)} / {formatValue(goal)}
+          {formatValue(done)} / {prefix} {formatValue(goal)}
         </span>
       </div>
       <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
@@ -153,6 +155,184 @@ function isGoalReached(c: CategoryWithStats): boolean {
   if (dir === "at_least") return c.thisWeekTotal >= c.goalWeekly;
   const tol = Math.max(1, Math.abs(c.goalWeekly) * 0.02);
   return Math.abs(c.thisWeekTotal - c.goalWeekly) <= tol;
+}
+
+function coachSortScore(c: CategoryWithStats): number {
+  const dir = normalizeGoalDirection(c);
+  if (c.chartType === "line") {
+    if (c.goalValue == null || c.lastValue == null) return 0;
+    if (dir === "target") return Math.abs(c.lastValue - c.goalValue);
+    if (dir === "at_most") return Math.max(0, c.lastValue - c.goalValue);
+    return Math.max(0, c.goalValue - c.lastValue);
+  }
+
+  if (c.goalWeekly == null || c.goalWeekly <= 0) return 0;
+  if (dir === "target") return Math.abs(c.thisWeekTotal - c.goalWeekly);
+  if (dir === "at_most") return Math.max(0, c.thisWeekTotal - c.goalWeekly);
+  return Math.max(0, c.goalWeekly - c.thisWeekTotal);
+}
+
+function CoachCard({
+  categories,
+  displayTitleById,
+  themeIsDark,
+  onQuickAdd,
+}: {
+  categories: CategoryWithStats[];
+  displayTitleById: Record<string, string>;
+  themeIsDark: boolean;
+  onQuickAdd: (categoryId: string) => void;
+}) {
+  const coachCategories = categories.filter(
+    (c) => (c.goalWeekly != null && c.goalWeekly > 0) || c.goalValue != null,
+  );
+  if (coachCategories.length === 0) return null;
+
+  const ordered = coachCategories
+    .slice()
+    .sort((a, b) => {
+      const ra = isGoalReached(a);
+      const rb = isGoalReached(b);
+      if (ra !== rb) return ra ? 1 : -1;
+      const sa = coachSortScore(a);
+      const sb = coachSortScore(b);
+      if (sa !== sb) return sb - sa;
+      return (displayTitleById[a.id] ?? a.title).localeCompare(displayTitleById[b.id] ?? b.title);
+    })
+    .slice(0, 4);
+
+  return (
+    <div className="card mb-4 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Coach mode</div>
+          <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            A small plan from your goals. Review your day in the Timeline.
+          </div>
+        </div>
+        <ButtonLink to="/timeline" variant="ghost" size="sm" className="h-10 px-3">
+          Timeline
+        </ButtonLink>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        {ordered.map((c) => {
+          const displayTitle = displayTitleById[c.id] ?? c.title;
+          const accent = resolveAccentForTheme(c.accentHex, themeIsDark) ?? c.accentHex;
+          const dir = normalizeGoalDirection(c);
+          const goalReached = isGoalReached(c);
+
+          if (c.chartType === "line") {
+            const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
+            const last = c.lastValue == null ? "n/a" : `${formatValue(c.lastValue)}${unit}`;
+            const goal = c.goalValue == null ? null : `${formatValue(c.goalValue)}${unit}`;
+            const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
+            return (
+              <div
+                key={c.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950"
+                style={{ borderColor: goalReached ? accent : undefined }}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                    style={{ borderColor: accent }}
+                    aria-hidden="true"
+                  >
+                    <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">{displayTitle}</div>
+                    <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                      Latest: {last}
+                      {goal ? ` · Goal ${prefix} ${goal}` : ""}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                  style={{ borderColor: accent }}
+                  aria-label={`Quick add to ${displayTitle}`}
+                  title="Quick add"
+                  onClick={() => onQuickAdd(c.id)}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
+                </button>
+              </div>
+            );
+          }
+
+          const goal = c.goalWeekly ?? 0;
+          const donePeriod = c.thisWeekTotal ?? 0;
+          const doneToday = c.todayTotal ?? 0;
+          const dailyTarget =
+            c.period === "week" && goal > 0
+              ? goal / 7
+              : null;
+          const prefix = dir === "at_most" ? "≤" : dir === "target" ? "≈" : "≥";
+          const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
+          const todayLine = dailyTarget
+            ? `Today: ${formatValue(doneToday)} / ${prefix} ${formatValue(dailyTarget)}${unit}`
+            : null;
+
+          return (
+            <div
+              key={c.id}
+              className="rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950"
+              style={{ borderColor: goalReached ? accent : undefined }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                    style={{ borderColor: accent }}
+                    aria-hidden="true"
+                  >
+                    <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">{displayTitle}</div>
+                    <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                      {todayLine ? todayLine : `Today: ${formatValue(doneToday)}${unit}`}
+                      {` · ${periodLabel(c.period)}: ${formatValue(donePeriod)} / ${prefix} ${formatValue(goal)}${unit}`}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                  style={{ borderColor: accent }}
+                  aria-label={`Quick add to ${displayTitle}`}
+                  title="Quick add"
+                  onClick={() => onQuickAdd(c.id)}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mt-2">
+                <GoalProgress c={c} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <ButtonLink to="/timeline" variant="ghost" size="sm" className="h-10 px-3">
+          End-of-day review
+        </ButtonLink>
+      </div>
+    </div>
+  );
 }
 
 export function HomePage() {
@@ -434,6 +614,13 @@ export function HomePage() {
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
+      <CoachCard
+        categories={orderedCategories}
+        displayTitleById={displayTitleById}
+        themeIsDark={theme.isDark}
+        onQuickAdd={(id) => setQuickAddCategoryId(id)}
+      />
+
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Categories</h2>

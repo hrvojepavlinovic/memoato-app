@@ -27,6 +27,7 @@ export type CategoryWithStats = {
   period: Period | null;
   goalWeekly: number | null;
   goalValue: number | null;
+  todayTotal: number;
   thisWeekTotal: number;
   thisYearTotal: number;
   lastValue: number | null;

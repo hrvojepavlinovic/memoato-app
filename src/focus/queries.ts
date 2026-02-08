@@ -247,6 +247,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       period,
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
+      todayTotal: windowValue(dayStats, c.id, agg),
       thisWeekTotal: windowValue(periodStats, c.id, agg),
       thisYearTotal: windowValue(yearStats, c.id, agg),
       lastValue: lastByCategory.get(c.id) ?? null,

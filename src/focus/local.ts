@@ -401,6 +401,7 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
       period,
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
+      todayTotal: windowValue(sums.day, counts.day, c.id, agg),
       thisWeekTotal: windowValue(periodSumMap, periodCountMap, c.id, agg),
       thisYearTotal: windowValue(sums.year, counts.year, c.id, agg),
       lastValue: lastByCategory.get(c.id) ?? null,
