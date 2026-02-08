@@ -40,6 +40,13 @@ function periodLabel(p: CategoryWithStats["period"]): string {
   return "This week";
 }
 
+function toLocalIsoDate(d: Date): string {
+  const yyyy = String(d.getFullYear());
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function withHexAlpha(hex: unknown, alphaHex: string): string | null {
   if (typeof hex !== "string") return null;
   const h = hex.trim();
@@ -223,6 +230,29 @@ function CoachCard({
   themeIsDark: boolean;
   onQuickAdd: (categoryId: string) => void;
 }) {
+  const hiddenKey = "memoato_next_up_hidden_on";
+  const todayKey = toLocalIsoDate(new Date());
+  const [hiddenForToday, setHiddenForToday] = useState(false);
+
+  useEffect(() => {
+    try {
+      setHiddenForToday(window.localStorage.getItem(hiddenKey) === todayKey);
+    } catch {
+      // Ignore.
+    }
+  }, [hiddenKey, todayKey]);
+
+  const hideForToday = () => {
+    setHiddenForToday(true);
+    try {
+      window.localStorage.setItem(hiddenKey, todayKey);
+    } catch {
+      // Ignore.
+    }
+  };
+
+  if (hiddenForToday) return null;
+
   const coachCategories = categories
     .filter((c) => (c.goalWeekly != null && c.goalWeekly > 0) || c.goalValue != null)
     .filter((c) => {
@@ -236,9 +266,33 @@ function CoachCard({
   if (remaining.length === 0) {
     return (
       <div className="card mb-4 p-4">
-        <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Next up</div>
-        <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-          You&apos;re on track.
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Next up</div>
+            <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+              You&apos;re on track.
+            </div>
+          </div>
+          <button
+            type="button"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+            onClick={hideForToday}
+            aria-label="Hide Next up for today"
+            title="Hide for today"
+          >
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M18 6 6 18" />
+              <path d="M6 6l12 12" />
+            </svg>
+            Hide
+          </button>
         </div>
       </div>
     );
@@ -263,6 +317,26 @@ function CoachCard({
             Small wins stack up.
           </div>
         </div>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+          onClick={hideForToday}
+          aria-label="Hide Next up for today"
+          title="Hide for today"
+        >
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M18 6 6 18" />
+            <path d="M6 6l12 12" />
+          </svg>
+          Hide
+        </button>
       </div>
 
       <div className="mt-3 space-y-2">
