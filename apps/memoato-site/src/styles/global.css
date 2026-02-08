@@ -572,6 +572,33 @@ a:hover:not(.btn):not(.icon-btn) {
   text-decoration-thickness: 2px;
 }
 
+.prose a.btn,
+.prose a.icon-btn {
+  text-decoration: none;
+}
+
+.prose a.btn:hover,
+.prose a.icon-btn:hover {
+  text-decoration: none;
+}
+
+.cta-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.cta-row .btn {
+  white-space: nowrap;
+}
+
+@media (min-width: 720px) {
+  .cta-row {
+    flex-wrap: nowrap;
+  }
+}
+
 .prose h1,
 .prose h2,
 .prose h3 {
