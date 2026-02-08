@@ -55,14 +55,25 @@ function withHexAlpha(hex: unknown, alphaHex: string): string | null {
   return `${h}${alphaHex}`;
 }
 
-function GoalProgress({ c, right = "status" }: { c: CategoryWithStats; right?: "status" | "goal" }) {
+function GoalProgress({
+  c,
+  right = "status",
+}: {
+  c: CategoryWithStats;
+  right?: "status" | "goal" | "fraction";
+}) {
   const goal = c.goalWeekly ?? 0;
   const done = c.thisWeekTotal;
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const dir = normalizeGoalDirection(c);
   const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
   const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
-  const rightLabel = right === "goal" ? `Goal ${formatValue(goal)}${unit}` : status;
+  const rightLabel =
+    right === "goal"
+      ? `Goal ${formatValue(goal)}${unit}`
+      : right === "fraction"
+        ? `${formatValue(done)}/${formatValue(goal)}${unit}`
+        : status;
 
   return (
     <div className="mt-0">
@@ -409,7 +420,7 @@ function CoachCard({
               </div>
 
               <div className="mt-2">
-                <GoalProgress c={c} right="goal" />
+                <GoalProgress c={c} right="fraction" />
               </div>
             </div>
           );
@@ -843,95 +854,44 @@ export function HomePage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {orderedCategories.map((c) => {
               const displayTitle = displayTitleById[c.id] ?? c.title;
               const accent = resolveAccentForTheme(c.accentHex, theme.isDark) ?? c.accentHex;
 
               const goalReached = isGoalReached(c);
               const goalBg = goalReached ? withHexAlpha(accent, "08") : null;
-              const typeChip = tileTypeChip(c);
-              const glance = tileGlance(c, displayTitle);
 
               return (
-                <div
+                <Link
                   key={c.id}
-                  className="card relative flex min-h-24 flex-col justify-between gap-3 p-4 sm:min-h-28"
+                  to={routes.CategoryRoute.to}
+                  params={{ categorySlug: c.slug }}
+                  className="card flex min-h-20 flex-col justify-between p-4 active:scale-[0.99]"
                   style={{
                     borderColor: goalReached ? accent : undefined,
                     backgroundColor: goalBg ?? undefined,
                   }}
                 >
-                  <Link
-                    to={routes.CategoryRoute.to}
-                    params={{ categorySlug: c.slug }}
-                    className="absolute inset-0 z-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
-                    aria-label={`Open ${displayTitle}`}
-                  />
-
-                  <div className="relative flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div
-                        className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
-                        style={{ borderColor: accent }}
-                        aria-hidden="true"
-                      >
-                        <div className="text-lg leading-none">{c.emoji ?? ""}</div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 pr-10">
-                          <div
-                            className="min-w-0 truncate text-base font-semibold leading-tight text-neutral-950 dark:text-neutral-100"
-                            title={displayTitle}
-                          >
-                            {displayTitle}
-                          </div>
-                          <div className="inline-flex flex-none rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
-                            {typeChip}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="relative z-20 inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-base font-semibold">{displayTitle}</div>
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
                       style={{ borderColor: accent }}
-                      aria-label={`Quick add to ${displayTitle}`}
-                      title="Quick add"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setQuickAddCategoryId(c.id);
-                      }}
+                      aria-hidden="true"
                     >
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 5v14" />
-                        <path d="M5 12h14" />
-                      </svg>
-                    </button>
+                      <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                    </div>
                   </div>
 
                   {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
-                    <div className="relative min-h-[46px] pt-1">
-                      <GoalProgress c={c} />
-                    </div>
+                    <GoalProgress c={c} />
                   ) : (
-                    <div className="relative min-h-[46px] pt-1">
-                      <div className="flex items-baseline gap-2">
-                        <div className="min-w-0 flex-none text-lg font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
-                          {glance.value}
-                        </div>
-                        <div
-                          className="min-w-0 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400"
-                          title={glance.label}
-                        >
-                          {glance.label}
-                        </div>
-                      </div>
+                    <div className="mt-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                      {formatWeekGlance(c, displayTitle)}
                     </div>
                   )}
-                </div>
+                </Link>
               );
             })}
           </div>
