@@ -260,7 +260,7 @@ function CoachCard({
         <div>
           <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Next up</div>
           <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-            Based on your goals.
+            Small wins stack up.
           </div>
         </div>
       </div>
