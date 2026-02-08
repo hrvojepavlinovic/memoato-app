@@ -251,6 +251,19 @@ function CoachCard({
     }
   };
 
+  const hideButton = (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-10 px-3"
+      onClick={hideForToday}
+      aria-label="Hide Next up for today"
+      title="Hide"
+    >
+      <span>Hide</span>
+    </Button>
+  );
+
   if (hiddenForToday) return null;
 
   const coachCategories = categories
@@ -273,26 +286,7 @@ function CoachCard({
               You&apos;re on track.
             </div>
           </div>
-          <button
-            type="button"
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-            onClick={hideForToday}
-            aria-label="Hide Next up for today"
-            title="Hide for today"
-          >
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <path d="M18 6 6 18" />
-              <path d="M6 6l12 12" />
-            </svg>
-            Hide
-          </button>
+          {hideButton}
         </div>
       </div>
     );
@@ -317,26 +311,7 @@ function CoachCard({
             Small wins stack up.
           </div>
         </div>
-        <button
-          type="button"
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-          onClick={hideForToday}
-          aria-label="Hide Next up for today"
-          title="Hide for today"
-        >
-          <svg
-            className="h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <path d="M18 6 6 18" />
-            <path d="M6 6l12 12" />
-          </svg>
-          Hide
-        </button>
+        {hideButton}
       </div>
 
       <div className="mt-3 space-y-2">
