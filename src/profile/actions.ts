@@ -9,6 +9,7 @@ import type {
   RequestAccountDeletion,
   RequestEmailChange,
   SendPasswordResetForCurrentUser,
+  SetNextUpEnabled,
   UpdateProfile,
 } from "wasp/server/operations";
 import { createPasswordResetLink, sendPasswordResetEmail } from "wasp/server/auth/email/utils";
@@ -119,6 +120,15 @@ export const updateProfile: UpdateProfile<
     throw e;
   }
 
+  return { success: true };
+};
+
+export const setNextUpEnabled: SetNextUpEnabled<{ enabled: boolean }, { success: true }> = async (args, context) => {
+  const { userId } = requireAuth(context);
+  await context.entities.User.update({
+    where: { id: userId },
+    data: { nextUpEnabled: args.enabled === true },
+  });
   return { success: true };
 };
 

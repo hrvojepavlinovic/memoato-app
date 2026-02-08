@@ -23,6 +23,7 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
       username: true,
       firstName: true,
       lastName: true,
+      nextUpEnabled: true,
     },
   });
   if (!user) {
@@ -49,6 +50,7 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
     username: user.username,
     firstName: user.firstName,
     lastName: user.lastName,
+    nextUpEnabled: user.nextUpEnabled,
     email: email && email.includes("@") ? email : null,
     isEmailVerified,
   };

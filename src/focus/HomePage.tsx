@@ -4,6 +4,7 @@ import { Link, routes } from "wasp/client/router";
 import {
   ensureDefaultCategories,
   getCategories,
+  getProfile,
   resetCategoryOrder,
   setCategoryOrder,
   useQuery,
@@ -23,7 +24,6 @@ import {
 } from "./local";
 import type { BucketAggregation, GoalDirection } from "./types";
 import { QuickAddDialog } from "./components/QuickAddDialog";
-import { readNextUpPreference } from "./nextUpPreference";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -229,14 +229,15 @@ function CoachCard({
   displayTitleById,
   themeIsDark,
   onQuickAdd,
+  enabled,
 }: {
   categories: CategoryWithStats[];
   displayTitleById: Record<string, string>;
   themeIsDark: boolean;
   onQuickAdd: (categoryId: string) => void;
+  enabled: boolean;
 }) {
-  const pref = useMemo(() => readNextUpPreference(), []);
-  if (pref === "hide") return null;
+  if (!enabled) return null;
 
   const coachCategories = categories
     .filter((c) => (c.goalWeekly != null && c.goalWeekly > 0) || c.goalValue != null)
@@ -265,7 +266,7 @@ function CoachCard({
       if (sa !== sb) return sb - sa;
       return (displayTitleById[a.id] ?? a.title).localeCompare(displayTitleById[b.id] ?? b.title);
     })
-    .slice(0, 4);
+    .slice(0, 3);
 
   return (
     <div className="card mb-4 p-4">
@@ -388,11 +389,13 @@ export function HomePage() {
   const privacy = usePrivacy();
   const theme = useTheme();
   const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
+  const profileQuery = useQuery(getProfile, undefined, { enabled: privacy.mode !== "local" });
   const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>([]);
   const [localLoading, setLocalLoading] = useState(false);
   const categories = privacy.mode === "local" ? localCategories : (categoriesQuery.data ?? []);
   const isLoading = privacy.mode === "local" ? localLoading : categoriesQuery.isLoading;
   const isSuccess = privacy.mode === "local" ? true : categoriesQuery.isSuccess;
+  const nextUpEnabled = privacy.mode === "local" ? true : (profileQuery.data?.nextUpEnabled ?? true);
   const ensuredOnceRef = useRef(false);
   const [titleById, setTitleById] = useState<Record<string, string>>({});
   const [orderMode, setOrderMode] = useState(false);
@@ -667,6 +670,7 @@ export function HomePage() {
         displayTitleById={displayTitleById}
         themeIsDark={theme.isDark}
         onQuickAdd={(id) => setQuickAddCategoryId(id)}
+        enabled={nextUpEnabled}
       />
 
       <div className="mb-4 flex items-start justify-between gap-3">

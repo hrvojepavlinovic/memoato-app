@@ -240,6 +240,11 @@ action updateProfile {
   entities: [User]
 }
 
+action setNextUpEnabled {
+  fn: import { setNextUpEnabled } from "@src/profile/actions",
+  entities: [User]
+}
+
 action requestEmailChange {
   fn: import { requestEmailChange } from "@src/profile/actions",
   entities: [User]

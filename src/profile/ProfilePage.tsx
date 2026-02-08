@@ -13,6 +13,7 @@ import {
   requestAccountDeletion,
   requestEmailChange,
   sendPasswordResetForCurrentUser,
+  setNextUpEnabled,
   updateCategory,
   updateEvent,
   updateProfile,
@@ -42,8 +43,6 @@ import {
   localUpdateEvent,
 } from "../focus/local";
 import type { CategoryWithStats, CategoryEventItem } from "../focus/types";
-import type { NextUpPreference } from "../focus/nextUpPreference";
-import { persistNextUpPreference, readNextUpPreference } from "../focus/nextUpPreference";
 import { useTheme } from "../theme/ThemeProvider";
 import type { ThemePreference } from "../theme/theme";
 import { Capacitor } from "@capacitor/core";
@@ -83,7 +82,6 @@ export function ProfilePage() {
   const privacy = usePrivacy();
   const theme = useTheme();
   const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
-  const [nextUpPref, setNextUpPref] = useState<NextUpPreference>(() => readNextUpPreference());
 
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -96,6 +94,7 @@ export function ProfilePage() {
 
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [nextUpEnabledPref, setNextUpEnabledPref] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!q.data) return;
@@ -103,6 +102,11 @@ export function ProfilePage() {
     setFirstName(q.data.firstName ?? "");
     setLastName(q.data.lastName ?? "");
   }, [q.data]);
+
+  useEffect(() => {
+    if (!q.data) return;
+    setNextUpEnabledPref(q.data.nextUpEnabled);
+  }, [q.data?.nextUpEnabled]);
 
   useEffect(() => {
     setPendingMode(privacy.mode);
@@ -735,30 +739,45 @@ export function ProfilePage() {
             Motivational suggestions based on your goals.
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            {(["show", "hide"] as NextUpPreference[]).map((pref) => {
-              const active = nextUpPref === pref;
+            {([true, false] as const).map((enabled) => {
+              const active = (nextUpEnabledPref ?? q.data?.nextUpEnabled ?? true) === enabled;
+              const isDisabled = busy === "nextUp" || q.isLoading || !q.data;
               return (
                 <button
-                  key={pref}
+                  key={String(enabled)}
                   type="button"
-                  onClick={() => {
-                    setNextUpPref(pref);
-                    persistNextUpPreference(pref);
+                  disabled={isDisabled}
+                  onClick={async () => {
+                    if (!q.data) return;
+                    setMessage(null);
+                    setBusy("nextUp");
+                    setNextUpEnabledPref(enabled);
+                    try {
+                      await setNextUpEnabled({ enabled });
+                      await q.refetch();
+                    } catch (e: any) {
+                      setNextUpEnabledPref(q.data.nextUpEnabled);
+                      setMessage(e?.message ?? "Failed to update setting.");
+                    } finally {
+                      setBusy(null);
+                    }
                   }}
                   aria-pressed={active}
                   className={[
                     "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
-                    active
+                    isDisabled
+                      ? "cursor-not-allowed opacity-70"
+                      : active
                       ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
                       : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
                   ].join(" ")}
                 >
-                  {pref === "show" ? "Show" : "Hide"}
+                  {enabled ? "Show" : "Hide"}
                 </button>
               );
             })}
           </div>
-          <div className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Stored on this device.</div>
+          <div className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Stored in your account.</div>
         </div>
 
         <div className="card p-4">
