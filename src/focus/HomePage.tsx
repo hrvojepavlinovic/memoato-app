@@ -925,7 +925,7 @@ export function HomePage() {
 
                   {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
                     <div className="relative min-h-[46px] pt-1">
-                      <GoalProgress c={c} />
+                      <GoalProgress c={c} right="fraction" />
                     </div>
                   ) : (
                     <div className="relative min-h-[46px] pt-1">
