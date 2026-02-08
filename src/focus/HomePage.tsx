@@ -223,17 +223,30 @@ function CoachCard({
   themeIsDark: boolean;
   onQuickAdd: (categoryId: string) => void;
 }) {
-  const coachCategories = categories.filter(
-    (c) => (c.goalWeekly != null && c.goalWeekly > 0) || c.goalValue != null,
-  );
+  const coachCategories = categories
+    .filter((c) => (c.goalWeekly != null && c.goalWeekly > 0) || c.goalValue != null)
+    .filter((c) => {
+      // For value-type categories (e.g. weight), suggesting after you've already logged today is annoying.
+      if (c.chartType === "line" && (c.todayCount ?? 0) > 0) return false;
+      return true;
+    });
   if (coachCategories.length === 0) return null;
 
-  const ordered = coachCategories
+  const remaining = coachCategories.filter((c) => !isGoalReached(c));
+  if (remaining.length === 0) {
+    return (
+      <div className="card mb-4 p-4">
+        <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Next up</div>
+        <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+          You&apos;re on track.
+        </div>
+      </div>
+    );
+  }
+
+  const ordered = remaining
     .slice()
     .sort((a, b) => {
-      const ra = isGoalReached(a);
-      const rb = isGoalReached(b);
-      if (ra !== rb) return ra ? 1 : -1;
       const sa = coachSortScore(a);
       const sb = coachSortScore(b);
       if (sa !== sb) return sb - sa;
@@ -245,7 +258,7 @@ function CoachCard({
     <div className="card mb-4 p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Suggestions</div>
+          <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Next up</div>
           <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
             Based on your goals.
           </div>

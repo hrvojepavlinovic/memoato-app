@@ -218,6 +218,11 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     return row.sum;
   }
 
+  function windowCount(m: Map<string, WindowStats>, categoryId: string): number {
+    const row = m.get(categoryId);
+    return row ? row.count : 0;
+  }
+
   const result = categories.map((c) => {
     const chartType = ((c.chartType ?? "bar") as CategoryChartType);
     const agg = normalizeBucketAggregation(chartType, c.bucketAggregation);
@@ -247,6 +252,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       period,
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
+      todayCount: windowCount(dayStats, c.id),
       todayTotal: windowValue(dayStats, c.id, agg),
       thisWeekTotal: windowValue(periodStats, c.id, agg),
       thisYearTotal: windowValue(yearStats, c.id, agg),
