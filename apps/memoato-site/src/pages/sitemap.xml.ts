@@ -1,7 +1,18 @@
 export async function GET() {
   const site = "https://memoato.com";
 
-  const staticPaths = ["/", "/about", "/help", "/blog", "/open-source", "/privacy", "/terms", "/contact"];
+  const staticPaths = [
+    "/",
+    "/about",
+    "/help",
+    "/adhd",
+    "/changelog",
+    "/blog",
+    "/open-source",
+    "/privacy",
+    "/terms",
+    "/contact",
+  ];
 
   const postModules = import.meta.glob("./blog/*.md", { eager: true }) as Record<
     string,

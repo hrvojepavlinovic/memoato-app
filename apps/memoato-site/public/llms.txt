@@ -7,6 +7,8 @@ Key links:
 - Homepage: https://memoato.com/
 - App: https://app.memoato.com/
 - Help & FAQ: https://memoato.com/help
+- ADHD-friendly: https://memoato.com/adhd
+- Changelog: https://memoato.com/changelog
 - About: https://memoato.com/about
 - Timeline (blog): https://memoato.com/blog/timeline
 - Privacy modes (blog): https://memoato.com/blog/privacy-modes
@@ -20,4 +22,3 @@ Product highlights:
 - Notes is a built-in system category (cannot be deleted)
 - Storage modes: cloud sync, encrypted cloud, local-only
 - PWA friendly (Add to Home Screen); mobile apps are in progress
-

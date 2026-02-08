@@ -1,0 +1,56 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const updates: Array<{ date: string; items: string[] }> = [
+  {
+    date: "2026-02-08",
+    items: [
+      "Improved SEO basics: social share previews (OpenGraph/Twitter) and better meta descriptions.",
+      "Added robots.txt, sitemap.xml, llms.txt, and structured data (JSON-LD) for search engines and LLMs.",
+    ],
+  },
+];
+---
+
+<BaseLayout
+  title="Changelog · memoato"
+  description="Product updates and changes."
+  canonicalPath="/changelog"
+>
+  <section class="section">
+    <div class="container prose">
+      <h1 class="page-title">Changelog</h1>
+      <p class="muted">Small, frequent updates. No fluff.</p>
+
+      {updates.map((u) => (
+        <div class="card" style="padding: 1.25rem; margin-top: 1.25rem">
+          <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: baseline">
+            <div style="font-weight: 700">{u.date}</div>
+            <a class="muted" href="https://x.com/memoatoo" target="_blank" rel="noopener noreferrer">
+              Follow updates on X
+            </a>
+          </div>
+          <ul style="margin-top: 0.75rem">
+            {u.items.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+
+      <h2 style="margin-top: 2rem">More details</h2>
+      <ul>
+        <li>
+          Blog: <a href="/blog">product notes and guides</a>
+        </li>
+        <li>
+          GitHub:{" "}
+          <a href="https://github.com/hrvojepavlinovic/memoato-app" rel="noopener noreferrer" target="_blank">
+            source code and issues
+          </a>
+        </li>
+      </ul>
+    </div>
+  </section>
+</BaseLayout>
+
