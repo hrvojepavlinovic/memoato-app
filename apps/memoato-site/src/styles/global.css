@@ -48,6 +48,18 @@ a:hover {
   text-decoration: underline;
 }
 
+.btn:focus,
+.btn:active,
+.btn:focus-visible {
+  text-decoration: none;
+}
+
+.icon-btn:focus,
+.icon-btn:active,
+.icon-btn:focus-visible {
+  text-decoration: none;
+}
+
 .container {
   width: 100%;
   max-width: 1024px;
@@ -324,6 +336,16 @@ a:hover {
   gap: 0.75rem;
   margin-top: 2rem;
   justify-content: center;
+}
+
+.hero-actions .btn {
+  white-space: nowrap;
+}
+
+@media (min-width: 720px) {
+  .hero-actions {
+    flex-wrap: nowrap;
+  }
 }
 
 .card-actions {
