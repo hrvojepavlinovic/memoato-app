@@ -108,6 +108,42 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
   const categoryIds = categories.map((c) => String(c.id));
   type WindowStats = { sum: number; avg: number; count: number };
 
+  const recentStart = addDays(dayStart, -30);
+  const recentTimingByCategory = new Map<
+    string,
+    { count: number; activeDays: Set<string>; sumMinutes: number }
+  >();
+  if (categoryIds.length > 0) {
+    const recentEvents = await context.entities.Event.findMany({
+      where: {
+        userId,
+        kind: "SESSION",
+        categoryId: { in: categoryIds },
+        occurredAt: { gte: recentStart, lt: dayEnd },
+      },
+      select: { categoryId: true, occurredAt: true, occurredOn: true },
+      orderBy: [{ occurredAt: "desc" }],
+      take: 2000,
+    });
+    for (const ev of recentEvents) {
+      if (!ev.categoryId) continue;
+      const t = ev.occurredAt instanceof Date ? ev.occurredAt : new Date(ev.occurredAt as any);
+      if (Number.isNaN(t.getTime())) continue;
+      const minute = t.getHours() * 60 + t.getMinutes();
+      const dayKey = (() => {
+        const d = ev.occurredOn instanceof Date ? ev.occurredOn : new Date(ev.occurredOn as any);
+        if (Number.isNaN(d.getTime())) return t.toISOString().slice(0, 10);
+        return d.toISOString().slice(0, 10);
+      })();
+      const prev =
+        recentTimingByCategory.get(ev.categoryId) ?? { count: 0, activeDays: new Set<string>(), sumMinutes: 0 };
+      prev.count += 1;
+      prev.sumMinutes += minute;
+      prev.activeDays.add(dayKey);
+      recentTimingByCategory.set(ev.categoryId, prev);
+    }
+  }
+
   async function statsForWindow(start: Date, end: Date): Promise<Map<string, WindowStats>> {
     if (categoryIds.length === 0) return new Map();
     const totals = await context.entities.Event.groupBy({
@@ -236,6 +272,12 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
             ? yearStats
             : weekStats;
 
+    const timing = recentTimingByCategory.get(c.id);
+    const recentActiveDays30d = timing ? timing.activeDays.size : 0;
+    const recentAvgMinuteOfDay30d = timing && timing.count > 0 ? Math.round(timing.sumMinutes / timing.count) : null;
+    const recentAvgEventsPerDay30d =
+      timing && timing.activeDays.size > 0 ? timing.count / timing.activeDays.size : 0;
+
     return {
       id: c.id,
       title: c.title,
@@ -257,6 +299,9 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       thisWeekTotal: windowValue(periodStats, c.id, agg),
       thisYearTotal: windowValue(yearStats, c.id, agg),
       lastValue: lastByCategory.get(c.id) ?? null,
+      recentActiveDays30d,
+      recentAvgMinuteOfDay30d,
+      recentAvgEventsPerDay30d,
     };
   });
 

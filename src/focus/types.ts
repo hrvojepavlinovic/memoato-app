@@ -32,6 +32,9 @@ export type CategoryWithStats = {
   thisWeekTotal: number;
   thisYearTotal: number;
   lastValue: number | null;
+  recentActiveDays30d: number;
+  recentAvgMinuteOfDay30d: number | null;
+  recentAvgEventsPerDay30d: number;
 };
 
 export type LinePoint = {

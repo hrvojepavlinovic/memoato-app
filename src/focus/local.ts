@@ -295,6 +295,11 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
   };
   const lastOccurredAtByCategory = new Map<string, Date>();
   const lastByCategory = new Map<string, number>();
+  const recentStart = addDays(dayStart, -30);
+  const recentTimingByCategory = new Map<
+    string,
+    { count: number; activeDays: Set<string>; sumMinutes: number }
+  >();
 
   for (const ev of events) {
     if (ev.kind !== "SESSION") continue;
@@ -330,6 +335,15 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     if (ms >= yearStart.getTime() && ms < yearEnd.getTime()) {
       sums.year.set(categoryId, (sums.year.get(categoryId) ?? 0) + amount);
       counts.year.set(categoryId, (counts.year.get(categoryId) ?? 0) + 1);
+    }
+
+    if (ms >= recentStart.getTime() && ms < dayEnd.getTime()) {
+      const minute = t.getHours() * 60 + t.getMinutes();
+      const prev = recentTimingByCategory.get(categoryId) ?? { count: 0, activeDays: new Set<string>(), sumMinutes: 0 };
+      prev.count += 1;
+      prev.sumMinutes += minute;
+      prev.activeDays.add(ev.occurredOn);
+      recentTimingByCategory.set(categoryId, prev);
     }
   }
 
@@ -385,6 +399,12 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     const periodCountMap =
       period === "day" ? counts.day : period === "month" ? counts.month : period === "year" ? counts.year : counts.week;
 
+    const timing = recentTimingByCategory.get(c.id);
+    const recentActiveDays30d = timing ? timing.activeDays.size : 0;
+    const recentAvgMinuteOfDay30d = timing && timing.count > 0 ? Math.round(timing.sumMinutes / timing.count) : null;
+    const recentAvgEventsPerDay30d =
+      timing && timing.activeDays.size > 0 ? timing.count / timing.activeDays.size : 0;
+
     return {
       id: c.id,
       title: c.title,
@@ -406,6 +426,9 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
       thisWeekTotal: windowValue(periodSumMap, periodCountMap, c.id, agg),
       thisYearTotal: windowValue(sums.year, counts.year, c.id, agg),
       lastValue: lastByCategory.get(c.id) ?? null,
+      recentActiveDays30d,
+      recentAvgMinuteOfDay30d,
+      recentAvgEventsPerDay30d,
     };
   });
 

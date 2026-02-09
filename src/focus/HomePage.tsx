@@ -209,19 +209,56 @@ function isGoalReached(c: CategoryWithStats): boolean {
   return Math.abs(c.thisWeekTotal - c.goalWeekly) <= tol;
 }
 
-function coachSortScore(c: CategoryWithStats): number {
+function coachSortScore(c: CategoryWithStats, nowMinute: number): number {
   const dir = normalizeGoalDirection(c);
+
+  const title = (c.title ?? "").trim().toLowerCase();
+  const slug = (c.slug ?? "").trim().toLowerCase();
+  const unitRaw = (c.unit ?? "").trim().toLowerCase();
+  const isWeight = slug === "weight" || title === "weight";
+  const isKcal = unitRaw === "kcal" || unitRaw === "cal" || title.includes("kcal") || title.includes("calorie");
+
+  const fallbackTypicalMinute = isWeight ? 9 * 60 : isKcal ? 20 * 60 : 12 * 60;
+  const typicalMinute = c.recentAvgMinuteOfDay30d ?? fallbackTypicalMinute;
+  const avgEventsPerDay = c.recentAvgEventsPerDay30d ?? 0;
+
+  const minutesUntil = typicalMinute - nowMinute;
+  const minutesPast = nowMinute - typicalMinute;
+  const due =
+    minutesPast >= 0
+      ? Math.min(1, 0.65 + (Math.min(12 * 60, minutesPast) / (12 * 60)) * 0.35)
+      : minutesUntil >= 6 * 60
+        ? 0.15
+        : 0.15 + (1 - Math.max(0, minutesUntil) / (6 * 60)) * 0.5;
+
+  // If a category is often logged multiple times per day, time-of-day is less meaningful.
+  const timeWeight = avgEventsPerDay >= 1.5 ? 0.5 : 1;
+
+  function remainingPctTotal(done: number, goal: number): number {
+    const denom = Math.max(1, Math.abs(goal));
+    const diff =
+      dir === "target" ? Math.abs(done - goal) : dir === "at_most" ? Math.max(0, done - goal) : Math.max(0, goal - done);
+    return Math.min(2, diff / denom);
+  }
+
   if (c.chartType === "line") {
     if (c.goalValue == null || c.lastValue == null) return 0;
-    if (dir === "target") return Math.abs(c.lastValue - c.goalValue);
-    if (dir === "at_most") return Math.max(0, c.lastValue - c.goalValue);
-    return Math.max(0, c.goalValue - c.lastValue);
+    const denom = Math.max(1, Math.abs(c.goalValue));
+    const diff =
+      dir === "target"
+        ? Math.abs(c.lastValue - c.goalValue)
+        : dir === "at_most"
+          ? Math.max(0, c.lastValue - c.goalValue)
+          : Math.max(0, c.goalValue - c.lastValue);
+    const remainingPct = Math.min(2, diff / denom);
+    const boost = isWeight ? 0.2 : 0;
+    return due * 100 * timeWeight + remainingPct * 20 + boost;
   }
 
   if (c.goalWeekly == null || c.goalWeekly <= 0) return 0;
-  if (dir === "target") return Math.abs(c.thisWeekTotal - c.goalWeekly);
-  if (dir === "at_most") return Math.max(0, c.thisWeekTotal - c.goalWeekly);
-  return Math.max(0, c.goalWeekly - c.thisWeekTotal);
+  const remainingPct = remainingPctTotal(c.thisWeekTotal, c.goalWeekly);
+  const boost = isKcal ? -0.1 : 0;
+  return due * 100 * timeWeight + remainingPct * 20 + boost;
 }
 
 function CoachCard({
@@ -238,6 +275,8 @@ function CoachCard({
   enabled: boolean;
 }) {
   if (!enabled) return null;
+  const now = new Date();
+  const nowMinute = now.getHours() * 60 + now.getMinutes();
 
   const coachCategories = categories
     .filter((c) => (c.goalWeekly != null && c.goalWeekly > 0) || c.goalValue != null)
@@ -261,8 +300,8 @@ function CoachCard({
   const ordered = remaining
     .slice()
     .sort((a, b) => {
-      const sa = coachSortScore(a);
-      const sb = coachSortScore(b);
+      const sa = coachSortScore(a, nowMinute);
+      const sb = coachSortScore(b, nowMinute);
       if (sa !== sb) return sb - sa;
       return (displayTitleById[a.id] ?? a.title).localeCompare(displayTitleById[b.id] ?? b.title);
     })
