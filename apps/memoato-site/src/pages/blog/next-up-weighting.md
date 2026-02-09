@@ -9,7 +9,7 @@ If you show users a list of suggestions, you are making a promise.
 
 The promise is that the list feels logical now, not only after weeks of data.
 
-This post explains a simple weighting model that works in the beginning, stays efficient, and gets smarter as it learns.
+This post explains the simple logic behind it. It works from day one, and it gets more personal over time.
 
 ## The problem
 
@@ -24,22 +24,16 @@ If your suggestion list treats everything the same, you will end up with somethi
 
 That feels wrong. It creates friction and users stop trusting the feature.
 
-## A two part score: urgency and due
+## Two signals: progress and timing
 
-The most reliable mental model is a score made of two signals.
+Suggestions feel good when they match two things at the same time.
 
-1. Urgency: how far you are from the goal
-2. Due: how appropriate it is to do this right now
+- Progress: how far you are from the goal
+- Timing: how appropriate it is to do this right now
 
-You can combine them like this.
+Progress answers what matters.
 
-```
-score = urgency_weight * urgency + due_weight * due + small_boosts
-```
-
-Urgency answers what matters.
-
-Due answers what makes sense in the current moment.
+Timing answers what makes sense right now.
 
 ## Cold start: start with strong priors
 
@@ -53,65 +47,33 @@ Use reasonable defaults based on category type and unit.
 
 This alone fixes the Monday morning problem because active calories is not treated as an early day task.
 
-## Learn timing without heavy computation
+## How it learns your routine
 
-Once users start logging, you can learn a simple timing profile per category.
+Once you start logging, memoato can learn a simple routine for each category.
 
-Use a short rolling window like the last 30 days and compute three numbers.
+It looks at recent history and estimates a few things.
 
 - Active days: how many distinct days the user logged this category
-- Typical time: average minute of day when it was logged
+- Typical time: roughly when you usually log it
 - Typical frequency: average events per active day
 
-This is cheap to compute if you do it from a bounded recent events query and aggregate in memory.
+This is how memoato can learn that weight is usually a morning habit while daily totals belong later.
 
-You do not need a new table to start. You can add one later if you want to cache.
+## It does not overreact early
 
-## Blend priors and learning with confidence
+In the beginning, one weird day should not change everything.
 
-The key is not to overfit early.
+So memoato starts with defaults, then slowly shifts toward your real routine as it collects enough logs.
 
-Introduce a confidence value based on how many active days you have.
+That keeps suggestions stable and predictable.
 
-```
-confidence = clamp(active_days / 7, 0, 1)
-```
-
-Then blend like this.
-
-```
-typical_time = confidence * learned_time + (1 - confidence) * default_time
-```
-
-Early on, confidence is low, so the default behavior dominates.
-
-Later, the system adapts to the user and still feels stable.
-
-## Make time matter less for multi entry categories
+## Timing matters less for some categories
 
 Some categories are logged many times per day.
 
 For those, timing is less useful. Users can do them anytime.
 
-A simple rule works well.
-
-```
-time_weight = 0.5 if avg_events_per_day >= 1.5 else 1
-```
-
-That prevents the model from pushing something up just because it happened at a specific time yesterday.
-
-## A simple due function
-
-You want a curve that prefers tasks near their typical time.
-
-One approach is to treat it like a window.
-
-- If the typical time is far in the future, low due
-- If you are near the typical time, rising due
-- If you are past the typical time, high due and slowly rising
-
-Keep it clamped so it does not explode.
+So memoato treats timing as a weaker signal there, and focuses more on progress.
 
 ## The missing piece: stability
 
@@ -134,13 +96,12 @@ It also unlocks small product wins.
 - End of day totals naturally drift later
 - Multi entry habits show when you still have room to progress
 
-## Next steps
+## What this means for you
 
-After this works, add the escape hatch.
+- Morning habits show up earlier
+- End of day totals drift later
+- The list stays short and focused
 
-Let a user mark a category as morning, evening, or hide from suggestions.
+If you do not want suggestions at all, you can hide Next up from Profile settings.
 
-Most users will never touch it, but it saves you from edge cases and makes the feature feel respectful.
-
-If you are building something similar, keep it simple. Start with priors, learn gently, and never punish the user with a list that feels random.
-
+If a suggestion feels off, tell me. The fastest way to improve memoato is real usage and blunt feedback.
