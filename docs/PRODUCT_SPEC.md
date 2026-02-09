@@ -2,7 +2,7 @@
 
 ## Vision & mission
 
-Memoato is a minimalist, mobile-first personal tracking engine inspired by Timecap. The goal is to give one person a super-fast interface for capturing what matters (workouts, habits, appointments, weight) and seeing progress at a glance—with clean black-and-white surfaces, bold accent colors per category, and a chart-first mindset that can be reused by future native clients.
+Memoato is a minimalist, mobile-first personal tracking engine inspired by Timecap. The goal is to give one person a super-fast interface for capturing what matters (workouts, habits, appointments, weight) and seeing progress at a glance, with clean black-and-white surfaces, bold accent colors per category, and a chart-first mindset that can be reused by future native clients.
 
 Memoato is:
 

@@ -1,6 +1,6 @@
-# Coach Mode (AI insights + planning) — one-pager
+# Coach Mode (AI insights + planning) - one-pager
 
-Memoato’s next chapter is **Coach Mode**: an optional layer that turns tracking into gentle, context-aware planning and weekly feedback — without becoming a generic todo app.
+Memoato’s next chapter is **Coach Mode**: an optional layer that turns tracking into gentle, context-aware planning and weekly feedback, without becoming a generic todo app.
 
 ## What it is (TL;DR)
 
@@ -44,7 +44,7 @@ Data handling principles:
 
 ## Planning model (tracking-first)
 
-Daily Plan items are not separate from tracking — they’re a structured way to guide event creation.
+Daily Plan items are not separate from tracking, they’re a structured way to guide event creation.
 
 MVP rules (non-AI):
 - Use `goalWeekly` + remaining days in week to compute “suggested today” amounts.

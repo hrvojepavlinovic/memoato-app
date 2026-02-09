@@ -2,7 +2,7 @@
 
 ## Vision & mission
 
-Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuzzy reminders. The mission is to let a single user capture meaningful health, habit, and appointment data with as little friction as possible—typing a number, hitting Enter, and seeing a clear, colorful dashboard while the API remains reusable for future native apps.
+Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuzzy reminders. The mission is to let a single user capture meaningful health, habit, and appointment data with as little friction as possible, typing a number, hitting Enter, and seeing a clear, colorful dashboard while the API remains reusable for future native apps.
 
 ## Pillars
 
@@ -47,7 +47,7 @@ Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuz
 5. Should Padels/Termins always show “This year” totals on the home cards? Do we ever need “This week” there as well?
 6. When a goal is reached, should the card move to the bottom of its group (yes) and should it also show a different border (e.g., full accent border and lighter background)?
 7. Do we want to provide the ability to edit category color/emoji from the category detail page, or keep it on a separate “Edit category” route?
-8. How should the `/history` list look on mobile—open by default or behind a “Show history” toggle?
+8. How should the `/history` list look on mobile: open by default or behind a “Show history” toggle?
 9. What’s the ideal flow for weight entries? Do we allow multiple decimals (95,15) and show the exact precision the user entered?
 10. Should we persist the time portion when the user manually picks a date in the add-entry form, or always default to noon for backfilled days?
 11. Do we need to track “last login” for users on the `/sudo` page, or are createdAt + counts enough?
@@ -58,7 +58,7 @@ Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuz
 16. What’s your preferred cadence for deployments (manual via `./scripts/deploy_prod.sh` + pm2, or automated pipeline)?
 17. Would you like to keep the public API on `api.memoato.com` for server-side clients (curl, native apps), or consider a single domain for both client/api?
 18. Should “Add category” support templates (pre-filled color/emoji/goal), or start from scratch every time?
-19. What should the “export data” bundle include? (Profile + categories + events is the minimum—do you want zipped attachments later?)
+19. What should the “export data” bundle include? (Profile + categories + events is the minimum. Do you want zipped attachments later?)
 20. How should we handle blocked hosts during local dev (vite preview)? Add `app.memoato.com` to `preview.allowedHosts`, or wrap the tunnel differently?
 
 ## Next actions after your answers

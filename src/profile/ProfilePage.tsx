@@ -113,7 +113,7 @@ export function ProfilePage() {
   }, [privacy.mode]);
 
   const emailLabel = useMemo(() => {
-    if (!q.data?.email) return "—";
+    if (!q.data?.email) return "n/a";
     return q.data.isEmailVerified ? q.data.email : `${q.data.email} (unverified)`;
   }, [q.data?.email, q.data?.isEmailVerified]);
 

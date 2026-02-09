@@ -23,14 +23,14 @@ const updates: Array<{ date: string; items: string[] }> = [
       <p class="muted">Small, frequent updates. No fluff.</p>
 
       {updates.map((u) => (
-        <div class="card" style="padding: 1.25rem; margin-top: 1.25rem">
-          <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: baseline">
-            <div style="font-weight: 700">{u.date}</div>
+        <div class="card changelog-card">
+          <div class="changelog-head">
+            <div class="changelog-date">{u.date}</div>
             <a class="muted" href="https://x.com/memoatoo" target="_blank" rel="noopener noreferrer">
               Follow updates on X
             </a>
           </div>
-          <ul style="margin-top: 0.75rem">
+          <ul class="changelog-list">
             {u.items.map((item) => (
               <li>{item}</li>
             ))}
@@ -38,7 +38,7 @@ const updates: Array<{ date: string; items: string[] }> = [
         </div>
       ))}
 
-      <h2 style="margin-top: 2rem">More details</h2>
+      <h2 class="changelog-more">More details</h2>
       <ul>
         <li>
           Blog: <a href="/blog">product notes and guides</a>
@@ -53,4 +53,3 @@ const updates: Array<{ date: string; items: string[] }> = [
     </div>
   </section>
 </BaseLayout>
-

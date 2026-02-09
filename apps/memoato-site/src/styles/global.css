@@ -163,6 +163,59 @@ a:hover:not(.btn):not(.icon-btn) {
   background: var(--accent);
 }
 
+.changelog-card {
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.changelog-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.changelog-date {
+  font-weight: 700;
+}
+
+.changelog-list {
+  margin-top: 0.75rem;
+}
+
+.changelog-more {
+  margin-top: 2rem;
+}
+
+.contact-card {
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.contact-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.usecases-subtitle {
+  max-width: 70ch;
+  margin-top: 0.35rem;
+}
+
+.footer-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.blog-backlink {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .grid {
   display: grid;
   gap: 1rem;

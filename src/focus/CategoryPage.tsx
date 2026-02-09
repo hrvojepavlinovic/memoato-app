@@ -104,7 +104,7 @@ function Summary({ category }: { category: CategoryWithStats }) {
       : "";
 
   if (category.chartType === "line") {
-    const last = category.lastValue == null ? "—" : formatValue(category.lastValue);
+    const last = category.lastValue == null ? "n/a" : formatValue(category.lastValue);
     const goal = category.goalValue == null ? null : formatValue(category.goalValue);
     return (
       <div className="text-sm text-neutral-500 dark:text-neutral-400">

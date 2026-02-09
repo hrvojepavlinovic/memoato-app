@@ -46,7 +46,7 @@ Keep it honest and specific: “one codebase for auth + API + React UI”, “de
 ## Draft posts (copy/paste)
 
 ### Draft 1 (launch)
-Built a minimal ADHD-friendly habit tracker (“Focus”-style) with `@wasp_lang` — fast logging, clear weekly progress, edit history anytime.
+Built a minimal ADHD-friendly habit tracker (“Focus”-style) with `@wasp_lang`: fast logging, clear weekly progress, edit history anytime.
 
 Live: https://app.memoato.com • Landing: https://memoato.com
 Open source: https://github.com/hrvojepavlinovic/memoato-app

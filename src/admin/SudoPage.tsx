@@ -82,7 +82,7 @@ export function SudoPage() {
               className="grid grid-cols-1 gap-2 p-3 text-sm sm:grid-cols-[1.2fr_1.4fr_0.8fr_0.9fr_0.8fr_0.8fr]"
             >
               <div className="font-semibold text-neutral-900 dark:text-neutral-100">{u.username}</div>
-              <div className="text-neutral-700 dark:text-neutral-300">{u.email ?? "—"}</div>
+              <div className="text-neutral-700 dark:text-neutral-300">{u.email ?? "n/a"}</div>
               <div className="font-medium text-neutral-700 dark:text-neutral-300">{u.role}</div>
               <div className="text-neutral-700 dark:text-neutral-300">{formatDate(u.createdAt)}</div>
               <div className="text-right font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
