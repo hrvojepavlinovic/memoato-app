@@ -13,7 +13,7 @@ export function Header() {
   const onSignup = path.startsWith("/signup");
   const profileQuery = useQuery(getProfile, undefined, { enabled: !!user, retry: false });
   const needsEmailVerification =
-    !!user && profileQuery.isSuccess && profileQuery.data && !profileQuery.data.isEmailVerified;
+    !!user && profileQuery.isSuccess && profileQuery.data && profileQuery.data.needsEmailVerification;
 
   return (
     <header className="sticky top-0 z-20 flex justify-center border-b border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950">

@@ -13,6 +13,7 @@ generator client {
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
+  email     String?  @unique
   role      String   @default("user")
   firstName String?
   lastName  String?

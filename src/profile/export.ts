@@ -61,6 +61,7 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (_args, con
     select: {
       id: true,
       username: true,
+      email: true,
       firstName: true,
       lastName: true,
       role: true,
@@ -74,16 +75,20 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (_args, con
     where: { userId },
     select: {
       identities: {
-        where: { providerName: "email" },
-        select: { providerUserId: true, providerData: true },
-        take: 1,
+        where: { providerName: { in: ["email", "google"] } },
+        select: { providerName: true, providerUserId: true, providerData: true },
       },
     },
   });
-  const identity = auth?.identities?.[0] ?? null;
-  const email = identity?.providerUserId?.trim().toLowerCase() ?? null;
-  const providerData = parseProviderData(identity?.providerData ?? "{}");
-  const isEmailVerified = providerData.isEmailVerified === true;
+  const identities = auth?.identities ?? [];
+  const emailIdentity = identities.find((i) => i.providerName === "email") ?? null;
+
+  const emailFromUser = user.email?.trim().toLowerCase() ?? null;
+  const emailFromEmailIdentity = emailIdentity?.providerUserId?.trim().toLowerCase() ?? null;
+  const email = emailFromUser || emailFromEmailIdentity || null;
+
+  const providerData = parseProviderData(emailIdentity?.providerData ?? "{}");
+  const isEmailVerified = emailIdentity ? providerData.isEmailVerified === true : true;
 
   const [categories, events] = await Promise.all([
     context.entities.Category.findMany({

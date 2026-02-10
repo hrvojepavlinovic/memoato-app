@@ -1,6 +1,16 @@
 import { defineUserSignupFields } from "wasp/server/auth";
 
 export const userSignupFields = defineUserSignupFields({
+  email: (data) => {
+    if (typeof data.email !== "string") {
+      throw new Error("Email is required.");
+    }
+    const email = data.email.trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      throw new Error("Email is required.");
+    }
+    return email;
+  },
   username: (data) => {
     if (typeof data.username !== "string") {
       throw new Error("Username is required.");

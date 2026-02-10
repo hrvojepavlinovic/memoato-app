@@ -16,6 +16,10 @@ function getAdminEmailAllowlist(): Set<string> {
 }
 
 async function getUserEmail(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const fromUser = user?.email?.trim().toLowerCase() ?? null;
+  if (fromUser && fromUser.includes("@")) return fromUser;
+
   const auth = await prisma.auth.findFirst({
     where: { userId },
     select: {

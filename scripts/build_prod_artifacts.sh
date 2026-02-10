@@ -26,6 +26,7 @@ node scripts/patch_wasp_email_templates.mjs
 node scripts/patch_wasp_verify_email_autologin.mjs
 node scripts/patch_wasp_email_login_allow_unverified.mjs
 node scripts/patch_wasp_oauth_types.mjs
+node scripts/patch_wasp_oauth_profile_sync.mjs
 
 # Wasp's generated projects rely on devDependencies for TypeScript bundling
 # (e.g. @tsconfig/node22). Ensure dev deps stay installed even if the environment

@@ -86,6 +86,11 @@ function parseProviderData(providerData: string): Record<string, unknown> {
 }
 
 async function ensureEmailNotTaken(email: string) {
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (user) {
+    throw new HttpError(400, "That email is already in use.");
+  }
+
   const existing = await prisma.authIdentity.findUnique({
     where: { providerName_providerUserId: { providerName: "email", providerUserId: email } },
     select: { authId: true },
@@ -93,6 +98,16 @@ async function ensureEmailNotTaken(email: string) {
   if (existing) {
     throw new HttpError(400, "That email is already in use.");
   }
+}
+
+async function getUserPrimaryEmail(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const emailFromUser = user?.email ? normalizeEmail(user.email) : null;
+  if (emailFromUser && emailFromUser.includes("@")) return emailFromUser;
+
+  const identity = await getEmailIdentity(userId);
+  const emailFromIdentity = identity?.providerUserId ? normalizeEmail(identity.providerUserId) : null;
+  return emailFromIdentity && emailFromIdentity.includes("@") ? emailFromIdentity : null;
 }
 
 export const updateProfile: UpdateProfile<
@@ -154,6 +169,9 @@ export const requestEmailChange: RequestEmailChange<{ newEmail: string }, { succ
     const newEmail = normalizeEmail(args.newEmail);
 
     const identity = await getEmailIdentity(userId);
+    if (!identity) {
+      throw new HttpError(400, "Email change is only available for email login.");
+    }
     const currentEmail = identity?.providerUserId ? normalizeEmail(identity.providerUserId) : null;
     if (currentEmail && currentEmail === newEmail) {
       return { success: true };
@@ -219,18 +237,24 @@ export const confirmEmailChange: ConfirmEmailChange<{ token: string }, { success
   providerData.emailVerificationSentAt = null;
 
   try {
-    await prisma.authIdentity.update({
-      where: {
-        providerName_providerUserId: {
-          providerName: "email",
-          providerUserId: identity.providerUserId,
+    await prisma.$transaction([
+      prisma.authIdentity.update({
+        where: {
+          providerName_providerUserId: {
+            providerName: "email",
+            providerUserId: identity.providerUserId,
+          },
         },
-      },
-      data: {
-        providerUserId: newEmail,
-        providerData: JSON.stringify(providerData),
-      },
-    });
+        data: {
+          providerUserId: newEmail,
+          providerData: JSON.stringify(providerData),
+        },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { email: newEmail },
+      }),
+    ]);
   } catch (e: any) {
     if (e?.code === "P2002") {
       throw new HttpError(400, "That email is already in use.");
@@ -247,6 +271,9 @@ export const sendPasswordResetForCurrentUser: SendPasswordResetForCurrentUser<
 > = async (_args, context) => {
   const { userId } = requireAuth(context);
   const identity = await getEmailIdentity(userId);
+  if (!identity) {
+    throw new HttpError(400, "Password reset is only available for email login.");
+  }
   const email = identity?.providerUserId ? normalizeEmail(identity.providerUserId) : null;
   if (!email) throw new HttpError(400);
 
@@ -271,8 +298,7 @@ export const requestAccountDeletion: RequestAccountDeletion<void, { success: tru
   context,
 ) => {
   const { userId } = requireAuth(context);
-  const identity = await getEmailIdentity(userId);
-  const email = identity?.providerUserId ? normalizeEmail(identity.providerUserId) : null;
+  const email = await getUserPrimaryEmail(userId);
   if (!email) throw new HttpError(400);
 
   const jwtToken = await createJWT(

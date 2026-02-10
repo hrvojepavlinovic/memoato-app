@@ -6,4 +6,7 @@ export type ProfileData = {
   themePreference: "light" | "dark" | null;
   email: string | null;
   isEmailVerified: boolean;
+  hasEmailAuth: boolean;
+  hasGoogleAuth: boolean;
+  needsEmailVerification: boolean;
 };

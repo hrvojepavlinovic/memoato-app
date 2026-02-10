@@ -21,6 +21,7 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
     where: { id: context.user.id },
     select: {
       username: true,
+      email: true,
       firstName: true,
       lastName: true,
       nextUpEnabled: true,
@@ -35,17 +36,26 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
     where: { userId: context.user.id },
     select: {
       identities: {
-        where: { providerName: "email" },
-        select: { providerUserId: true, providerData: true },
-        take: 1,
+        where: { providerName: { in: ["email", "google"] } },
+        select: { providerName: true, providerUserId: true, providerData: true },
       },
     },
   });
 
-  const identity = auth?.identities?.[0] ?? null;
-  const email = identity?.providerUserId?.trim().toLowerCase() ?? null;
-  const providerData = parseProviderData(identity?.providerData ?? "{}");
-  const isEmailVerified = providerData.isEmailVerified === true;
+  const identities = auth?.identities ?? [];
+  const emailIdentity = identities.find((i) => i.providerName === "email") ?? null;
+  const googleIdentity = identities.find((i) => i.providerName === "google") ?? null;
+
+  const emailFromUser = user.email?.trim().toLowerCase() ?? null;
+  const emailFromEmailIdentity = emailIdentity?.providerUserId?.trim().toLowerCase() ?? null;
+  const email = emailFromUser || emailFromEmailIdentity || null;
+
+  const emailProviderData = parseProviderData(emailIdentity?.providerData ?? "{}");
+  const isEmailVerified = emailIdentity ? emailProviderData.isEmailVerified === true : true;
+
+  const hasEmailAuth = !!emailIdentity;
+  const hasGoogleAuth = !!googleIdentity;
+  const needsEmailVerification = hasEmailAuth && !isEmailVerified;
 
   return {
     username: user.username,
@@ -56,5 +66,8 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
       user.themePreference === "dark" ? "dark" : user.themePreference === "light" ? "light" : null,
     email: email && email.includes("@") ? email : null,
     isEmailVerified,
+    hasEmailAuth,
+    hasGoogleAuth,
+    needsEmailVerification,
   };
 };

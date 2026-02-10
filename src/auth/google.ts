@@ -51,6 +51,17 @@ function extractNamePart(data: Record<string, unknown>, key: "given_name" | "fam
 }
 
 export const userSignupFields = defineUserSignupFields({
+  email: (data) => {
+    const email = extractEmail(data as any);
+    if (!email) {
+      throw new Error("Email is required.");
+    }
+    const clean = email.trim().toLowerCase();
+    if (!clean || !clean.includes("@")) {
+      throw new Error("Email is required.");
+    }
+    return clean;
+  },
   username: async (data) => {
     const email = extractEmail(data as any);
     const localPart = email ? email.split("@")[0] : "user";

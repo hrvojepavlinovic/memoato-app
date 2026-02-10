@@ -114,8 +114,8 @@ export function ProfilePage() {
 
   const emailLabel = useMemo(() => {
     if (!q.data?.email) return "n/a";
-    return q.data.isEmailVerified ? q.data.email : `${q.data.email} (unverified)`;
-  }, [q.data?.email, q.data?.isEmailVerified]);
+    return q.data.needsEmailVerification ? `${q.data.email} (unverified)` : q.data.email;
+  }, [q.data?.email, q.data?.needsEmailVerification]);
 
   async function onSaveProfile() {
     setMessage(null);
@@ -803,41 +803,55 @@ export function ProfilePage() {
         <div className="card p-4">
           <div className="mb-3 text-sm font-semibold">Email & security</div>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-              <label className="flex flex-col gap-1">
-                <span className="label">Change email</span>
-                <input
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className={inputClassName}
-                  placeholder="new@email.com"
-                  inputMode="email"
-                />
-              </label>
-              <Button
-                variant="ghost"
-                onClick={onRequestEmailChange}
-                disabled={busy === "email"}
-                className="h-10 w-full sm:h-auto sm:w-auto"
-              >
-                Send confirmation
-              </Button>
-            </div>
+            {q.data?.hasEmailAuth ? (
+              <>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <label className="flex flex-col gap-1">
+                    <span className="label">Change email</span>
+                    <input
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      className={inputClassName}
+                      placeholder="new@email.com"
+                      inputMode="email"
+                    />
+                  </label>
+                  <Button
+                    variant="ghost"
+                    onClick={onRequestEmailChange}
+                    disabled={busy === "email"}
+                    className="h-10 w-full sm:h-auto sm:w-auto"
+                  >
+                    Send confirmation
+                  </Button>
+                </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="text-sm font-semibold">Password</div>
-                <div className="text-sm text-neutral-500 dark:text-neutral-400">Send a reset link to your email.</div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-sm font-semibold">Password</div>
+                    <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                      Send a reset link to your email.
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    onClick={onSendPasswordReset}
+                    disabled={busy === "password"}
+                    className="w-full sm:w-auto"
+                  >
+                    Send reset link
+                  </Button>
+                </div>
+              </>
+            ) : q.data?.hasGoogleAuth ? (
+              <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
+                You are signed in with Google. Email change and password reset are not available for Google login.
               </div>
-              <Button
-                variant="ghost"
-                onClick={onSendPasswordReset}
-                disabled={busy === "password"}
-                className="w-full sm:w-auto"
-              >
-                Send reset link
-              </Button>
-            </div>
+            ) : (
+              <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
+                Email change and password reset are not available for this account.
+              </div>
+            )}
 
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
               <div className="font-semibold">Danger zone</div>
