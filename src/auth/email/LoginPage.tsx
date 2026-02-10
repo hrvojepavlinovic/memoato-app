@@ -5,7 +5,9 @@ import { AuthLayout } from "../AuthLayout";
 export function LoginPage() {
   return (
     <AuthLayout>
-      <LoginForm />
+      <div className="memoato-auth memoato-auth--login">
+        <LoginForm />
+      </div>
 
       <br />
       <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
