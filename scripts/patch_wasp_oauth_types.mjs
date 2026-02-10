@@ -29,6 +29,11 @@ const handlerResult = patchFile(handlerPath, [
     to: "      const { url: redirectUrlAfterHook } = await onBeforeOAuthRedirectHook({\n        req: req as any,\n",
   },
   {
+    name: "validateAndGetOAuthState-req",
+    from: "        const oAuthState = validateAndGetOAuthState({\n          oAuthType,\n          provider,\n          req,\n        })\n",
+    to: "        const oAuthState = validateAndGetOAuthState({\n          oAuthType,\n          provider,\n          req: req as any,\n        })\n",
+  },
+  {
     name: "finishOAuthFlow-req",
     from: "            userSignupFields,\n            req,\n            oauth: {\n",
     to: "            userSignupFields,\n            req: req as any,\n            oauth: {\n",
@@ -59,4 +64,3 @@ if (oneTimeCodeResult.patched) {
 } else {
   console.log(`[patch_wasp_oauth_types] OAuth one-time-code route not patched (${oneTimeCodeResult.reason}).`);
 }
-
