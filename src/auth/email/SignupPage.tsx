@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login, signup } from "wasp/client/auth";
+import { config } from "wasp/client";
 import { AuthLayout } from "../AuthLayout";
+
+const googleSignInUrl = `${config.apiUrl}/auth/google/login`;
 
 function getEmailLocalPart(email: string): string {
   const at = email.indexOf("@");
@@ -101,7 +104,7 @@ export function SignupPage() {
       ) : (
         <>
           <a
-            href="/auth/google/login"
+            href={googleSignInUrl}
             className="flex h-10 w-full items-center justify-center gap-3 rounded-lg border border-[#DADCE0] bg-white px-4 text-sm font-semibold text-neutral-900 hover:bg-[#F8F9FA] dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900"
           >
             <GoogleMark />
