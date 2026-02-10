@@ -63,6 +63,11 @@ a[href$="/auth/google/login"]::before {
 }
 
 /* Remove "Log in with" label on the login page only. */
+.memoato-auth--login [class*="socialAuthLabel"] {
+  display: none !important;
+}
+
+/* (Fallback) for non-module builds. */
 .memoato-auth--login .socialAuthLabel {
   display: none !important;
 }
