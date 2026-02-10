@@ -26,6 +26,7 @@ Create `.env.server` based on `.env.server.example` and fill:
 - `DATABASE_URL` (Postgres socket DSN)
 - `WASP_SERVER_URL`, `WASP_WEB_CLIENT_URL`, `JWT_SECRET`
 - `SMTP_*` (required for email verification + password reset emails)
+- (optional) `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (Google login)
 
 Create `.env.client` based on `.env.client.example` (used at build time):
 

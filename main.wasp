@@ -37,6 +37,10 @@ app memoato {
           clientRoute: PasswordResetRoute,
         }
       },
+      google: {
+        configFn: import { getConfig } from "@src/auth/google",
+        userSignupFields: import { userSignupFields } from "@src/auth/google",
+      },
     },
     onAuthSucceededRedirectTo: "/",
     onAuthFailedRedirectTo: "/login",

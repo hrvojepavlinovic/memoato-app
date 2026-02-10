@@ -75,7 +75,21 @@ export function SignupPage() {
           </div>
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-4">
+        <>
+          <a
+            href="/auth/google"
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-900 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900"
+          >
+            Continue with Google
+          </a>
+
+          <div className="my-4 flex items-center gap-3">
+            <div className="h-px w-full bg-neutral-200 dark:bg-neutral-800" />
+            <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">OR</div>
+            <div className="h-px w-full bg-neutral-200 dark:bg-neutral-800" />
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4">
           {errorMessage ? (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-200">
               {errorMessage}
@@ -132,7 +146,8 @@ export function SignupPage() {
           >
             {isLoading ? "Signing up…" : "Sign up"}
           </button>
-        </form>
+          </form>
+        </>
       )}
       <br />
       <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">

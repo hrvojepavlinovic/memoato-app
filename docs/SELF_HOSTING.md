@@ -18,6 +18,7 @@ This is a practical guide for running memoato on your own server.
 2. Set at minimum:
    - `DATABASE_URL` in `.env.server`
    - `JWT_SECRET` in `.env.server`
+   - if you enable Google auth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` in `.env.server`
 3. Run:
    - `wasp db migrate-dev`
    - `wasp start`
@@ -32,4 +33,3 @@ This is a practical guide for running memoato on your own server.
    - `pm2 save`
 
 See `docs/DEPLOY.md` for domain/tunnel notes.
-

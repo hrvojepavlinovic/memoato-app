@@ -32,3 +32,21 @@ wasp db migrate-dev
 # 2) Start dev server (client + server)
 wasp start
 ```
+
+## Google auth (optional)
+
+If you want "Continue with Google" on login and signup, set:
+
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env.server`
+
+In Google Cloud Console, configure:
+
+- Authorized JavaScript origins:
+  - `http://localhost:3000`
+- Authorized redirect URIs:
+  - `http://localhost:3001/auth/google/callback`
+
+For production, use your `WASP_WEB_CLIENT_URL` and `WASP_SERVER_URL` equivalents, e.g.:
+
+- `https://app.memoato.com`
+- `https://api.memoato.com/auth/google/callback`
