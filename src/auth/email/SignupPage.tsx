@@ -77,7 +77,7 @@ export function SignupPage() {
       ) : (
         <>
           <a
-            href="/auth/google"
+            href="/auth/google/login"
             className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-900 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900"
           >
             Continue with Google
