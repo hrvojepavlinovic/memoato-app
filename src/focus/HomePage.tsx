@@ -435,6 +435,7 @@ export function HomePage() {
   const isLoading = privacy.mode === "local" ? localLoading : categoriesQuery.isLoading;
   const isSuccess = privacy.mode === "local" ? true : categoriesQuery.isSuccess;
   const nextUpEnabled = privacy.mode === "local" ? false : (profileQuery.data?.nextUpEnabled ?? false);
+  const quickLogFabSide = privacy.mode === "local" ? "right" : (profileQuery.data?.quickLogFabSide ?? "right");
   const ensuredOnceRef = useRef(false);
   const [titleById, setTitleById] = useState<Record<string, string>>({});
   const [orderMode, setOrderMode] = useState(false);
@@ -452,6 +453,11 @@ export function HomePage() {
       return false;
     }
   }, []);
+
+  const notesCategoryId = useMemo(() => {
+    const notes = categories.find((c) => (c.slug ?? "").trim().toLowerCase() === "notes");
+    return notes?.id ?? null;
+  }, [categories]);
 
   useEffect(() => {
     if (privacy.mode === "local") return;
@@ -978,30 +984,58 @@ export function HomePage() {
       )}
 
       {!orderMode && !quickLogOpen ? (
-        <div className="fixed right-4 top-1/2 z-40 -translate-y-1/2 sm:hidden">
-          <div
-            className="pointer-events-none absolute -inset-8 rounded-full bg-white/10 backdrop-blur-2xl dark:bg-neutral-950/10"
-            aria-hidden="true"
-          />
-          <button
-            type="button"
-            onClick={() => openQuickLog(null)}
-            className="relative flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-white shadow-lg hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
-            aria-label="Quick log"
-            title="Log"
-          >
-            <svg
-              className="h-6 w-6"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              aria-hidden="true"
-            >
-              <path d="M12 5v14" />
-              <path d="M5 12h14" />
-            </svg>
-          </button>
+        <div
+          className={[
+            "fixed top-1/2 z-40 -translate-y-1/2 sm:hidden",
+            quickLogFabSide === "left" ? "left-4" : "right-4",
+          ].join(" ")}
+        >
+          <div className="flex flex-col items-center gap-3">
+            <div className="relative">
+              <div
+                className="pointer-events-none absolute -inset-10 rounded-full bg-neutral-950/10 opacity-70 blur-2xl dark:bg-white/10"
+                aria-hidden="true"
+              />
+              <button
+                type="button"
+                onClick={() => openQuickLog(null)}
+                className="relative flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-white shadow-lg hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
+                aria-label="Quick log"
+                title="Log"
+              >
+                <svg
+                  className="h-6 w-6"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="relative">
+              <div
+                className="pointer-events-none absolute -inset-9 rounded-full bg-neutral-950/10 opacity-70 blur-2xl dark:bg-white/10"
+                aria-hidden="true"
+              />
+              <button
+                type="button"
+                onClick={() => openQuickLog(notesCategoryId)}
+                className="relative flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                aria-label="Quick note"
+                title="Note"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

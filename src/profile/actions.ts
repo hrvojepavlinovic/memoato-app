@@ -10,6 +10,7 @@ import type {
   RequestEmailChange,
   SendPasswordResetForCurrentUser,
   SetNextUpEnabled,
+  SetQuickLogFabSide,
   SetThemePreference,
   UpdateProfile,
 } from "wasp/server/operations";
@@ -157,6 +158,19 @@ export const setThemePreference: SetThemePreference<{ preference: "light" | "dar
   await context.entities.User.update({
     where: { id: userId },
     data: { themePreference: pref },
+  });
+  return { success: true };
+};
+
+export const setQuickLogFabSide: SetQuickLogFabSide<{ side: "left" | "right" }, { success: true }> = async (
+  args,
+  context,
+) => {
+  const { userId } = requireAuth(context);
+  const side = args.side === "left" ? "left" : "right";
+  await context.entities.User.update({
+    where: { id: userId },
+    data: { quickLogFabSide: side },
   });
   return { success: true };
 };

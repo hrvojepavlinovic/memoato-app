@@ -254,6 +254,11 @@ action setThemePreference {
   entities: [User]
 }
 
+action setQuickLogFabSide {
+  fn: import { setQuickLogFabSide } from "@src/profile/actions",
+  entities: [User]
+}
+
 action requestEmailChange {
   fn: import { requestEmailChange } from "@src/profile/actions",
   entities: [User]

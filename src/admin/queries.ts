@@ -15,6 +15,30 @@ function getAdminEmailAllowlist(): Set<string> {
   return new Set(emails);
 }
 
+function parseProviderData(providerData: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(providerData);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function extractEmailFromProviderData(providerData: string): string | null {
+  const data = parseProviderData(providerData);
+  const profile = (data as any)?.profile;
+  if (typeof profile?.email === "string" && profile.email.trim()) return profile.email.trim().toLowerCase();
+  if (Array.isArray(profile?.emails) && typeof profile.emails?.[0]?.value === "string") {
+    const v = profile.emails[0].value.trim().toLowerCase();
+    return v && v.includes("@") ? v : null;
+  }
+  if (typeof (data as any)?.email === "string") {
+    const v = String((data as any).email).trim().toLowerCase();
+    return v && v.includes("@") ? v : null;
+  }
+  return null;
+}
+
 async function getUserEmail(userId: string): Promise<string | null> {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
   const fromUser = user?.email?.trim().toLowerCase() ?? null;
@@ -24,14 +48,20 @@ async function getUserEmail(userId: string): Promise<string | null> {
     where: { userId },
     select: {
       identities: {
-        where: { providerName: "email" },
-        select: { providerUserId: true },
-        take: 1,
+        where: { providerName: { in: ["email", "google"] } },
+        select: { providerName: true, providerUserId: true, providerData: true },
       },
     },
   });
-  const email = auth?.identities?.[0]?.providerUserId?.trim().toLowerCase() ?? null;
-  return email && email.includes("@") ? email : null;
+  const identities = auth?.identities ?? [];
+  const emailIdentity = identities.find((i) => i.providerName === "email") ?? null;
+  const googleIdentity = identities.find((i) => i.providerName === "google") ?? null;
+
+  const fromEmailIdentity = emailIdentity?.providerUserId?.trim().toLowerCase() ?? null;
+  if (fromEmailIdentity && fromEmailIdentity.includes("@")) return fromEmailIdentity;
+
+  const fromGoogleIdentity = googleIdentity ? extractEmailFromProviderData(googleIdentity.providerData ?? "{}") : null;
+  return fromGoogleIdentity && fromGoogleIdentity.includes("@") ? fromGoogleIdentity : null;
 }
 
 async function ensureAdminOrThrow(context: any): Promise<void> {
@@ -74,13 +104,13 @@ export const getSudoOverview: GetSudoOverview<void, SudoOverview> = async (
   ]);
 
   const users = await context.entities.User.findMany({
-    select: { id: true, username: true, role: true, createdAt: true },
+    select: { id: true, username: true, role: true, createdAt: true, email: true },
     orderBy: [{ createdAt: "desc" }],
   });
 
   const userIds = users.map((u: any) => u.id);
 
-  const [categoryTotals, entryTotals] = await Promise.all([
+  const [categoryTotals, entryTotals, lastEntryTotals] = await Promise.all([
     context.entities.Category.groupBy({
       by: ["userId"],
       where: { userId: { in: userIds }, sourceArchivedAt: null },
@@ -90,6 +120,11 @@ export const getSudoOverview: GetSudoOverview<void, SudoOverview> = async (
       by: ["userId"],
       where: { userId: { in: userIds }, kind: "SESSION" },
       _count: { _all: true },
+    }),
+    context.entities.Event.groupBy({
+      by: ["userId"],
+      where: { userId: { in: userIds }, kind: "SESSION" },
+      _max: { occurredAt: true },
     }),
   ]);
 
@@ -105,22 +140,35 @@ export const getSudoOverview: GetSudoOverview<void, SudoOverview> = async (
     entriesByUserId.set(row.userId, row._count._all ?? 0);
   }
 
+  const lastEntryAtByUserId = new Map<string, Date | null>();
+  for (const row of lastEntryTotals as any[]) {
+    if (!row.userId) continue;
+    lastEntryAtByUserId.set(row.userId, (row as any)?._max?.occurredAt ?? null);
+  }
+
   const authRows = await prisma.auth.findMany({
     where: { userId: { in: userIds } },
     select: {
       userId: true,
       identities: {
-        where: { providerName: "email" },
-        select: { providerUserId: true },
-        take: 1,
+        where: { providerName: { in: ["email", "google"] } },
+        select: { providerName: true, providerUserId: true, providerData: true },
       },
     },
   });
-  const emailByUserId = new Map<string, string | null>();
+  const identityEmailByUserId = new Map<string, string | null>();
   for (const row of authRows) {
     if (!row.userId) continue;
-    const email = row.identities?.[0]?.providerUserId?.trim().toLowerCase() ?? null;
-    emailByUserId.set(row.userId, email && email.includes("@") ? email : null);
+    const identities = row.identities ?? [];
+    const emailIdentity = identities.find((i) => i.providerName === "email") ?? null;
+    const googleIdentity = identities.find((i) => i.providerName === "google") ?? null;
+    const fromEmail = emailIdentity?.providerUserId?.trim().toLowerCase() ?? null;
+    if (fromEmail && fromEmail.includes("@")) {
+      identityEmailByUserId.set(row.userId, fromEmail);
+      continue;
+    }
+    const fromGoogle = googleIdentity ? extractEmailFromProviderData(googleIdentity.providerData ?? "{}") : null;
+    identityEmailByUserId.set(row.userId, fromGoogle && fromGoogle.includes("@") ? fromGoogle : null);
   }
 
   return {
@@ -132,9 +180,9 @@ export const getSudoOverview: GetSudoOverview<void, SudoOverview> = async (
     users: users.map((u: any) => ({
       id: u.id,
       username: u.username,
-      email: emailByUserId.get(u.id) ?? null,
-      role: u.role ?? "user",
+      email: (u.email?.trim().toLowerCase() ?? null) || identityEmailByUserId.get(u.id) || null,
       createdAt: u.createdAt,
+      lastEntryAt: lastEntryAtByUserId.get(u.id) ?? null,
       categoriesCount: categoriesByUserId.get(u.id) ?? 0,
       entriesCount: entriesByUserId.get(u.id) ?? 0,
     })),

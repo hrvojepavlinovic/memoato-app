@@ -186,6 +186,11 @@ function amountFitScore(args: {
     if (c.categoryType === "DO" || c.categoryType === "DONT") return 0.75;
   }
 
+  // Weight is very often an integer like "95".
+  if (key === "weight" || u === "kg" || title.includes("weight") || title.includes("tezina") || title.includes("težina")) {
+    if (amount >= 20 && amount <= 250) return isDecimal ? 0.85 : 0.78;
+  }
+
   // Unit hints.
   if ((u === "ml" || u === "l") && amount >= 50 && amount <= 3000) return 0.65;
   if (u === "kcal" && amount >= 50 && amount <= 4000) return 0.55;
@@ -504,6 +509,8 @@ export function QuickLogDialog({
         const el = document.getElementById("memoato-quicklog-pick");
         el?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 0);
+    } else {
+      window.setTimeout(() => inputRef.current?.focus(), 0);
     }
   }
 
@@ -623,7 +630,7 @@ export function QuickLogDialog({
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 sm:p-4">
-              <div className="flex flex-wrap gap-2">
+              <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1">
               {topChips.map((r) => {
                 const active = r.c.id === selectedCategoryId;
                 return (
@@ -632,7 +639,7 @@ export function QuickLogDialog({
                     type="button"
                     onClick={() => onChipPick(r.c.id)}
                     className={
-                      "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm " +
+                      "inline-flex max-w-full flex-none items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm " +
                       (active
                         ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
                         : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
@@ -647,27 +654,19 @@ export function QuickLogDialog({
                   </button>
                 );
               })}
-              {ranked.length > topChips.length ? (
-                <button
-                  type="button"
-                  onClick={() => togglePicker()}
-                  className={
-                    "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm " +
-                    (showPicker
-                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
-                      : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
-                  }
-                  disabled={saving}
-                  aria-label={showPicker ? "Hide category picker" : "Show category picker"}
-                  title={showPicker ? "Hide" : "More"}
-                >
-                  <span className="text-base leading-none" aria-hidden="true">
-                    {showPicker ? "×" : "⋯"}
-                  </span>
-                  <span>{showPicker ? "Hide" : "More"}</span>
-                </button>
-              ) : null}
               </div>
+              {!selected && ranked.length > 0 ? (
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => togglePicker(true)}
+                    className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
+                    disabled={saving}
+                  >
+                    Pick category
+                  </button>
+                </div>
+              ) : null}
 
               {selected ? (
                 <div
@@ -761,7 +760,7 @@ export function QuickLogDialog({
                   <button
                     type="button"
                     onClick={() => togglePicker(false)}
-                    className="text-xs font-semibold text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
                     disabled={saving}
                   >
                     Hide

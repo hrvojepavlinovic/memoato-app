@@ -2,8 +2,8 @@ export type SudoUserRow = {
   id: string;
   username: string;
   email: string | null;
-  role: string;
   createdAt: Date;
+  lastEntryAt: Date | null;
   categoriesCount: number;
   entriesCount: number;
 };
@@ -16,4 +16,3 @@ export type SudoOverview = {
   };
   users: SudoUserRow[];
 };
-

@@ -12,6 +12,21 @@ function parseProviderData(providerData: string): Record<string, unknown> {
   }
 }
 
+function extractEmailFromProviderData(providerData: string): string | null {
+  const data = parseProviderData(providerData);
+  const profile = (data as any)?.profile;
+  if (typeof profile?.email === "string" && profile.email.trim()) return profile.email.trim().toLowerCase();
+  if (Array.isArray(profile?.emails) && typeof profile.emails?.[0]?.value === "string") {
+    const v = profile.emails[0].value.trim().toLowerCase();
+    return v && v.includes("@") ? v : null;
+  }
+  if (typeof (data as any)?.email === "string") {
+    const v = String((data as any).email).trim().toLowerCase();
+    return v && v.includes("@") ? v : null;
+  }
+  return null;
+}
+
 export const getProfile: GetProfile<void, ProfileData> = async (_args, context) => {
   if (!context.user) {
     throw new HttpError(401);
@@ -26,6 +41,7 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
       lastName: true,
       nextUpEnabled: true,
       themePreference: true,
+      quickLogFabSide: true,
     },
   });
   if (!user) {
@@ -48,7 +64,8 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
 
   const emailFromUser = user.email?.trim().toLowerCase() ?? null;
   const emailFromEmailIdentity = emailIdentity?.providerUserId?.trim().toLowerCase() ?? null;
-  const email = emailFromUser || emailFromEmailIdentity || null;
+  const emailFromGoogleIdentity = googleIdentity ? extractEmailFromProviderData(googleIdentity.providerData ?? "{}") : null;
+  const email = emailFromUser || emailFromEmailIdentity || emailFromGoogleIdentity || null;
 
   const emailProviderData = parseProviderData(emailIdentity?.providerData ?? "{}");
   const isEmailVerified = emailIdentity ? emailProviderData.isEmailVerified === true : true;
@@ -64,6 +81,7 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
     nextUpEnabled: user.nextUpEnabled,
     themePreference:
       user.themePreference === "dark" ? "dark" : user.themePreference === "light" ? "light" : null,
+    quickLogFabSide: user.quickLogFabSide === "left" ? "left" : "right",
     email: email && email.includes("@") ? email : null,
     isEmailVerified,
     hasEmailAuth,

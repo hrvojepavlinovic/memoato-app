@@ -4,6 +4,7 @@ export type ProfileData = {
   lastName: string | null;
   nextUpEnabled: boolean;
   themePreference: "light" | "dark" | null;
+  quickLogFabSide: "left" | "right";
   email: string | null;
   isEmailVerified: boolean;
   hasEmailAuth: boolean;

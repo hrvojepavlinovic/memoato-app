@@ -9,16 +9,17 @@ import {
   exportMyData,
   getCategories,
   getCategoryEvents,
-  getProfile,
-  requestAccountDeletion,
-  requestEmailChange,
-  sendPasswordResetForCurrentUser,
-  setNextUpEnabled,
-  updateCategory,
-  updateEvent,
-  updateProfile,
-  useQuery,
-} from "wasp/client/operations";
+	  getProfile,
+	  requestAccountDeletion,
+	  requestEmailChange,
+	  sendPasswordResetForCurrentUser,
+	  setNextUpEnabled,
+	  setQuickLogFabSide,
+	  updateCategory,
+	  updateEvent,
+	  updateProfile,
+	  useQuery,
+	} from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import type { PrivacyMode } from "../privacy/types";
@@ -92,9 +93,10 @@ export function ProfilePage() {
   const [passphrase, setPassphrase] = useState("");
   const [migrationProgress, setMigrationProgress] = useState<string | null>(null);
 
-  const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [nextUpEnabledPref, setNextUpEnabledPref] = useState<boolean | null>(null);
+	  const [message, setMessage] = useState<string | null>(null);
+	  const [busy, setBusy] = useState<string | null>(null);
+	  const [nextUpEnabledPref, setNextUpEnabledPref] = useState<boolean | null>(null);
+	  const [fabSidePref, setFabSidePref] = useState<"left" | "right" | null>(null);
 
   useEffect(() => {
     if (!q.data) return;
@@ -103,10 +105,15 @@ export function ProfilePage() {
     setLastName(q.data.lastName ?? "");
   }, [q.data]);
 
-  useEffect(() => {
-    if (!q.data) return;
-    setNextUpEnabledPref(q.data.nextUpEnabled);
-  }, [q.data?.nextUpEnabled]);
+	  useEffect(() => {
+	    if (!q.data) return;
+	    setNextUpEnabledPref(q.data.nextUpEnabled);
+	  }, [q.data?.nextUpEnabled]);
+
+	  useEffect(() => {
+	    if (!q.data) return;
+	    setFabSidePref(q.data.quickLogFabSide);
+	  }, [q.data?.quickLogFabSide]);
 
   useEffect(() => {
     setPendingMode(privacy.mode);
@@ -734,13 +741,13 @@ export function ProfilePage() {
           </div>
         </div>
 
-        <div className="card p-4">
-          <div className="mb-3 text-sm font-semibold">Home</div>
-          <div className="mb-2 text-sm font-semibold">Next up</div>
-          <div className="text-sm text-neutral-500 dark:text-neutral-400">
-            Motivational suggestions based on your goals.
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
+	        <div className="card p-4">
+	          <div className="mb-3 text-sm font-semibold">Home</div>
+	          <div className="mb-2 text-sm font-semibold">Next up</div>
+	          <div className="text-sm text-neutral-500 dark:text-neutral-400">
+	            Motivational suggestions based on your goals.
+	          </div>
+	          <div className="mt-3 grid grid-cols-2 gap-2">
             {([true, false] as const).map((enabled) => {
               const active = (nextUpEnabledPref ?? q.data?.nextUpEnabled ?? false) === enabled;
               const isDisabled = busy === "nextUp" || q.isLoading || !q.data;
@@ -777,9 +784,54 @@ export function ProfilePage() {
                   {enabled ? "Show" : "Hide"}
                 </button>
               );
-            })}
-          </div>
-        </div>
+	            })}
+	          </div>
+	          <div className="mt-5">
+	            <div className="mb-2 text-sm font-semibold">Quick log button</div>
+	            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+	              Choose which side the quick log button sits on.
+	            </div>
+	            <div className="mt-3 grid grid-cols-2 gap-2">
+	              {(["left", "right"] as const).map((side) => {
+	                const active = (fabSidePref ?? q.data?.quickLogFabSide ?? "right") === side;
+	                const isDisabled = busy === "fabSide" || q.isLoading || !q.data;
+	                return (
+	                  <button
+	                    key={side}
+	                    type="button"
+	                    disabled={isDisabled}
+	                    onClick={async () => {
+	                      if (!q.data) return;
+	                      setMessage(null);
+	                      setBusy("fabSide");
+	                      setFabSidePref(side);
+	                      try {
+	                        await setQuickLogFabSide({ side });
+	                        await q.refetch();
+	                      } catch (e: any) {
+	                        setFabSidePref(q.data.quickLogFabSide);
+	                        setMessage(e?.message ?? "Failed to update setting.");
+	                      } finally {
+	                        setBusy(null);
+	                      }
+	                    }}
+	                    aria-pressed={active}
+	                    className={[
+	                      "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
+	                      isDisabled
+	                        ? "cursor-not-allowed opacity-70"
+	                        : active
+	                        ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+	                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+	                    ].join(" ")}
+	                  >
+	                    {side === "left" ? "Left" : "Right"}
+	                  </button>
+	                );
+	              })}
+	            </div>
+	          </div>
+	        </div>
 
         <div className="card p-4">
           <div className="mb-3 text-sm font-semibold">Reminders</div>

@@ -19,6 +19,7 @@ model User {
   lastName  String?
   nextUpEnabled Boolean @default(false)
   themePreference String?
+  quickLogFabSide String @default("right")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
