@@ -54,17 +54,6 @@ function clamp01(n: number): number {
   return Math.min(1, Math.max(0, n));
 }
 
-function isLikelyGrayHex(hex: unknown): boolean {
-  if (typeof hex !== "string") return true;
-  const h = hex.trim();
-  if (!/^#[0-9a-fA-F]{6}$/.test(h)) return true;
-  const r = parseInt(h.slice(1, 3), 16);
-  const g = parseInt(h.slice(3, 5), 16);
-  const b = parseInt(h.slice(5, 7), 16);
-  const spread = Math.max(r, g, b) - Math.min(r, g, b);
-  return spread <= 18;
-}
-
 function expectedPace01(period: CategoryWithStats["period"]): number {
   const now = new Date();
 
@@ -120,8 +109,6 @@ function GoalProgress({
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const pace = goal > 0 ? expectedPace01(c.period) : 0;
   const paceClamped = clamp01(pace);
-  const paceAccent =
-    goal > 0 && !isLikelyGrayHex(c.accentHex) ? withHexAlpha(c.accentHex, "1A") : null;
   const dir = normalizeGoalDirection(c);
   const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
   const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
@@ -138,27 +125,29 @@ function GoalProgress({
         <span>{periodLabel(c.period)}</span>
         <span className="tabular-nums">{rightLabel}</span>
       </div>
-      <div className="relative mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+      <div className="relative mt-1">
         {goal > 0 ? (
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 z-0 rounded-full bg-neutral-950/10 dark:bg-white/10"
-            style={{ width: `${paceClamped * 100}%` }}
+            className="pointer-events-none absolute -top-2 left-0 h-0 w-full"
             aria-hidden="true"
             title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
-          />
+          >
+            <div
+              className="absolute top-0 -translate-x-1/2"
+              style={{ left: `${paceClamped * 100}%` }}
+            >
+              <div className="h-3 w-[2px] rounded-full bg-neutral-950/25 dark:bg-white/25" />
+              <div className="-mt-1 h-2 w-2 rotate-45 rounded-[2px] bg-neutral-950/20 dark:bg-white/20" />
+            </div>
+          </div>
         ) : null}
-        {goal > 0 && paceAccent ? (
+        <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 z-0 rounded-full"
-            style={{ width: `${paceClamped * 100}%`, backgroundColor: paceAccent }}
-            aria-hidden="true"
+            className="h-full rounded-full"
+            style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
+            aria-label={`${periodLabel(c.period)} progress`}
           />
-        ) : null}
-        <div
-          className="relative z-10 h-full rounded-full"
-          style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
-          aria-label={`${periodLabel(c.period)} progress`}
-        />
+        </div>
       </div>
     </div>
   );
