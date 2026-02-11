@@ -23,7 +23,14 @@ export function SudoPage() {
   const [sortKey, setSortKey] = React.useState<"createdAt" | "categoriesCount" | "entriesCount" | "lastEntryAt">("createdAt");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
-  const totals = q.data?.totals ?? { users: 0, categories: 0, entries: 0 };
+  const totals = q.data?.totals ?? {
+    users: 0,
+    usersWithEntries: 0,
+    categories: 0,
+    entries: 0,
+    entriesToday: 0,
+    newUsersThisWeek: 0,
+  };
   const users = q.data?.users ?? [];
   const sortedUsers = React.useMemo(() => {
     const copy = [...users];
@@ -92,12 +99,24 @@ export function SudoPage() {
             <div className="mt-1 text-lg font-semibold tabular-nums">{totals.users}</div>
           </div>
           <div className="card p-3">
+            <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Users with entries</div>
+            <div className="mt-1 text-lg font-semibold tabular-nums">{totals.usersWithEntries}</div>
+          </div>
+          <div className="card p-3">
             <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Total categories</div>
             <div className="mt-1 text-lg font-semibold tabular-nums">{totals.categories}</div>
           </div>
           <div className="card p-3">
             <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Total entries</div>
             <div className="mt-1 text-lg font-semibold tabular-nums">{totals.entries}</div>
+          </div>
+          <div className="card p-3">
+            <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Entries today</div>
+            <div className="mt-1 text-lg font-semibold tabular-nums">{totals.entriesToday}</div>
+          </div>
+          <div className="card p-3">
+            <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">New users this week</div>
+            <div className="mt-1 text-lg font-semibold tabular-nums">{totals.newUsersThisWeek}</div>
           </div>
         </div>
       </div>

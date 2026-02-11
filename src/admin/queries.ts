@@ -91,17 +91,45 @@ async function ensureAdminOrThrow(context: any): Promise<void> {
   throw new HttpError(404);
 }
 
+function startOfTodayUtcLocal(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function startOfWeekMondayLocal(): Date {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun..6=Sat
+  const diff = (day + 6) % 7; // Mon=0..Sun=6
+  const start = new Date(now);
+  start.setDate(now.getDate() - diff);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
 export const getSudoOverview: GetSudoOverview<void, SudoOverview> = async (
   _args,
   context,
 ) => {
   await ensureAdminOrThrow(context);
 
-  const [usersCount, categoriesCount, entriesCount] = await Promise.all([
-    context.entities.User.count(),
-    context.entities.Category.count({ where: { sourceArchivedAt: null } }),
-    context.entities.Event.count({ where: { kind: "SESSION" } }),
-  ]);
+  const startOfToday = startOfTodayUtcLocal();
+  const startOfWeek = startOfWeekMondayLocal();
+
+  const [usersCount, usersWithEntriesGroups, categoriesCount, entriesCount, entriesTodayCount, newUsersThisWeekCount] =
+    await Promise.all([
+      context.entities.User.count(),
+      prisma.event.groupBy({
+        by: ["userId"],
+        where: { kind: "SESSION", userId: { not: null } },
+        _count: { _all: true },
+      }),
+      context.entities.Category.count({ where: { sourceArchivedAt: null } }),
+      context.entities.Event.count({ where: { kind: "SESSION" } }),
+      prisma.event.count({ where: { kind: "SESSION", occurredOn: startOfToday } }),
+      prisma.user.count({ where: { createdAt: { gte: startOfWeek } } }),
+    ]);
+  const usersWithEntriesCount = usersWithEntriesGroups.length;
 
   const users = await context.entities.User.findMany({
     select: { id: true, username: true, role: true, createdAt: true, email: true },
@@ -174,8 +202,11 @@ export const getSudoOverview: GetSudoOverview<void, SudoOverview> = async (
   return {
     totals: {
       users: usersCount,
+      usersWithEntries: usersWithEntriesCount,
       categories: categoriesCount,
       entries: entriesCount,
+      entriesToday: entriesTodayCount,
+      newUsersThisWeek: newUsersThisWeekCount,
     },
     users: users.map((u: any) => ({
       id: u.id,

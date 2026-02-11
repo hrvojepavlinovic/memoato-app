@@ -11,8 +11,11 @@ export type SudoUserRow = {
 export type SudoOverview = {
   totals: {
     users: number;
+    usersWithEntries: number;
     categories: number;
     entries: number;
+    entriesToday: number;
+    newUsersThisWeek: number;
   };
   users: SudoUserRow[];
 };
