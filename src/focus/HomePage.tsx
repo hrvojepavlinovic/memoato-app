@@ -143,7 +143,7 @@ function GoalProgress({
             aria-hidden="true"
             title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
           >
-            <div className="relative h-[14px] w-[8px] rounded-full bg-neutral-200 dark:bg-neutral-800">
+            <div className="relative h-[14px] w-[6px] rounded-full bg-neutral-200 dark:bg-neutral-800">
               <div className="absolute inset-0 overflow-hidden rounded-full">
                 <div className="h-full" style={{ width: `${bubbleFill * 100}%`, backgroundColor: c.accentHex }} />
               </div>
