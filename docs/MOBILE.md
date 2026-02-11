@@ -6,7 +6,7 @@ we use a thin native wrapper via Capacitor.
 ## Goals
 
 - Store presence (TestFlight/App Store + Play Store)
-- Native reminders (local notifications first; push later)
+- Native reminders (local notifications first, push later)
 - Keep one product surface (the web app) as the source of truth
 
 ## Repo structure
@@ -55,7 +55,7 @@ cd apps/mobile
 npm install
 ```
 
-Create native projects (generated locally; not committed):
+Create native projects (generated locally, not committed):
 
 ```bash
 npm run cap:add:android

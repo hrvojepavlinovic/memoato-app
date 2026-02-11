@@ -35,7 +35,7 @@ During a session, send a Telegram message when:
 - You’re starting or finishing a deploy/migration.
 - You finished the requested work and want to hand off.
 
-Keep messages short; don’t paste secrets.
+Keep messages short. Don’t paste secrets.
 
 ## Workflow (commit → push → deploy)
 
@@ -50,7 +50,7 @@ After each completed change (feature/fix/docs), follow this flow:
    - keep commits small and focused
    - never commit secrets (`.env*`, tokens, credentials)
 3. Push:
-   - pushing triggers public CI/hosting; assume the world can see it
+   - pushing triggers public CI/hosting. Assume the world can see it
 4. Deploy:
    - **Landing (Astro)** deploys on push to `main` via Cloudflare Pages (Connect to Git).
    - **App (Wasp)** deploys via `./scripts/deploy_prod.sh` (see `docs/DEPLOY.md`).

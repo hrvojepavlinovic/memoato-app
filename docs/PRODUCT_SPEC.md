@@ -13,7 +13,7 @@ Memoato is:
 ## MVP goals
 
 1. **Home dashboard** with a grid of category cards showing emoji, accent color, quick stats, and progress bars / numeric glances depending on the category type.
-2. **Category detail** with quick entry (default now; backfill with date+time), charts (bars for count categories, lines for goal-value categories), and editable history / deletions.
+2. **Category detail** with quick entry (default now, backfill with date+time), charts (bars for count categories, lines for goal-value categories), and editable history / deletions.
 3. **User management**: profiles can update username/name, change email (with verification), reset passwords, export data, and request account deletion. Admins gain `/sudo` with site-wide totals.
 4. **Import pipeline** to ingest third-party data (JSON export) and metadata (source, createdAt/occurredOn) into Categories/Events.
 5. **Production stack**: Wasp backend + React client served via PM2, exposed through Cloudflare Tunnel, connected to Postgres over a UNIX socket.
@@ -27,14 +27,14 @@ Memoato is:
   - `title`, optional `emoji`, accent color (`accentHex`), friendly slug.
   - `categoryType`: `NUMBER` | `DO` | `DONT` (legacy `GOAL` may exist but is treated as `NUMBER`).
   - `chartType`: `bar` (totals per bucket) or `line` (values over time).
-  - `period`: day/week/month/year (bar charts only; line charts have no period field).
+  - `period`: day/week/month/year (bar charts only. Line charts have no period field).
   - `unit`: optional text (omit `x` when there is no service unit).
   - Goals:
     - `goalWeekly`: per-period goal (used by bar charts for the selected `period`).
     - `goalValue`: target value (used by line charts like weight).
     - `goalDirection`: `at_least` (higher is better) or `at_most` (lower is better).
   - Multiple entries per bucket:
-    - `bucketAggregation`: `sum` | `avg` | `last` (bar charts use `sum`/`avg`; line charts use `last`/`avg`).
+    - `bucketAggregation`: `sum` | `avg` | `last` (bar charts use `sum`/`avg`. Line charts use `last`/`avg`).
   - Optional manual ordering:
     - `sortOrder` is used by the Home dashboard when the user sets a custom order (drag-and-drop reorder mode).
     - New categories created after a custom order is set appear at the bottom until reordered (or the order is reset).
@@ -48,6 +48,8 @@ Memoato is:
   - `createdAt` (when inserted) and `occurredAt` (timestamp with time), plus `occurredOn` (date-only) for grouping/backfilling.
   - `rawText` for quick reference and `data` to store raw import payloads.
   - `kind` (default `SESSION`) and optional `source`.
+  - Constraints:
+    - The UI prevents selecting future dates for `occurredAt`.
 
 ## Default categories & goals
 
@@ -64,7 +66,7 @@ Example starter templates:
 | Push ups | week | 300 reps/week | bar | 💪 | `#F59E0B` | Weekly goal |
 | Weight | N/A | 85 kg target | line | ⚖️ | `#0EA5E9` | Line chart with target |
 
-More categories can be added by the user; each one can pick a type (track number, do’s, don’ts, or goal value) plus a period. Every card stores an optional emoji that sits inside a round pill with an accent border.
+More categories can be added by the user. Each one can pick a type (track number, do’s, don’ts, or goal value) plus a period. Every card stores an optional emoji that sits inside a round pill with an accent border.
 
 ## Home dashboard
 
@@ -79,9 +81,17 @@ More categories can be added by the user; each one can pick a type (track number
   - Small “this week” / “this year” / “last value/goal” line with tabular numbers.
   - For goal/week categories, a full-width progress bar tinted with the accent color and a number on the right (e.g., `194 / 300`).
   - For tracking-only categories (Padel, Termin), show “This year” totals and label the number.
-  - Optionally, show a quick “+ Add” or inline input so entries can be recorded from the grid without navigating (future iteration).
+  - A quick add button (“+”) opens an add-entry modal so entries can be recorded from the grid without navigating.
   - Cards highlight (border + light tint) when goals are achieved and offer a `Link` to `/c/:slug`.
 - The page includes a prominent “Add category” button and more padding between the header and main grid for clarity.
+
+### Coach Mode v0: Next up
+
+Home can optionally show a “Next up” card with up to 3 suggestions for goal-based categories:
+
+- Suggestions are deterministic (no AI) and based on remaining-to-go and recent timing/frequency.
+- Value-based categories (line chart, e.g. weight) are not suggested again after you already logged them today.
+- Each suggestion includes a quick add button that opens the add-entry modal for that category.
 
 ## Onboarding (first run)
 
@@ -100,11 +110,11 @@ When a user has no non-system categories, Memoato opens an onboarding screen:
   - Add button uses black background with white text, aligned to inputs.
   - Optionally show current week summary at the top of the card.
 - Charts:
-  - Period picker (Day/Week/Month/Year) sits next to period navigation buttons on desktop; on mobile the picker moves right above the chart.
+  - Period picker (Day/Week/Month/Year) sits next to period navigation buttons on desktop. On mobile the picker moves right above the chart.
   - `← Prev` / `Next →` buttons change the offset (with “Next” disabled at current).
   - Bar chart shows number labels on top of each bar, touches the right edge while leaving a little padding (avoids empty space). Bars scroll horizontally with the latest period aligned to the right, and arrows help jump between spans.
   - Weekly goal line renders as a strikethrough line tinted with a lighter version of the accent color (same style as the weight goal line) with text legend.
-  - Line chart (weight) auto scales and adds padding when values exceed the goal so the highest point and strikethrough label never get clipped. Value bubbles show numbers; the x-axis label simplifies months to short names (e.g., `Jan`).
+  - Line chart (weight) auto scales and adds padding when values exceed the goal so the highest point and strikethrough label never get clipped. Value bubbles show numbers. The x-axis label simplifies months to short names (e.g., `Jan`).
 - History:
   - List of entries with date/time + amount inputs, inline Save/Delete buttons, and improved spacing so items don’t crowd.
   - History can be toggled open/closed, shows “Load more” to fetch older entries, and updates analytics after edits.
@@ -114,16 +124,25 @@ When a user has no non-system categories, Memoato opens an onboarding screen:
 
 - Profile page:
   - Section to edit username, first name, last name.
-  - Email card showing current email + verification status; allows requesting a confirmation email for a new email address (caller must supply email and confirm through link).
+  - Email card showing current email + verification status. Allows requesting a confirmation email for a new email address (caller must supply email and confirm through link).
   - Password reset button sends a reset email.
-  - Export data (JSON download; future ZIP option) that includes profile, categories, and events.
-  - Delete account button (email confirmation; no auto-verify).
-  - Layout uses black buttons and consistent spacing; mobile-friendly adjustments (buttons full width).
+  - Export data (JSON download, future ZIP option) that includes profile, categories, and events.
+  - Delete account button (email confirmation, no auto-verify).
+  - Layout uses black buttons and consistent spacing. Mobile-friendly adjustments (buttons full width).
+  - Preferences:
+    - Theme preference is stored per user (`User.themePreference`).
+    - Next up visibility is stored per user (`User.nextUpEnabled`).
+
+### Auth providers
+
+- Email + password auth (Wasp): verification is required, but usage is allowed immediately with an “unverified” indicator.
+- Google auth (Wasp OAuth): optional, enabled by `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+  - `User.email` is synced from the Google profile on login so profile and exports have a usable email.
 
 - User model:
   - `role` string (default `user`). Admins are promoted via `MEMOATO_ADMIN_EMAILS` (comma-separated env var) or manually via DB.
   - Profile data includes `firstName`, `lastName`, `createdAt`, and optional `updatedAt`.
-  - Admins can access `/sudo` even if the button is hidden; non-admins visiting the route get a 404.
+  - Admins can access `/sudo` even if the button is hidden. Non-admins visiting the route get a 404.
 
 - Sudo page:
   - Aggregated totals (users, categories, entries) in cards.
@@ -134,7 +153,7 @@ When a user has no non-system categories, Memoato opens an onboarding screen:
 Memoato supports three privacy/storage modes (set in **Profile → Privacy**):
 
 1. **Cloud sync (default)**: data is stored normally to power charts/history and support multi-device access.
-2. **Encrypted cloud**: **category titles** and **per-entry notes** are encrypted client-side before saving to the DB; users unlock with a passphrase per device (passphrase is never stored).
+2. **Encrypted cloud**: **category titles** and **per-entry notes** are encrypted client-side before saving to the DB. Users unlock with a passphrase per device (passphrase is never stored).
 3. **Local-only**: categories and entries are stored on-device (IndexedDB). Switching to local-only wipes server categories/events for that account.
 
 ## Analytics & PWA
@@ -174,7 +193,7 @@ Memoato supports three privacy/storage modes (set in **Profile → Privacy**):
      - Map source categories to our `Category` table (title, emoji, accent, type, period).
      - Parse timestamps into `occurredAt` (with time) and `occurredOn` (date). Keep `createdAt` as the import time.
      - Save raw payload into `Event.data` for traceability.
-  3. Run keyword/regex mapping (future command bar logic) to assign fuzzy categories; ambiguous rows stay in “Uncategorized”.
+  3. Run keyword/regex mapping (future command bar logic) to assign fuzzy categories. Ambiguous rows stay in “Uncategorized”.
   4. After import, refresh stats with `getCategories`/`getCategorySeries`.
 
 - Until the JSON export is available, keep a small sanitized sample under `imports/` (ignored by git) for local testing.

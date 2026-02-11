@@ -2,7 +2,16 @@
 
 Memoato’s next chapter is **Coach Mode**: an optional layer that turns tracking into gentle, context-aware planning and weekly feedback, without becoming a generic todo app.
 
-## What it is (TL;DR)
+## Status (shipped)
+
+Memoato currently ships a small, deterministic Coach Mode v0 called **Next up**:
+
+- Home shows up to 3 goal-based suggestions.
+- It is time-aware (uses recent timing and frequency) and context-aware (e.g. it does not suggest weight again if you already logged it today).
+- Each suggestion has a quick add button that opens the same add-entry UI.
+- Visibility is stored per user (`User.nextUpEnabled`), not in localStorage.
+
+## What it is (TLDR)
 
 - **Planning:** “What should I do today?” becomes a small, auto-generated **Daily Plan** derived from your existing goals and recent activity (e.g., “Push ups: 120 today”).
 - **Feedback:** “How am I doing?” becomes a **Weekly Review** that highlights patterns, missed goals, and the smallest change to get back on track.
@@ -13,12 +22,12 @@ Memoato’s next chapter is **Coach Mode**: an optional layer that turns trackin
 Coach Mode is available only when Memoato can safely compute on the user’s data:
 
 - **Cloud sync:** eligible.
-- **Encrypted cloud:** off by default; can be enabled only if the user explicitly opts in to AI analyzing decrypted data on the server (clear “what data is used” consent).
+- **Encrypted cloud:** off by default. Can be enabled only if the user explicitly opts in to AI analyzing decrypted data on the server (clear “what data is used” consent).
 - **Local-only:** not eligible (unless a future on-device AI path exists).
 
 Data handling principles:
-- **Opt-in, reversible:** a single toggle in settings; disable = stop AI processing immediately.
-- **Minimize retention:** store raw data in existing tables; store only compact derived artifacts (weekly summaries, suggested plans) with a clear delete button.
+- **Opt-in, reversible:** a single toggle in settings. Disable means stop AI processing immediately.
+- **Minimize retention:** store raw data in existing tables. Store only compact derived artifacts (weekly summaries, suggested plans) with a clear delete button.
 - **No surprises:** show exactly which fields are used (categories, amounts, timestamps, notes if opted in).
 
 ## UX surfaces (minimal set)
@@ -54,7 +63,7 @@ MVP rules (non-AI):
 AI enhancements (later):
 - Suggest splits (“2 × 60” instead of “120 once”).
 - Learn preferred times and session sizes.
-- Explain misses without guilt (“You usually log after 6pm; want a reminder?”).
+- Explain misses without guilt (“You usually log after 6pm, want a reminder?”).
 
 ## AI outputs (strictly bounded)
 
@@ -75,14 +84,14 @@ Recommended packaging:
 - **Pro (subscription):** Coach Mode (plan + weekly review + AI insights) for hosted `app.memoato.com`.
 
 Self-hosting options:
-- **BYOK (server-level):** instance owner supplies AI provider key in `.env.server`; Coach Mode works without Memoato paying inference costs.
-- Keep hosted and self-hosted aligned on UX; only the billing/key source differs.
+- **BYOK (server-level):** instance owner supplies AI provider key in `.env.server`. Coach Mode works without Memoato paying inference costs.
+- Keep hosted and self-hosted aligned on UX. Only the billing or key source differs.
 
 ## Rollout plan (de-risked)
 
 1. **Phase A (no AI):** Daily Plan using deterministic rules + “complete by logging” loop.
-2. **Phase B (AI weekly review):** server-generated weekly summary; user feedback prompt (“Was this helpful?”).
-3. **Phase C (AI planning):** AI suggests daily plan variants; user can accept/edit.
+2. **Phase B (AI weekly review):** server-generated weekly summary. Add a user feedback prompt (“Was this helpful?”).
+3. **Phase C (AI planning):** AI suggests daily plan variants. User can accept or edit.
 
 Success metrics:
 - Activation: % of new users who complete a plan item in first 24h.

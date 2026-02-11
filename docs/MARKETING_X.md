@@ -38,10 +38,10 @@ Keep it honest and specific: “one codebase for auth + API + React UI”, “de
 - Optional: a 1-slide “principles” image (speed, clarity, minimalism).
 
 ## Prepared replies
-- “Is it free?” → “Free for now. Open-source soon; self-hosting will be supported.”
-- “iOS/Android?” → “Works as a PWA today; native client planned later using same API.”
+- “Is it free?” → “Free for now. Open-source soon. Self-hosting will be supported.”
+- “iOS/Android?” → “Works as a PWA today. Native client planned later using same API.”
 - “AI?” → “AI helpers planned: smart categorization, summaries, coaching prompts.”
-- “Privacy?” → “Minimal data, no ads; privacy policy on memoato.com.”
+- “Privacy?” → “Minimal data, no ads. Privacy policy on memoato.com.”
 
 ## Draft posts (copy/paste)
 
@@ -78,7 +78,7 @@ This week memoato shipped a bunch of improvements based on real usage:
 - More category options: goals, chart type (bar or line), and how multiple entries are counted (sum, average, last).
 - Better day review with Timeline.
 
-Next up: dark theme, also based on feedback.
+Recent upgrades: dark theme, “Next up” suggestions, Google login.
 
 Try it: https://app.memoato.com
 Built with @WaspLang. Analytics by @trydatabuddy.
@@ -91,7 +91,7 @@ In the last few days we added:
 2) Category settings for goals, chart type, and multiple-entry behavior (sum, average, last).
 3) Timeline day view (a human-readable summary of what you did).
 
-Next up: dark theme.
+Recent upgrades: dark theme, “Next up” suggestions, Google login.
 
 Try it: https://app.memoato.com
 
@@ -104,7 +104,7 @@ Screenshot 3: Timeline day view.
 Love this part of building: users point out what feels off, and we fix it quickly.
 
 Category sorting and richer category settings came directly from feedback.
-Dark theme is next.
+Dark theme shipped. Next up is faster onboarding and quick log.
 
 Try memoato: https://app.memoato.com
 Repo: https://github.com/hrvojepavlinovic/memoato-app
@@ -112,4 +112,4 @@ Repo: https://github.com/hrvojepavlinovic/memoato-app
 ## Suggested CTA links
 - App: `https://app.memoato.com`
 - Landing: `https://memoato.com`
-- X: `https://x.com/0xhp10`
+- X: `https://x.com/memoatoo`

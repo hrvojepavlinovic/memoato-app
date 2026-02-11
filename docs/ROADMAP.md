@@ -4,6 +4,15 @@
 
 Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuzzy reminders. The mission is to let a single user capture meaningful health, habit, and appointment data with as little friction as possible, typing a number, hitting Enter, and seeing a clear, colorful dashboard while the API remains reusable for future native apps.
 
+## Shipped recently (Feb 2026)
+
+- Next up (Coach Mode v0) with quick add and time-aware ordering.
+- Theme preference stored per user.
+- Google login (Wasp auth).
+- PWA install banner and improved icons (maskable and rounded).
+- Mobile wrapper scaffold and reminders UI (Capacitor).
+- SEO for humans and LLMs (sitemap, robots, JSON-LD, `llms.txt`).
+
 ## Pillars
 
 1. **Focused capture.** Home dashboard cards surfacing progress bars, accent colors, emoji, and quick “this week” totals so nothing needs to be dug out of menus.
@@ -17,9 +26,9 @@ Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuz
 | --- | --- | --- |
 | 1. Foundation | Wasp + Prisma schema, DB setup (`memoato`), default categories, basic dashboard + category detail, import plan drafted. | `wasp db migrate-dev` succeeds, default categories seeded, user can add/edit events, profile page available. |
 | 2. Experience polish | Accent-based progress bars, strikethrough goal lines, history editing/deletion, responsive layout tweaks (period picker placement, mobile-friendly charts, button alignment). | All categories show colored progress bars or glances, categories can be reordered on Home, charts auto-scroll to latest period, history entries are editable. |
-| 3. Ops & analytics | PM2+Cloudflare deployment, Databuddy instrumentation, PWA install prompts, manifest + icons, default 404, log rotation, `/sudo` admin insights. | App accessible via `app.memoato.com`, analytics dashboard shows events, install prompt triggers on Android/iOS, `/sudo` works for admins. |
+| 3. Ops, PWA, SEO | PM2+Cloudflare deployment, Databuddy instrumentation, install prompts, icons, sitemap and structured data, `/sudo` admin insights. | App accessible via `app.memoato.com`, analytics dashboard shows events, install prompt triggers on Android/iOS, `/sudo` works for admins. |
 | 4. Import & export | JSON import path defined, raw payload stored, profile export available, admin insights include import metadata. | JSON exports can be ingested, profile export downloads categories/events, admin sees counts per user. |
-| 5. Coach Mode | Optional AI insights + planning that stays tracking-first (see `docs/COACH_MODE.md`). | Users can generate a Daily Plan, complete plan items by logging real entries, and get a Weekly Review; Pro pricing/BYOK path defined. |
+| 5. Coach Mode | Coach Mode v0 shipped as “Next up”. Next is planning and review (see `docs/COACH_MODE.md`). | Users see a short list of suggestions, can complete them by logging, and come back tomorrow. |
 
 ## Monetization (hypothesis)
 
@@ -29,14 +38,11 @@ Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuz
 
 ## Technical next steps
 
-1. Harden the import story once the JSON export arrives: determine schema, write transformation logic, and persist raw data + mapping details.
-2. Improve bar/line charts so the latest bucket is flush right, values don’t get clipped, and goal strikethroughs reuse an accent-lighter stroke+label.
-3. Tune mobile layouts (period picker placement, progress bars full-width, inputs sized properly) and ensure login/signup buttons stay black even during loading (no yellow flicker).
-4. Add request/response tracking for profile export, async email confirmations, and dataset deletion flows.
-5. Automate PM2 log rotation (e.g., `pm2 install pm2-logrotate`) and surface any errors from `pm2 logs`.
-6. Expand `/sudo` to show total users/categories/entries + per-user stats and optionally last login time (post-auth integration).
-7. Ensure Databuddy works on `app.memoato.com` (origin must match `https://app.memoato.com`).
-8. Coach Mode: ship non-AI Daily Plan first, then AI Weekly Review behind a Pro gate (cloud-sync only; explicit opt-in).
+1. Harden the import story once the JSON export arrives: determine schema, write transformation logic, and persist raw payload + mapping details.
+2. Ship “Quick log” (command bar style input) to minimize time-to-log on mobile.
+3. Add lightweight categorization (tags or folders) so large tracker sets stay manageable.
+4. Coach Mode: evolve Next up into a Daily Plan (deterministic first), then Weekly Review behind opt-in.
+5. Expand `/sudo` (optional) with last login and import metadata.
 
 ## Questions for you (please answer in order so we can iterate)
 

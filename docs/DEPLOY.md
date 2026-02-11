@@ -6,6 +6,13 @@
 ./scripts/deploy_prod.sh
 ```
 
+`./scripts/deploy_prod.sh` runs `scripts/build_prod_artifacts.sh`, which:
+
+- runs `wasp build`
+- applies small patches to Wasp-generated code (see `docs/WASP_NOTES.md`)
+- installs generated project deps
+- runs Prisma migrations and bundles the server and web app
+
 ## Standard workflow (commit → push → deploy)
 
 This repo is open source: **every push is public**.
@@ -124,4 +131,4 @@ cloudflared tunnel route dns -f memoato app.memoato.com
 cloudflared tunnel route dns -f memoato api.memoato.com
 ```
 
-If this prints something like `app.memoato.com.playgrnd.app`, your `cloudflared` login doesn’t have the `memoato.com` zone; use the manual CNAME approach above in the Cloudflare dashboard.
+If this prints something like `app.memoato.com.playgrnd.app`, your `cloudflared` login doesn’t have the `memoato.com` zone. Use the manual CNAME approach above in the Cloudflare dashboard.

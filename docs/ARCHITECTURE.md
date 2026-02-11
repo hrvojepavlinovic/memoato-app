@@ -13,6 +13,7 @@
 ## Data model (Prisma)
 
 - `User`: account profile + role
+  - Preferences: `nextUpEnabled`, `themePreference`
 - `Category`: a user-owned tracker (title/slug/type/period/goals/accent/emoji)
   - Optional `sortOrder` supports manual ordering on the Home dashboard.
 - `CategoryTemplate`: preset category definitions used on “New category” (defaults, emoji, accent, goals, aggregation).
@@ -27,6 +28,7 @@ Key timestamps:
 
 - Email auth via Wasp.
 - Email verification is **required**, but the app allows usage immediately and shows an “unverified” indicator in the header until verified.
+- Optional Google auth via Wasp OAuth.
 
 ## Deploy shape (production)
 

@@ -5,11 +5,13 @@ This is a living list of what to do next. Keep it short and reorder often.
 ## P0 (bugs / correctness)
 
 - After deploy, verify legacy “goal value” categories can be switched to `bar + sum` (e.g. Water intake: two `300ml` entries should show `600ml` for the day).
+- Audit any remaining places that still allow selecting future dates for `occurredAt`.
 
 ## P0 (speed / activation)
 
 - Home: add “Quick log” (one-tap, keyboard-first) so time-to-log is ~10s on mobile.
-- Add “predict next log” suggestions (recency + time-of-day heuristic; no AI required).
+- Improve onboarding activation (template multi-select, good defaults, explain Notes).
+- Improve “predict next log” (recency + time-of-day heuristic, no AI required).
 - Add an optional command-bar style input (e.g. `push ups 30`, `weight 85.2`) to reduce taps.
 
 ## P1 (UX)
@@ -18,6 +20,8 @@ This is a living list of what to do next. Keep it short and reorder often.
 - Landing page: add a simple FAQ section on the homepage to reduce clicks.
 - App: reduce any remaining layout shift/flicker on auth/profile transitions.
 - App: add optional per-entry note editing UX polish (keyboard, spacing, truncation).
+- Categories: add simple categorization (tags or folders) so users can group trackers.
+- Categories: explore richer “custom fields” without bloating logging speed.
 
 ## P2 (community + marketing)
 
@@ -35,3 +39,10 @@ This is a living list of what to do next. Keep it short and reorder often.
 
 - Fixed intermittent Cloudflare 403 when navigating `memoato.com` → `app.memoato.com`.
 - Reviewed/fixed email flows end-to-end (signup, verify, reset, email change, account deletion).
+- Home: shipped “Next up” (Coach Mode v0), limited to 3 items, stored per user.
+- Profile: persist theme preference and Next up visibility in the DB (per user).
+- Auth: shipped Google login via Wasp auth.
+- Entries: disallow future dates.
+- Mobile: scaffolded Capacitor wrapper and reminders UI (mobile-only controls hidden on web).
+- PWA: install prompt, install button, updated icons (maskable + rounded).
+- Site: SEO upgrades (sitemap, robots, JSON-LD, `llms.txt`), new intent pages and `/adhd`.
