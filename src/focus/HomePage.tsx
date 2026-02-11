@@ -125,26 +125,20 @@ function GoalProgress({
         <span>{periodLabel(c.period)}</span>
         <span className="tabular-nums">{rightLabel}</span>
       </div>
-      <div className="relative mt-1">
-        <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
-          <div
-            className="h-full rounded-full"
-            style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
-            aria-label={`${periodLabel(c.period)} progress`}
-          />
-        </div>
+      <div className="relative mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
         {goal > 0 ? (
           <div
-            className="pointer-events-none absolute top-1/2 -translate-y-1/2"
-            style={{ left: `${paceClamped * 100}%` }}
+            className="pointer-events-none absolute inset-y-0 left-0 z-0 bg-neutral-950/10 dark:bg-white/10"
+            style={{ width: `${paceClamped * 100}%` }}
             aria-hidden="true"
             title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
-          >
-            <div className="-translate-x-1/2 rounded-full border border-neutral-950/25 bg-neutral-200/60 p-[3px] dark:border-white/25 dark:bg-neutral-800/60">
-              <div className="h-1 w-1 rounded-full bg-neutral-950/35 dark:bg-white/35" />
-            </div>
-          </div>
+          />
         ) : null}
+        <div
+          className="relative z-10 h-full rounded-full"
+          style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
+          aria-label={`${periodLabel(c.period)} progress`}
+        />
       </div>
     </div>
   );
