@@ -110,6 +110,8 @@ function GoalProgress({
   const pace = goal > 0 ? expectedPace01(c.period) : 0;
   const paceClamped = clamp01(pace);
   const paceLinePos = goal > 0 ? Math.min(0.98, Math.max(0.02, paceClamped)) : 0;
+  const bubbleEaseRange = 0.04;
+  const bubbleFill = goal > 0 ? clamp01((pct - (paceLinePos - bubbleEaseRange)) / (2 * bubbleEaseRange)) : 0;
   const dir = normalizeGoalDirection(c);
   const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
   const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
@@ -126,22 +128,28 @@ function GoalProgress({
         <span>{periodLabel(c.period)}</span>
         <span className="tabular-nums">{rightLabel}</span>
       </div>
-      <div className="relative mt-1">
-        <div className="relative h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+      <div className="relative mt-1 h-4">
+        <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
           <div
-            className="relative z-10 h-full rounded-full"
+            className="h-full rounded-full"
             style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
             aria-label={`${periodLabel(c.period)} progress`}
           />
-          {goal > 0 ? (
-            <div
-              className="pointer-events-none absolute inset-y-[1px] z-20 w-[2px] -translate-x-1/2 rounded-full border border-white/35 bg-neutral-950/20 dark:border-black/35 dark:bg-white/20"
-              style={{ left: `${paceLinePos * 100}%` }}
-              aria-hidden="true"
-              title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
-            />
-          ) : null}
         </div>
+        {goal > 0 ? (
+          <div
+            className="pointer-events-none absolute left-0 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${paceLinePos * 100}%` }}
+            aria-hidden="true"
+            title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
+          >
+            <div className="relative h-[14px] w-[14px] rounded-full bg-neutral-200 ring-1 ring-neutral-950/10 dark:bg-neutral-800 dark:ring-white/10">
+              <div className="absolute inset-0 overflow-hidden rounded-full">
+                <div className="h-full" style={{ width: `${bubbleFill * 100}%`, backgroundColor: c.accentHex }} />
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
