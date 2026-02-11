@@ -939,10 +939,11 @@ export function HomePage() {
               const displayTitle = displayTitleById[c.id] ?? c.title;
               const accent = resolveAccentForTheme(c.accentHex, theme.isDark) ?? c.accentHex;
 
-              const goalReached = isGoalReached(c);
-              const goalBg = goalReached ? withHexAlpha(accent, "08") : null;
-              const typeChip = tileTypeChip(c);
-              const glance = tileGlance(c, displayTitle);
+	              const goalReached = isGoalReached(c);
+	              const goalBg = goalReached ? withHexAlpha(accent, "08") : null;
+	              const unitChipRaw = (c.unit ?? "").trim();
+	              const unitChip = unitChipRaw && unitChipRaw !== "x" ? unitChipRaw : null;
+	              const glance = tileGlance(c, displayTitle);
 
               return (
                 <div
@@ -969,20 +970,22 @@ export function HomePage() {
                       >
                         <div className="text-lg leading-none">{c.emoji ?? ""}</div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 pr-10">
-                          <div
-                            className="min-w-0 truncate text-base font-semibold leading-tight text-neutral-950 dark:text-neutral-100"
-                            title={displayTitle}
-                          >
-                            {displayTitle}
-                          </div>
-                          <div className="inline-flex flex-none rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
-                            {typeChip}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+	                      <div className="min-w-0">
+	                        <div className="flex items-center gap-2 pr-10">
+	                          <div
+	                            className="min-w-0 truncate text-base font-semibold leading-tight text-neutral-950 dark:text-neutral-100"
+	                            title={displayTitle}
+	                          >
+	                            {displayTitle}
+	                          </div>
+	                          {unitChip ? (
+	                            <div className="inline-flex flex-none rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
+	                              {unitChip}
+	                            </div>
+	                          ) : null}
+	                        </div>
+	                      </div>
+	                    </div>
 
                     <button
                       type="button"
