@@ -434,7 +434,7 @@ export function HomePage() {
   const categories = privacy.mode === "local" ? localCategories : (categoriesQuery.data ?? []);
   const isLoading = privacy.mode === "local" ? localLoading : categoriesQuery.isLoading;
   const isSuccess = privacy.mode === "local" ? true : categoriesQuery.isSuccess;
-  const nextUpEnabled = privacy.mode === "local" ? true : (profileQuery.data?.nextUpEnabled ?? true);
+  const nextUpEnabled = privacy.mode === "local" ? false : (profileQuery.data?.nextUpEnabled ?? false);
   const ensuredOnceRef = useRef(false);
   const [titleById, setTitleById] = useState<Record<string, string>>({});
   const [orderMode, setOrderMode] = useState(false);
@@ -711,6 +711,26 @@ export function HomePage() {
         enabled={nextUpEnabled}
       />
 
+      <button
+        type="button"
+        className="mb-4 flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+        onClick={() => openQuickLog(null)}
+        aria-label="Quick log"
+      >
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">Log anything</div>
+          <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            Type a number, a category, or a note
+          </div>
+        </div>
+        <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+          </svg>
+        </div>
+      </button>
+
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Categories</h2>
@@ -778,16 +798,6 @@ export function HomePage() {
                 title="Edit"
               >
                 <span>Edit</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-10 px-3"
-                onClick={() => openQuickLog(null)}
-                aria-label="Quick log"
-                title="Log"
-              >
-                <span>Log</span>
               </Button>
               <ButtonLink
                 to="/categories/new"

@@ -742,7 +742,7 @@ export function ProfilePage() {
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {([true, false] as const).map((enabled) => {
-              const active = (nextUpEnabledPref ?? q.data?.nextUpEnabled ?? true) === enabled;
+              const active = (nextUpEnabledPref ?? q.data?.nextUpEnabled ?? false) === enabled;
               const isDisabled = busy === "nextUp" || q.isLoading || !q.data;
               return (
                 <button

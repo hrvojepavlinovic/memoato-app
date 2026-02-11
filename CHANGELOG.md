@@ -3,6 +3,7 @@
 ## 2026-02-11
 
 - Home: added Quick log modal with smart category suggestions (number or text) and Notes fallback.
+- Home: Next up is hidden by default (can be enabled in Profile).
 
 ## 2026-02-10
 
