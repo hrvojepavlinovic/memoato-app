@@ -347,6 +347,7 @@ export function QuickLogDialog({
   const [saving, setSaving] = React.useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | null>(null);
   const [selectionMode, setSelectionMode] = React.useState<"seed" | "auto" | "manual">("auto");
+  const [showPicker, setShowPicker] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const now = new Date();
@@ -418,6 +419,7 @@ export function QuickLogDialog({
     if (!open) return;
     setRaw("");
     setSaving(false);
+    setShowPicker(false);
     setSelectionMode(seedCategoryId ? "seed" : "auto");
     setSelectedCategoryId(seedCategoryId);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
@@ -446,6 +448,19 @@ export function QuickLogDialog({
 
   const topChips = ranked.slice(0, 3);
   const listMore = ranked.slice(0, 12);
+
+  function togglePicker(next?: boolean) {
+    const willShow = typeof next === "boolean" ? next : !showPicker;
+    setShowPicker(willShow);
+    if (willShow) {
+      // Better mobile UX: hide keyboard so the list has space.
+      inputRef.current?.blur();
+      window.setTimeout(() => {
+        const el = document.getElementById("memoato-quicklog-pick");
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
+    }
+  }
 
   const subtitle = React.useMemo(() => {
     if (!selected) return "";
@@ -604,6 +619,26 @@ export function QuickLogDialog({
                   </button>
                 );
               })}
+              {ranked.length > topChips.length ? (
+                <button
+                  type="button"
+                  onClick={() => togglePicker()}
+                  className={
+                    "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm " +
+                    (showPicker
+                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
+                      : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
+                  }
+                  disabled={saving}
+                  aria-label={showPicker ? "Hide category picker" : "Show category picker"}
+                  title={showPicker ? "Hide" : "More"}
+                >
+                  <span className="text-base leading-none" aria-hidden="true">
+                    {showPicker ? "×" : "⋯"}
+                  </span>
+                  <span>{showPicker ? "Hide" : "More"}</span>
+                </button>
+              ) : null}
             </div>
 
             {selected ? (
@@ -635,10 +670,7 @@ export function QuickLogDialog({
                       style={{ borderColor: selectedAccent }}
                       aria-label="Change category"
                       title="Change category"
-                      onClick={() => {
-                        const el = document.getElementById("memoato-quicklog-pick");
-                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }}
+                      onClick={() => togglePicker(true)}
                       disabled={saving}
                     >
                       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -710,46 +742,66 @@ export function QuickLogDialog({
               </Button>
             </div>
 
-            <div id="memoato-quicklog-pick" className="pt-1">
-              <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Pick category</div>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {listMore.map((r) => {
-                  const active = r.c.id === selectedCategoryId;
-                  return (
-                    <button
-                      key={r.c.id}
-                      type="button"
-                      className={
-                        "flex w-full items-center gap-3 rounded-xl border p-3 text-left " +
-                        (active
-                          ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
-                          : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
-                      }
-                      onClick={() => onChipPick(r.c.id)}
-                      disabled={saving}
-                      title={r.displayTitle}
-                    >
-                      <div
+            {showPicker ? (
+              <div id="memoato-quicklog-pick" className="pt-1">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Pick category</div>
+                  <button
+                    type="button"
+                    onClick={() => togglePicker(false)}
+                    className="text-xs font-semibold text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    disabled={saving}
+                  >
+                    Hide
+                  </button>
+                </div>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {listMore.map((r) => {
+                    const active = r.c.id === selectedCategoryId;
+                    return (
+                      <button
+                        key={r.c.id}
+                        type="button"
                         className={
-                          "flex h-9 w-9 flex-none items-center justify-center rounded-full border " +
-                          (active ? "border-white/40 bg-white/10 dark:border-neutral-950/20 dark:bg-neutral-950/10" : "bg-white dark:bg-neutral-950")
+                          "flex w-full items-center gap-3 rounded-xl border p-3 text-left " +
+                          (active
+                            ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
+                            : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
                         }
-                        style={{ borderColor: active ? undefined : r.accent }}
-                        aria-hidden="true"
+                        onClick={() => {
+                          onChipPick(r.c.id);
+                          togglePicker(false);
+                        }}
+                        disabled={saving}
+                        title={r.displayTitle}
                       >
-                        <div className="text-lg leading-none">{r.c.emoji ?? ""}</div>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold">{r.displayTitle}</div>
-                        <div className={"truncate text-xs font-medium " + (active ? "text-white/80 dark:text-neutral-700" : "text-neutral-500 dark:text-neutral-400")}>
-                          {r.score >= 0.62 ? "Suggested" : "Option"}
+                        <div
+                          className={
+                            "flex h-9 w-9 flex-none items-center justify-center rounded-full border " +
+                            (active ? "border-white/40 bg-white/10 dark:border-neutral-950/20 dark:bg-neutral-950/10" : "bg-white dark:bg-neutral-950")
+                          }
+                          style={{ borderColor: active ? undefined : r.accent }}
+                          aria-hidden="true"
+                        >
+                          <div className="text-lg leading-none">{r.c.emoji ?? ""}</div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold">{r.displayTitle}</div>
+                          <div
+                            className={
+                              "truncate text-xs font-medium " +
+                              (active ? "text-white/80 dark:text-neutral-700" : "text-neutral-500 dark:text-neutral-400")
+                            }
+                          >
+                            {r.score >= 0.62 ? "Suggested" : "Option"}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </div>
       </div>
