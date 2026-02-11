@@ -550,7 +550,11 @@ export function QuickLogDialog({
     const displayTitle = selectedDisplayTitle ?? selected.title;
     const isNotes = selectedIsNotes;
     const amount = amountFromParsedOrDefault(parsed, selected, displayTitle);
-    const noteText = parsed.hint.trim().length > 0 ? parsed.hint.trim() : parsed.raw.trim();
+    const noteText = seededNotes
+      ? raw.trim()
+      : parsed.hint.trim().length > 0
+        ? parsed.hint.trim()
+        : parsed.raw.trim();
 
     if (!isNotes) {
       if (amount == null || amount <= 0) {
@@ -617,7 +621,7 @@ export function QuickLogDialog({
                 <div className="min-w-0">
                   <div className="text-base font-semibold text-neutral-950 dark:text-neutral-100">Quick log</div>
                   <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                    Type a number, a category, or a note.
+                    {seededNotes ? "Write a note." : "Type a number, a category, or a note."}
                   </div>
                 </div>
                 <button
@@ -833,7 +837,7 @@ export function QuickLogDialog({
                     value={raw}
                     onChange={(e) => {
                       setRaw(e.target.value);
-                      if (selectionMode === "seed") setSelectionMode("auto");
+                      if (selectionMode === "seed" && !seededNotes) setSelectionMode("auto");
                     }}
                     onKeyDown={(e) => {
                       if (e.key !== "Enter") return;
@@ -841,7 +845,7 @@ export function QuickLogDialog({
                       if (saving) return;
                       submit();
                     }}
-                    placeholder="e.g. 600 water, push ups 30, or just a note"
+                    placeholder={seededNotes ? "Write a note…" : "e.g. 600 water, push ups 30, or just a note"}
                     className="block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 pr-20 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                     disabled={saving}
                   />
