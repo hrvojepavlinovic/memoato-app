@@ -715,16 +715,16 @@ export function HomePage() {
         onClick={() => openQuickLog(null)}
         aria-label="Quick log"
       >
-        <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <div className="truncate text-base font-semibold text-white dark:text-neutral-950">Log</div>
-            <div className="mt-0.5 truncate text-xs font-medium text-white/70 dark:text-neutral-600">
-              600 water, push ups 30, padel, or a note
-            </div>
-          </div>
-          <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-white/20 bg-white/10 text-white dark:border-neutral-950/15 dark:bg-neutral-950 dark:text-white">
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M12 5v14" />
+	          <div className="flex items-center justify-between gap-4">
+	          <div className="min-w-0">
+	            <div className="truncate text-base font-semibold text-white dark:text-neutral-950">Log</div>
+	            <div className="mt-0.5 truncate text-xs font-medium text-white/70 dark:text-neutral-600">
+	              Type and press Enter.
+	            </div>
+	          </div>
+	          <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-white/20 bg-white/10 text-white dark:border-neutral-950/15 dark:bg-neutral-950 dark:text-white">
+	            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+	              <path d="M12 5v14" />
               <path d="M5 12h14" />
             </svg>
           </div>
