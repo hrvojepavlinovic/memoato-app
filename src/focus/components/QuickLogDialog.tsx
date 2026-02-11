@@ -546,8 +546,14 @@ export function QuickLogDialog({
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <div className="mx-auto mt-[14vh] w-[92vw] max-w-lg">
-        <div className="card p-4 shadow-lg">
+      <div
+        className="mx-auto flex min-h-[100dvh] w-full max-w-none items-end justify-center px-3 pb-3 sm:min-h-0 sm:items-start sm:px-0 sm:pb-0"
+        onClick={(e) => {
+          if (e.target !== e.currentTarget) return;
+          onClose();
+        }}
+      >
+        <div className="card max-h-[92dvh] w-full max-w-lg overflow-y-auto p-4 shadow-lg sm:mt-[14vh] sm:max-h-none">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-base font-semibold text-neutral-950 dark:text-neutral-100">Quick log</div>

@@ -705,7 +705,7 @@ export function HomePage() {
     <div className="mx-auto w-full max-w-screen-lg px-4 pt-6 pb-24 sm:pb-6">
       <button
         type="button"
-        className="mb-5 w-full rounded-2xl bg-neutral-950 px-4 py-4 text-left shadow-sm hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
+        className="mb-5 hidden w-full rounded-2xl bg-neutral-950 px-4 py-4 text-left shadow-sm hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 dark:active:bg-neutral-300 sm:block"
         onClick={() => openQuickLog(null)}
         aria-label="Quick log"
       >
@@ -978,19 +978,34 @@ export function HomePage() {
       )}
 
       {!orderMode && !quickLogOpen ? (
-        <button
-          type="button"
-          onClick={() => openQuickLog(null)}
-          className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-white shadow-lg hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:active:bg-neutral-300 sm:hidden"
+        <div
+          className="fixed right-4 z-40 sm:hidden"
           style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
-          aria-label="Quick log"
-          title="Log"
         >
-          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
-          </svg>
-        </button>
+          <div
+            className="pointer-events-none absolute -inset-3 rounded-full bg-white/35 backdrop-blur-md dark:bg-neutral-950/35"
+            aria-hidden="true"
+          />
+          <button
+            type="button"
+            onClick={() => openQuickLog(null)}
+            className="relative flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-white shadow-lg hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
+            aria-label="Quick log"
+            title="Log"
+          >
+            <svg
+              className="h-6 w-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14" />
+              <path d="M5 12h14" />
+            </svg>
+          </button>
+        </div>
       ) : null}
     </div>
   );
