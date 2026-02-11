@@ -1110,7 +1110,7 @@ export function HomePage() {
       {!orderMode && !quickLogOpen ? (
         <div
           className={[
-            "fixed top-[calc(50%+30px)] z-40 -translate-y-1/2 sm:hidden",
+            "fixed top-[calc(50%+130px)] z-40 -translate-y-1/2 sm:hidden",
             quickLogFabSide === "left" ? "left-4" : "right-4",
           ].join(" ")}
         >
