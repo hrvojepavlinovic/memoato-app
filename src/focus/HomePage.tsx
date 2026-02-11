@@ -703,6 +703,28 @@ export function HomePage() {
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
+      <button
+        type="button"
+        className="mb-5 w-full rounded-2xl bg-neutral-950 px-4 py-4 text-left shadow-sm hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
+        onClick={() => openQuickLog(null)}
+        aria-label="Quick log"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="truncate text-base font-semibold text-white dark:text-neutral-950">Log</div>
+            <div className="mt-0.5 truncate text-xs font-medium text-white/70 dark:text-neutral-600">
+              600 water, push ups 30, padel, or a note
+            </div>
+          </div>
+          <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-white/20 bg-white/10 text-white dark:border-neutral-950/15 dark:bg-neutral-950 dark:text-white">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M12 5v14" />
+              <path d="M5 12h14" />
+            </svg>
+          </div>
+        </div>
+      </button>
+
       <CoachCard
         categories={orderedCategories}
         displayTitleById={displayTitleById}
@@ -710,26 +732,6 @@ export function HomePage() {
         onQuickAdd={(id) => openQuickLog(id)}
         enabled={nextUpEnabled}
       />
-
-      <button
-        type="button"
-        className="mb-4 flex w-full items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-        onClick={() => openQuickLog(null)}
-        aria-label="Quick log"
-      >
-        <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">Log anything</div>
-          <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-            Type a number, a category, or a note
-          </div>
-        </div>
-        <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100">
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
-          </svg>
-        </div>
-      </button>
 
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
