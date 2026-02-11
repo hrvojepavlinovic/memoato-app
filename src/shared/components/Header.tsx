@@ -16,7 +16,7 @@ export function Header() {
     !!user && profileQuery.isSuccess && profileQuery.data && profileQuery.data.needsEmailVerification;
 
   return (
-    <header className="sticky top-0 z-20 flex justify-center border-b border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+    <header className="sticky top-0 z-50 flex justify-center border-b border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
       <div className="flex w-full max-w-screen-lg items-center justify-between px-4 py-4 sm:px-6">
         <Link to="/" className="flex items-center gap-3">
           <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-neutral-200 bg-neutral-950 dark:border-neutral-700">

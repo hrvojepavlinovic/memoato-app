@@ -66,25 +66,35 @@ function expectedPace01(period: CategoryWithStats["period"]): number {
   }
 
   if (period === "week") {
+    // Monday-based pace: by Friday you should be ~5/7 through the week goal.
     const day = startOfDay.getDay(); // 0=Sun..6=Sat
     const diff = (day + 6) % 7; // Mon=0..Sun=6
     const start = new Date(startOfDay);
     start.setDate(startOfDay.getDate() - diff);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 7);
-    return clamp01((now.getTime() - start.getTime()) / (end.getTime() - start.getTime()));
+    const dayIndex = diff + 1; // Mon=1..Sun=7
+    return clamp01(dayIndex / 7);
   }
 
   if (period === "month") {
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    return clamp01((now.getTime() - start.getTime()) / (end.getTime() - start.getTime()));
+    const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
+    const dayIndex = Math.max(
+      1,
+      Math.min(totalDays, Math.round((startOfDay.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1),
+    );
+    return clamp01(dayIndex / totalDays);
   }
 
   // year
   const start = new Date(now.getFullYear(), 0, 1);
   const end = new Date(now.getFullYear() + 1, 0, 1);
-  return clamp01((now.getTime() - start.getTime()) / (end.getTime() - start.getTime()));
+  const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
+  const dayIndex = Math.max(
+    1,
+    Math.min(totalDays, Math.round((startOfDay.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1),
+  );
+  return clamp01(dayIndex / totalDays);
 }
 
 function GoalProgress({
@@ -98,6 +108,7 @@ function GoalProgress({
   const done = c.thisWeekTotal;
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const pace = goal > 0 ? expectedPace01(c.period) : 0;
+  const paceClamped = clamp01(pace);
   const dir = normalizeGoalDirection(c);
   const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
   const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
@@ -114,20 +125,26 @@ function GoalProgress({
         <span>{periodLabel(c.period)}</span>
         <span className="tabular-nums">{rightLabel}</span>
       </div>
-      <div className="relative mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+      <div className="relative mt-1">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
+            aria-label={`${periodLabel(c.period)} progress`}
+          />
+        </div>
         {goal > 0 ? (
           <div
-            className="pointer-events-none absolute top-0 bottom-0 w-[2px] bg-neutral-950/20 dark:bg-white/20"
-            style={{ left: `${pace * 100}%` }}
+            className="pointer-events-none absolute top-1/2 -translate-y-1/2"
+            style={{ left: `${paceClamped * 100}%` }}
             aria-hidden="true"
-            title={`Pace: ${Math.round(pace * 100)}% of ${periodLabel(c.period).toLowerCase()} elapsed`}
-          />
+            title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
+          >
+            <div className="-translate-x-1/2 rounded-full border border-neutral-950/25 bg-neutral-200/60 p-[3px] dark:border-white/25 dark:bg-neutral-800/60">
+              <div className="h-1 w-1 rounded-full bg-neutral-950/35 dark:bg-white/35" />
+            </div>
+          </div>
         ) : null}
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
-          aria-label={`${periodLabel(c.period)} progress`}
-        />
       </div>
     </div>
   );
@@ -995,7 +1012,7 @@ export function HomePage() {
               return (
                 <div
                   key={c.id}
-                  className="card relative flex min-h-24 flex-col justify-between gap-3 p-4 sm:min-h-28"
+                  className="card relative z-0 flex min-h-24 flex-col justify-between gap-3 p-4 sm:min-h-28"
                   style={{
                     borderColor: goalReached ? accent : undefined,
                     backgroundColor: goalBg ?? undefined,
