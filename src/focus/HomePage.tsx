@@ -709,27 +709,52 @@ export function HomePage() {
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 pt-6 pb-24 sm:pb-6">
-      <button
-        type="button"
-        className="mb-5 hidden w-full rounded-2xl bg-neutral-950 px-4 py-4 text-left shadow-sm hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 dark:active:bg-neutral-300 sm:block"
-        onClick={() => openQuickLog(null)}
-        aria-label="Quick log"
-      >
-	          <div className="flex items-center justify-between gap-4">
-	          <div className="min-w-0">
-	            <div className="truncate text-base font-semibold text-white dark:text-neutral-950">Log</div>
-	            <div className="mt-0.5 truncate text-xs font-medium text-white/70 dark:text-neutral-600">
-	              Type and press Enter.
-	            </div>
-	          </div>
-	          <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-white/20 bg-white/10 text-white dark:border-neutral-950/15 dark:bg-neutral-950 dark:text-white">
-	            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-	              <path d="M12 5v14" />
-              <path d="M5 12h14" />
-            </svg>
+      <div className="mb-5 hidden grid-cols-2 gap-3 sm:grid">
+        <button
+          type="button"
+          className="w-full rounded-2xl bg-neutral-950 px-4 py-4 text-left shadow-sm hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
+          onClick={() => openQuickLog(null)}
+          aria-label="Quick log"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="truncate text-base font-semibold text-white dark:text-neutral-950">Log</div>
+              <div className="mt-0.5 truncate text-xs font-medium text-white/70 dark:text-neutral-600">
+                Type and press Enter.
+              </div>
+            </div>
+            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-white/20 bg-white/10 text-white dark:border-neutral-950/15 dark:bg-neutral-950 dark:text-white">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+
+        <button
+          type="button"
+          className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-left shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+          onClick={() => openQuickLog(notesCategoryId)}
+          aria-label="Quick note"
+          disabled={!notesCategoryId}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="truncate text-base font-semibold text-neutral-950 dark:text-neutral-100">Note</div>
+              <div className="mt-0.5 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                Write a quick note.
+              </div>
+            </div>
+            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </div>
+          </div>
+        </button>
+      </div>
 
       <CoachCard
         categories={orderedCategories}
@@ -990,7 +1015,8 @@ export function HomePage() {
             quickLogFabSide === "left" ? "left-4" : "right-4",
           ].join(" ")}
         >
-          <div className="flex flex-col items-center gap-3">
+          <div className="rounded-3xl bg-neutral-950/10 p-3 backdrop-blur-lg ring-1 ring-neutral-950/10 dark:bg-neutral-950/35 dark:ring-white/10">
+            <div className="flex flex-col items-center gap-3">
             <div className="relative">
               <div
                 className="pointer-events-none absolute -inset-10 rounded-full bg-neutral-950/10 opacity-70 blur-2xl dark:bg-white/10"
@@ -1025,15 +1051,17 @@ export function HomePage() {
               <button
                 type="button"
                 onClick={() => openQuickLog(notesCategoryId)}
-                className="relative flex h-12 w-12 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
                 aria-label="Quick note"
                 title="Note"
+                disabled={!notesCategoryId}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path d="M12 20h9" />
                   <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
                 </svg>
               </button>
+            </div>
             </div>
           </div>
         </div>

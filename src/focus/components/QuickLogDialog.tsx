@@ -483,20 +483,23 @@ export function QuickLogDialog({
     const top = ranked[0];
     if (!top) return;
 
-    const topIsStrong = top.score >= 0.62;
+    const hasTyped = raw.trim().length > 0;
     if (!selectedCategoryId) {
-      if (topIsStrong) setSelectedCategoryId(top.c.id);
+      if (hasTyped || top.score > 0.12) setSelectedCategoryId(top.c.id);
       return;
     }
 
     const current = ranked.find((r) => r.c.id === selectedCategoryId);
     const currentScore = current?.score ?? 0;
-    if (top.c.id !== selectedCategoryId && topIsStrong && top.score - currentScore >= 0.12) {
+    if (top.c.id !== selectedCategoryId && top.score - currentScore >= 0.12 && (hasTyped || top.score > 0.62)) {
       setSelectedCategoryId(top.c.id);
     }
-  }, [open, ranked, seedCategoryId, selectedCategoryId, selectionMode]);
+  }, [open, ranked, raw, seedCategoryId, selectedCategoryId, selectionMode]);
 
-  const topChips = ranked.slice(0, 3);
+  const chips = React.useMemo(() => {
+    const filtered = selectedCategoryId ? ranked.filter((r) => r.c.id !== selectedCategoryId) : ranked;
+    return filtered.slice(0, 2);
+  }, [ranked, selectedCategoryId]);
   const listMore = ranked.slice(0, 12);
 
   function togglePicker(next?: boolean) {
@@ -630,8 +633,8 @@ export function QuickLogDialog({
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 sm:p-4">
-              <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1">
-              {topChips.map((r) => {
+              <div className="flex flex-wrap gap-2">
+              {chips.map((r) => {
                 const active = r.c.id === selectedCategoryId;
                 return (
                   <button
@@ -639,7 +642,7 @@ export function QuickLogDialog({
                     type="button"
                     onClick={() => onChipPick(r.c.id)}
                     className={
-                      "inline-flex max-w-full flex-none items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm " +
+                      "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm " +
                       (active
                         ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
                         : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
