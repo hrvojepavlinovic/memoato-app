@@ -135,7 +135,7 @@ function GoalProgress({
           />
           {goal > 0 ? (
             <div
-              className="pointer-events-none absolute inset-y-0 z-20 w-px -translate-x-1/2 bg-neutral-950/25 dark:bg-white/25"
+              className="pointer-events-none absolute inset-y-[1px] z-20 w-[2px] -translate-x-1/2 rounded-full border border-white/35 bg-neutral-950/20 dark:border-black/35 dark:bg-white/20"
               style={{ left: `${paceLinePos * 100}%` }}
               aria-hidden="true"
               title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}

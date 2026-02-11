@@ -1,7 +1,7 @@
 ---
 layout: ../../layouts/BlogPostLayout.astro
 title: "Quick logging without friction"
-description: "A simple input that learns your habits, plus one-tap actions for logging and notes."
+description: "Type a number, get smart suggestions, and log in under 3 seconds."
 date: "2026-02-11"
 ---
 
@@ -21,19 +21,32 @@ You should be able to:
 - Add a note without switching context
 - Stay in the flow, especially on mobile
 
+The benchmark is simple: under 3 seconds from thought to log.
+
 ## Quick log
 
-Quick log is a single input that accepts what you would naturally type.
+Quick log is a single input that turns whatever you type into an action.
 
-Examples:
+Most of the time you should not need to type a category.
 
-- `600 water`
-- `30 push ups`
-- `95 weight`
-- `padel`
-- A plain sentence, which becomes a note
+You can just type a number and Memoato will suggest the most likely categories.
 
-Memoato uses your categories, recent history, and goals to pick the best match, then keeps the rest of the UI out of the way.
+Examples of what you can type:
+
+- `600` and it suggests Water intake
+- `30` and it suggests Push ups
+- `95` and it suggests Weight
+- `padel` and it suggests Padel
+- Any plain sentence, which becomes a note
+
+Under the hood, Memoato ranks your categories using signals like:
+
+- What you logged recently
+- How often you log a category
+- Typical time of day for that category
+- How close the number is to your recent values and averages
+
+Then it shows a small set of suggestions so you can confirm with one tap.
 
 If the suggestion is wrong, you can still change the category, but the default should usually be correct.
 
@@ -77,4 +90,3 @@ The result is a tighter loop, which makes it easier to come back tomorrow.
 If you have feedback about the flow, send it. Memoato is built in public and tiny tweaks matter.
 
 Try it: https://app.memoato.com
-
