@@ -400,6 +400,7 @@ export function QuickLogDialog({
     selected && selected.accentHex ? resolveAccentForTheme(selected.accentHex, theme.isDark) ?? selected.accentHex : "#0A0A0A";
   const selectedIsNotes = selected ? isNotesCategory(selected) : false;
   const selectedUnit = unitLabel(selected?.unit);
+  const seededNotes = !!seedCategoryId && selectionMode === "seed" && selectedIsNotes;
 
   const recentRemoteQuery = useQuery(
     getCategoryEvents,
@@ -497,12 +498,14 @@ export function QuickLogDialog({
   }, [open, ranked, raw, seedCategoryId, selectedCategoryId, selectionMode]);
 
   const chips = React.useMemo(() => {
+    if (seededNotes) return [];
     const filtered = selectedCategoryId ? ranked.filter((r) => r.c.id !== selectedCategoryId) : ranked;
     return filtered.slice(0, 2);
-  }, [ranked, selectedCategoryId]);
+  }, [ranked, seededNotes, selectedCategoryId]);
   const listMore = ranked.slice(0, 12);
 
   function togglePicker(next?: boolean) {
+    if (seededNotes) return;
     const willShow = typeof next === "boolean" ? next : !showPicker;
     setShowPicker(willShow);
     if (willShow) {
@@ -632,32 +635,34 @@ export function QuickLogDialog({
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 sm:p-4">
-              <div className="flex flex-wrap gap-2">
-              {chips.map((r) => {
-                const active = r.c.id === selectedCategoryId;
-                return (
-                  <button
-                    key={r.c.id}
-                    type="button"
-                    onClick={() => onChipPick(r.c.id)}
-                    className={
-                      "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm " +
-                      (active
-                        ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
-                        : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
-                    }
-                    title={r.displayTitle}
-                    disabled={saving}
-                  >
-                    <span className="text-base leading-none" aria-hidden="true">
-                      {r.c.emoji ?? ""}
-                    </span>
-                    <span className="max-w-[14rem] truncate">{r.displayTitle}</span>
-                  </button>
-                );
-              })}
-              </div>
+	            <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 sm:p-4">
+	              {chips.length > 0 ? (
+	                <div className="flex flex-wrap gap-2">
+	                  {chips.map((r) => {
+	                    const active = r.c.id === selectedCategoryId;
+	                    return (
+	                      <button
+	                        key={r.c.id}
+	                        type="button"
+	                        onClick={() => onChipPick(r.c.id)}
+	                        className={
+	                          "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm " +
+	                          (active
+	                            ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
+	                            : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
+	                        }
+	                        title={r.displayTitle}
+	                        disabled={saving}
+	                      >
+	                        <span className="text-base leading-none" aria-hidden="true">
+	                          {r.c.emoji ?? ""}
+	                        </span>
+	                        <span className="max-w-[14rem] truncate">{r.displayTitle}</span>
+	                      </button>
+	                    );
+	                  })}
+	                </div>
+	              ) : null}
               {!selected && ranked.length > 0 ? (
                 <div className="mt-2 flex justify-end">
                   <button
@@ -691,26 +696,28 @@ export function QuickLogDialog({
                         </div>
                         <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">{subtitle}</div>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="inline-flex h-10 flex-none items-center gap-2 rounded-full border bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-                        style={{ borderColor: selectedAccent }}
-                        aria-label="Change category"
-                        title="Change category"
-                        onClick={() => togglePicker(true)}
-                        disabled={saving}
-                      >
-                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                          <path d="M21 12a9 9 0 1 1-3-6.7" />
-                          <path d="M21 3v6h-6" />
-                        </svg>
-                        <span>Change</span>
-                      </button>
-                    </div>
-                  </div>
+	                    </div>
+	
+	                    <div className="flex items-center gap-2">
+	                      {!seededNotes ? (
+	                        <button
+	                          type="button"
+	                          className="inline-flex h-10 flex-none items-center gap-2 rounded-full border bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+	                          style={{ borderColor: selectedAccent }}
+	                          aria-label="Change category"
+	                          title="Change category"
+	                          onClick={() => togglePicker(true)}
+	                          disabled={saving}
+	                        >
+	                          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+	                            <path d="M21 12a9 9 0 1 1-3-6.7" />
+	                            <path d="M21 3v6h-6" />
+	                          </svg>
+	                          <span>Change</span>
+	                        </button>
+	                      ) : null}
+	                    </div>
+	                  </div>
 
                   {!selectedIsNotes && (recent.last != null || recent.avg5 != null || (selected.goalWeekly ?? 0) > 0) ? (
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -756,11 +763,11 @@ export function QuickLogDialog({
                 </div>
               ) : null}
 
-            {showPicker ? (
-              <div id="memoato-quicklog-pick" className="pt-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Pick category</div>
-                  <button
+	            {showPicker && !seededNotes ? (
+	              <div id="memoato-quicklog-pick" className="pt-3">
+	                <div className="flex items-center justify-between gap-3">
+	                  <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Pick category</div>
+	                  <button
                     type="button"
                     onClick={() => togglePicker(false)}
                     className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
