@@ -30,34 +30,6 @@ export function Dialog({
   );
 
   React.useEffect(
-    function handleCloseOnClickOutside() {
-      if (!closeOnClickOutside) return;
-
-      const dialog = dialogRef.current;
-      if (!dialog) return;
-
-      const handleClick = (e: MouseEvent) => {
-        const rect = dialog.getBoundingClientRect();
-        const clickedOutside =
-          e.clientX < rect.left ||
-          e.clientX > rect.right ||
-          e.clientY < rect.top ||
-          e.clientY > rect.bottom;
-
-        if (clickedOutside) {
-          onClose();
-        }
-      };
-
-      dialog.addEventListener("click", handleClick);
-      return () => {
-        dialog.removeEventListener("click", handleClick);
-      };
-    },
-    [closeOnClickOutside, onClose],
-  );
-
-  React.useEffect(
     function handlePreventScroll() {
       if (!open) return;
 
@@ -77,7 +49,16 @@ export function Dialog({
         "m-0 w-full max-w-none border-0 bg-transparent p-0",
         "backdrop:bg-black/50 backdrop:backdrop-blur-sm",
       )}
-      onClose={onClose}
+      onClick={(e) => {
+        if (!closeOnClickOutside) return;
+        if (e.target !== e.currentTarget) return;
+        onClose();
+      }}
+      onCancel={(e) => {
+        // Prevent the dialog from closing itself so `open` stays the source of truth.
+        e.preventDefault();
+        onClose();
+      }}
     >
       {children}
     </dialog>
