@@ -744,18 +744,18 @@ export function HomePage() {
       <div className="mb-5 hidden grid-cols-2 gap-3 sm:grid">
         <button
           type="button"
-          className="w-full rounded-2xl bg-neutral-950 px-4 py-4 text-left shadow-sm hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
+          className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-left shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
           onClick={() => openQuickLog(null)}
           aria-label="Quick log"
         >
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <div className="truncate text-base font-semibold text-white dark:text-neutral-950">Log</div>
-              <div className="mt-0.5 truncate text-xs font-medium text-white/70 dark:text-neutral-600">
+              <div className="truncate text-base font-semibold text-neutral-950 dark:text-neutral-100">Log</div>
+              <div className="mt-0.5 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
                 Type and press Enter.
               </div>
             </div>
-            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-white/20 bg-white/10 text-white dark:border-neutral-950/15 dark:bg-neutral-950 dark:text-white">
+            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-neutral-950 text-white dark:bg-white dark:text-neutral-950">
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12 5v14" />
                 <path d="M5 12h14" />
