@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-02-11
+
+- Home: added Quick log modal with smart category suggestions (number or text) and Notes fallback.
+
 ## 2026-02-10
 
 - Auth: Google login (Wasp OAuth), plus profile fixes for OAuth accounts.

@@ -23,7 +23,7 @@ import {
   localSetCategoryOrder,
 } from "./local";
 import type { BucketAggregation, GoalDirection } from "./types";
-import { QuickAddDialog } from "./components/QuickAddDialog";
+import { QuickLogDialog } from "./components/QuickLogDialog";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -441,7 +441,8 @@ export function HomePage() {
   const [draftOrderIds, setDraftOrderIds] = useState<string[]>([]);
   const [savingOrder, setSavingOrder] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [quickAddCategoryId, setQuickAddCategoryId] = useState<string | null>(null);
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
+  const [quickLogSeedCategoryId, setQuickLogSeedCategoryId] = useState<string | null>(null);
   const dragPointerIdRef = useRef<number | null>(null);
   const reorderItemByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const onboardingDone = useMemo(() => {
@@ -572,6 +573,11 @@ export function HomePage() {
     return out;
   }, [categories, titleById]);
 
+  function openQuickLog(seedCategoryId: string | null) {
+    setQuickLogSeedCategoryId(seedCategoryId);
+    setQuickLogOpen(true);
+  }
+
   if (isLoading) {
     return <div className="mx-auto w-full max-w-screen-lg px-4 py-6" />;
   }
@@ -585,13 +591,6 @@ export function HomePage() {
         .map((id) => categories.find((c) => c.id === id))
         .filter((c): c is CategoryWithStats => !!c)
     : categories;
-
-  const quickAddCategory = orderedCategories.find((c) => c.id === quickAddCategoryId) ?? null;
-  const quickAddTitle = quickAddCategory ? displayTitleById[quickAddCategory.id] ?? quickAddCategory.title : null;
-  const quickAddAccent =
-    quickAddCategory
-      ? resolveAccentForTheme(quickAddCategory.accentHex, theme.isDark) ?? quickAddCategory.accentHex
-      : "#0A0A0A";
 
   function moveId(list: string[], from: number, to: number): string[] {
     if (from === to) return list;
@@ -708,7 +707,7 @@ export function HomePage() {
         categories={orderedCategories}
         displayTitleById={displayTitleById}
         themeIsDark={theme.isDark}
-        onQuickAdd={(id) => setQuickAddCategoryId(id)}
+        onQuickAdd={(id) => openQuickLog(id)}
         enabled={nextUpEnabled}
       />
 
@@ -779,6 +778,16 @@ export function HomePage() {
                 title="Edit"
               >
                 <span>Edit</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 px-3"
+                onClick={() => openQuickLog(null)}
+                aria-label="Quick log"
+                title="Log"
+              >
+                <span>Log</span>
               </Button>
               <ButtonLink
                 to="/categories/new"
@@ -909,7 +918,7 @@ export function HomePage() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setQuickAddCategoryId(c.id);
+                        openQuickLog(c.id);
                       }}
                     >
                       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -943,12 +952,15 @@ export function HomePage() {
             })}
           </div>
 
-          <QuickAddDialog
-            open={!!quickAddCategoryId}
-            onClose={() => setQuickAddCategoryId(null)}
-            category={quickAddCategory}
-            displayTitle={quickAddTitle}
-            accentHex={quickAddAccent}
+          <QuickLogDialog
+            open={quickLogOpen}
+            onClose={() => {
+              setQuickLogOpen(false);
+              setQuickLogSeedCategoryId(null);
+            }}
+            categories={orderedCategories}
+            displayTitleById={displayTitleById}
+            seedCategoryId={quickLogSeedCategoryId}
           />
         </>
       )}
