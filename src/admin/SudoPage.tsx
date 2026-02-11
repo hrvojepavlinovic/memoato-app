@@ -123,10 +123,15 @@ export function SudoPage() {
           {sortedUsers.map((u) => (
             <div
               key={u.id}
-              className="grid grid-cols-1 gap-2 p-3 text-sm sm:grid-cols-[1.2fr_1.4fr_0.9fr_0.9fr_0.8fr_0.8fr]"
+              className="grid min-w-0 grid-cols-1 gap-2 p-3 text-sm sm:grid-cols-[1.2fr_1.4fr_0.9fr_0.9fr_0.8fr_0.8fr]"
             >
               <div className="font-semibold text-neutral-900 dark:text-neutral-100">{u.username}</div>
-              <div className="text-neutral-700 dark:text-neutral-300">{u.email ?? "n/a"}</div>
+              <div
+                className="min-w-0 truncate text-neutral-700 dark:text-neutral-300"
+                title={u.email ?? ""}
+              >
+                {u.email ?? "n/a"}
+              </div>
               <div className="text-neutral-700 dark:text-neutral-300">{formatDate(u.createdAt)}</div>
               <div className="text-neutral-700 dark:text-neutral-300">{u.lastEntryAt ? formatDate(u.lastEntryAt) : "—"}</div>
               <div className="text-right font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
