@@ -328,6 +328,24 @@ function amountFromParsedOrDefault(parsed: ParsedQuickLog, c: CategoryWithStats,
   return null;
 }
 
+function useIsMobileSm(): boolean {
+  const [isMobile, setIsMobile] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 639px)").matches;
+  });
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 639px)");
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  return isMobile;
+}
+
 export function QuickLogDialog({
   open,
   onClose,
@@ -349,6 +367,8 @@ export function QuickLogDialog({
   const [selectionMode, setSelectionMode] = React.useState<"seed" | "auto" | "manual">("auto");
   const [showPicker, setShowPicker] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobileSm();
+  const [mobileViewport, setMobileViewport] = React.useState<{ height: number; top: number }>({ height: 0, top: 0 });
 
   const now = new Date();
   const nowMinute = now.getHours() * 60 + now.getMinutes();
@@ -425,6 +445,31 @@ export function QuickLogDialog({
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
   }, [open, seedCategoryId]);
+
+  React.useLayoutEffect(() => {
+    if (!open) return;
+    if (!isMobile) return;
+
+    const vv = window.visualViewport ?? null;
+    const update = () => {
+      const height = vv?.height ?? window.innerHeight;
+      const top = vv?.offsetTop ?? 0;
+      setMobileViewport({ height: Math.round(height), top: Math.round(top) });
+    };
+
+    update();
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+
+    return () => {
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, [open, isMobile]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -546,7 +591,12 @@ export function QuickLogDialog({
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <div className="h-[100dvh] w-full bg-white dark:bg-neutral-950 sm:bg-transparent">
+      <div
+        className={
+          "w-full bg-white dark:bg-neutral-950 sm:bg-transparent " + (isMobile ? "fixed left-0 right-0 z-50" : "h-auto")
+        }
+        style={isMobile && mobileViewport.height > 0 ? { top: mobileViewport.top, height: mobileViewport.height } : undefined}
+      >
         <div className="mx-auto h-full w-full max-w-lg sm:mt-[14vh] sm:h-auto sm:w-[92vw]">
           <div className="card flex h-full flex-col overflow-hidden shadow-lg sm:h-auto sm:rounded-2xl">
             <div className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:rounded-t-2xl">
@@ -572,33 +622,8 @@ export function QuickLogDialog({
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-4 sm:p-4">
-            <div className="relative">
-              <input
-                ref={inputRef}
-                value={raw}
-                onChange={(e) => {
-                  setRaw(e.target.value);
-                  if (selectionMode === "seed") setSelectionMode("auto");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter") return;
-                  e.preventDefault();
-                  if (saving) return;
-                  submit();
-                }}
-                placeholder="e.g. 600 water, push ups 30, or just a note"
-                className="block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 pr-24 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-                disabled={saving}
-              />
-              {selectedUnit && !selectedIsNotes ? (
-                <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
-                  {selectedUnit}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
+            <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 sm:p-4">
+              <div className="flex flex-wrap gap-2">
               {topChips.map((r) => {
                 const active = r.c.id === selectedCategoryId;
                 return (
@@ -642,111 +667,95 @@ export function QuickLogDialog({
                   <span>{showPicker ? "Hide" : "More"}</span>
                 </button>
               ) : null}
-            </div>
-
-            {selected ? (
-              <div
-                className="rounded-xl border bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950"
-                style={{ borderColor: selectedAccent }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div
-                      className="flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
-                      style={{ borderColor: selectedAccent }}
-                      aria-hidden="true"
-                    >
-                      <div className="text-lg leading-none">{selected.emoji ?? ""}</div>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">
-                        {selectedDisplayTitle ?? selected.title}
-                      </div>
-                      <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">{subtitle}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="inline-flex h-10 flex-none items-center gap-2 rounded-full border bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-                      style={{ borderColor: selectedAccent }}
-                      aria-label="Change category"
-                      title="Change category"
-                      onClick={() => togglePicker(true)}
-                      disabled={saving}
-                    >
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <path d="M21 12a9 9 0 1 1-3-6.7" />
-                        <path d="M21 3v6h-6" />
-                      </svg>
-                      <span>Change</span>
-                    </button>
-                  </div>
-                </div>
-
-                {!selectedIsNotes && (recent.last != null || recent.avg5 != null || (selected.goalWeekly ?? 0) > 0) ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {recent.last != null ? (
-                      <button
-                        type="button"
-                        className="rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-                        onClick={() => setQuickAmount(recent.last!)}
-                        disabled={saving}
-                        title="Use last value"
-                      >
-                        Last {formatValue(recent.last)}
-                      </button>
-                    ) : null}
-                    {recent.avg5 != null ? (
-                      <button
-                        type="button"
-                        className="rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-                        onClick={() => setQuickAmount(recent.avg5!)}
-                        disabled={saving}
-                        title="Use average of recent values"
-                      >
-                        Avg {formatValue(recent.avg5)}
-                      </button>
-                    ) : null}
-                    {(() => {
-                      const goalWeekly = selected.goalWeekly;
-                      if (goalWeekly == null || goalWeekly <= 0) return null;
-                      return (
-                      <button
-                        type="button"
-                        className="rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-                        onClick={() => setQuickAmount(goalWeekly / 7)}
-                        disabled={saving}
-                        title="Use a daily split of your weekly goal"
-                      >
-                        {formatValue(goalWeekly / 7)} goal
-                      </button>
-                      );
-                    })()}
-                  </div>
-                ) : null}
               </div>
-            ) : null}
 
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="ghost" className="h-11" onClick={onClose} disabled={saving}>
-                Cancel
-              </Button>
-              <Button
-                className="h-11"
-                onClick={(e) => {
-                  e.preventDefault();
-                  submit();
-                }}
-                disabled={saving || !selectedCategoryId}
-              >
-                Add
-              </Button>
-            </div>
+              {selected ? (
+                <div
+                  className="mt-3 rounded-xl border bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950"
+                  style={{ borderColor: selectedAccent }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className="flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                        style={{ borderColor: selectedAccent }}
+                        aria-hidden="true"
+                      >
+                        <div className="text-lg leading-none">{selected.emoji ?? ""}</div>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">
+                          {selectedDisplayTitle ?? selected.title}
+                        </div>
+                        <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">{subtitle}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="inline-flex h-10 flex-none items-center gap-2 rounded-full border bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                        style={{ borderColor: selectedAccent }}
+                        aria-label="Change category"
+                        title="Change category"
+                        onClick={() => togglePicker(true)}
+                        disabled={saving}
+                      >
+                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                          <path d="M21 12a9 9 0 1 1-3-6.7" />
+                          <path d="M21 3v6h-6" />
+                        </svg>
+                        <span>Change</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {!selectedIsNotes && (recent.last != null || recent.avg5 != null || (selected.goalWeekly ?? 0) > 0) ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {recent.last != null ? (
+                        <button
+                          type="button"
+                          className="rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                          onClick={() => setQuickAmount(recent.last!)}
+                          disabled={saving}
+                          title="Use last value"
+                        >
+                          Last {formatValue(recent.last)}
+                        </button>
+                      ) : null}
+                      {recent.avg5 != null ? (
+                        <button
+                          type="button"
+                          className="rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                          onClick={() => setQuickAmount(recent.avg5!)}
+                          disabled={saving}
+                          title="Use average of recent values"
+                        >
+                          Avg {formatValue(recent.avg5)}
+                        </button>
+                      ) : null}
+                      {(() => {
+                        const goalWeekly = selected.goalWeekly;
+                        if (goalWeekly == null || goalWeekly <= 0) return null;
+                        return (
+                          <button
+                            type="button"
+                            className="rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                            onClick={() => setQuickAmount(goalWeekly / 7)}
+                            disabled={saving}
+                            title="Use a daily split of your weekly goal"
+                          >
+                            {formatValue(goalWeekly / 7)} goal
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
             {showPicker ? (
-              <div id="memoato-quicklog-pick" className="pt-1">
+              <div id="memoato-quicklog-pick" className="pt-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Pick category</div>
                   <button
@@ -805,6 +814,45 @@ export function QuickLogDialog({
                 </div>
               </div>
             ) : null}
+            </div>
+
+            <div className="border-t border-neutral-200 bg-white/90 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:rounded-b-2xl">
+              <div className="flex items-center gap-2">
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    ref={inputRef}
+                    value={raw}
+                    onChange={(e) => {
+                      setRaw(e.target.value);
+                      if (selectionMode === "seed") setSelectionMode("auto");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
+                      e.preventDefault();
+                      if (saving) return;
+                      submit();
+                    }}
+                    placeholder="e.g. 600 water, push ups 30, or just a note"
+                    className="block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 pr-20 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                    disabled={saving}
+                  />
+                  {selectedUnit && !selectedIsNotes ? (
+                    <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+                      {selectedUnit}
+                    </div>
+                  ) : null}
+                </div>
+                <Button
+                  className="h-12 flex-none px-5"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    submit();
+                  }}
+                  disabled={saving || !selectedCategoryId}
+                >
+                  Add
+                </Button>
+              </div>
             </div>
           </div>
         </div>

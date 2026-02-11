@@ -978,12 +978,9 @@ export function HomePage() {
       )}
 
       {!orderMode && !quickLogOpen ? (
-        <div
-          className="fixed right-4 z-40 sm:hidden"
-          style={{ bottom: "calc(1rem + env(safe-area-inset-bottom) + 200px)" }}
-        >
+        <div className="fixed right-4 top-1/2 z-40 -translate-y-1/2 sm:hidden">
           <div
-            className="pointer-events-none absolute -inset-3 rounded-full bg-white/35 backdrop-blur-md dark:bg-neutral-950/35"
+            className="pointer-events-none absolute -inset-8 rounded-full bg-white/10 backdrop-blur-2xl dark:bg-neutral-950/10"
             aria-hidden="true"
           />
           <button
