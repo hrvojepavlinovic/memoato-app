@@ -630,6 +630,13 @@ a:hover:not(.btn):not(.icon-btn) {
   text-decoration: none;
 }
 
+.prose a.card,
+.prose a.card:hover,
+.prose a.post-card,
+.prose a.post-card:hover {
+  text-decoration: none;
+}
+
 .prose a.btn:hover,
 .prose a.icon-btn:hover {
   text-decoration: none;
@@ -697,13 +704,13 @@ a:hover:not(.btn):not(.icon-btn) {
 
 .post-list {
   display: grid;
-  gap: 1rem;
-  margin-top: 1.25rem;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
 }
 
 .post-card {
   display: block;
-  padding: 1.25rem;
+  padding: 1.5rem;
 }
 
 .post-card:hover {
@@ -712,23 +719,25 @@ a:hover:not(.btn):not(.icon-btn) {
   border-color: rgba(0, 0, 0, 0.14);
 }
 
+.post-kicker {
+  color: var(--muted);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+}
+
 .post-title {
   font-weight: 800;
   letter-spacing: -0.02em;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   line-height: 1.25;
 }
 
-.post-meta {
-  margin-top: 0.5rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
-  align-items: center;
-}
-
 .post-desc {
+  margin-top: 0.5rem;
   color: rgba(10, 10, 10, 0.72);
+  line-height: 1.6;
 }
 
 .usecase-grid {

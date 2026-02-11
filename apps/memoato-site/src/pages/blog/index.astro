@@ -22,7 +22,6 @@ function fmtDate(input: any): string | null {
 >
   <section class="section">
     <div class="container">
-      <div class="prose">
       <h1 class="page-title">Blog</h1>
       <div class="post-list">
         {posts.map((p) => {
@@ -31,15 +30,12 @@ function fmtDate(input: any): string | null {
           const dateLabel = fmtDate(p.frontmatter.date);
           return (
             <a class="card post-card" href={p.url}>
+              {dateLabel ? <div class="post-kicker">{dateLabel}</div> : null}
               <div class="post-title">{title}</div>
-              <div class="post-meta">
-                {dateLabel ? <span class="muted">{dateLabel}</span> : null}
-                {desc ? <span class="post-desc">{desc}</span> : null}
-              </div>
+              {desc ? <div class="post-desc">{desc}</div> : null}
             </a>
           );
         })}
-      </div>
       </div>
     </div>
   </section>
