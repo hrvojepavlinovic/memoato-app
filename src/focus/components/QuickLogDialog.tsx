@@ -546,36 +546,33 @@ export function QuickLogDialog({
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <div
-        className="mx-auto flex min-h-[100dvh] w-full max-w-none items-end justify-center px-3 pb-3 sm:min-h-0 sm:items-start sm:px-0 sm:pb-0"
-        onClick={(e) => {
-          if (e.target !== e.currentTarget) return;
-          onClose();
-        }}
-      >
-        <div className="card max-h-[92dvh] w-full max-w-lg overflow-y-auto p-4 shadow-lg sm:mt-[14vh] sm:max-h-none">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-base font-semibold text-neutral-950 dark:text-neutral-100">Quick log</div>
-              <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                Type a number, a category, or both.
+      <div className="h-[100dvh] w-full bg-white dark:bg-neutral-950 sm:bg-transparent">
+        <div className="mx-auto h-full w-full max-w-lg sm:mt-[14vh] sm:h-auto sm:w-[92vw]">
+          <div className="card flex h-full flex-col overflow-hidden shadow-lg sm:h-auto sm:rounded-2xl">
+            <div className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:rounded-t-2xl">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-base font-semibold text-neutral-950 dark:text-neutral-100">Quick log</div>
+                  <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                    Type a number, a category, or a note.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-md p-2 text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
+                  aria-label="Close"
+                  disabled={saving}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path d="M18 6 6 18" />
+                    <path d="M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md p-2 text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
-              aria-label="Close"
-              disabled={saving}
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6 6 18" />
-                <path d="M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
 
-          <div className="mt-4 space-y-3">
+            <div className="flex-1 overflow-y-auto px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-4 sm:p-4">
             <div className="relative">
               <input
                 ref={inputRef}
@@ -808,6 +805,7 @@ export function QuickLogDialog({
                 </div>
               </div>
             ) : null}
+            </div>
           </div>
         </div>
       </div>

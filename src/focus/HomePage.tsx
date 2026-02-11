@@ -980,7 +980,7 @@ export function HomePage() {
       {!orderMode && !quickLogOpen ? (
         <div
           className="fixed right-4 z-40 sm:hidden"
-          style={{ bottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+          style={{ bottom: "calc(1rem + env(safe-area-inset-bottom) + 200px)" }}
         >
           <div
             className="pointer-events-none absolute -inset-3 rounded-full bg-white/35 backdrop-blur-md dark:bg-neutral-950/35"
