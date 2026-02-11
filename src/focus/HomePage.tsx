@@ -752,7 +752,7 @@ export function HomePage() {
             <div className="min-w-0">
               <div className="truncate text-base font-semibold text-neutral-950 dark:text-neutral-100">Log</div>
               <div className="mt-0.5 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                Type and press Enter.
+                Type and press Enter. Shortcut: L
               </div>
             </div>
             <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-neutral-950 text-white dark:bg-white dark:text-neutral-950">
@@ -775,7 +775,7 @@ export function HomePage() {
             <div className="min-w-0">
               <div className="truncate text-base font-semibold text-neutral-950 dark:text-neutral-100">Note</div>
               <div className="mt-0.5 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                Write a quick note.
+                Write a quick note. Shortcut: N
               </div>
             </div>
             <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100">
