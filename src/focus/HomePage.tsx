@@ -127,21 +127,21 @@ function GoalProgress({
         <span className="tabular-nums">{rightLabel}</span>
       </div>
       <div className="relative mt-1">
-        <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+        <div className="relative h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
           <div
-            className="h-full rounded-full"
+            className="relative z-10 h-full rounded-full"
             style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
             aria-label={`${periodLabel(c.period)} progress`}
           />
+          {goal > 0 ? (
+            <div
+              className="pointer-events-none absolute inset-y-0 z-20 w-px -translate-x-1/2 bg-neutral-950/25 dark:bg-white/25"
+              style={{ left: `${paceLinePos * 100}%` }}
+              aria-hidden="true"
+              title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
+            />
+          ) : null}
         </div>
-        {goal > 0 ? (
-          <div
-            className="pointer-events-none absolute -top-1 -bottom-1 w-[2px] -translate-x-1/2 rounded-full bg-neutral-950/15 dark:bg-white/15"
-            style={{ left: `${paceLinePos * 100}%` }}
-            aria-hidden="true"
-            title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
-          />
-        ) : null}
       </div>
     </div>
   );
