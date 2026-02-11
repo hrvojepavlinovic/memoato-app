@@ -23,6 +23,27 @@ export function SudoPage() {
   const [sortKey, setSortKey] = React.useState<"createdAt" | "categoriesCount" | "entriesCount" | "lastEntryAt">("createdAt");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
+  const totals = q.data?.totals ?? { users: 0, categories: 0, entries: 0 };
+  const users = q.data?.users ?? [];
+  const sortedUsers = React.useMemo(() => {
+    const copy = [...users];
+    const dir = sortDir === "asc" ? 1 : -1;
+    copy.sort((a, b) => {
+      if (sortKey === "createdAt") {
+        return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      }
+      if (sortKey === "lastEntryAt") {
+        const aa = a.lastEntryAt ? new Date(a.lastEntryAt).getTime() : 0;
+        const bb = b.lastEntryAt ? new Date(b.lastEntryAt).getTime() : 0;
+        return dir * (aa - bb);
+      }
+      if (sortKey === "categoriesCount") return dir * (a.categoriesCount - b.categoriesCount);
+      if (sortKey === "entriesCount") return dir * (a.entriesCount - b.entriesCount);
+      return 0;
+    });
+    return copy;
+  }, [users, sortDir, sortKey]);
+
   if (auth.isLoading) {
     return (
       <div className="mx-auto w-full max-w-screen-lg px-4 py-10 text-sm text-neutral-500 dark:text-neutral-400">
@@ -46,26 +67,6 @@ export function SudoPage() {
   if (q.isError || !q.isSuccess) {
     return <NotFound />;
   }
-
-  const { totals, users } = q.data;
-  const sortedUsers = React.useMemo(() => {
-    const copy = [...users];
-    const dir = sortDir === "asc" ? 1 : -1;
-    copy.sort((a, b) => {
-      if (sortKey === "createdAt") {
-        return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      }
-      if (sortKey === "lastEntryAt") {
-        const aa = a.lastEntryAt ? new Date(a.lastEntryAt).getTime() : 0;
-        const bb = b.lastEntryAt ? new Date(b.lastEntryAt).getTime() : 0;
-        return dir * (aa - bb);
-      }
-      if (sortKey === "categoriesCount") return dir * (a.categoriesCount - b.categoriesCount);
-      if (sortKey === "entriesCount") return dir * (a.entriesCount - b.entriesCount);
-      return 0;
-    });
-    return copy;
-  }, [users, sortDir, sortKey]);
 
   function toggleSort(nextKey: typeof sortKey) {
     if (nextKey === sortKey) {
