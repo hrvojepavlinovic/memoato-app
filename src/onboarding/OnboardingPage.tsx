@@ -27,7 +27,7 @@ type Template = {
   emoji: string | null;
 };
 
-const RECOMMENDED_KEYS = ["weight", "water", "push_ups"];
+const RECOMMENDED_KEYS = ["weight", "active_kcal", "steps", "water"];
 
 function titleKey(title: string): string {
   return title.trim().toLowerCase();
@@ -65,7 +65,19 @@ export function OnboardingPage() {
   const privacy = usePrivacy();
 
   const templatesQuery = useQuery(getCategoryTemplates);
-  const templates = ((templatesQuery.data ?? []) as Template[]).filter((t) => titleKey(t.title) !== "notes");
+  const templates = useMemo(() => {
+    const raw = ((templatesQuery.data ?? []) as Template[]).filter((t) => titleKey(t.title) !== "notes");
+    const rankByKey = new Map<string, number>();
+    for (let i = 0; i < RECOMMENDED_KEYS.length; i++) {
+      rankByKey.set(RECOMMENDED_KEYS[i]!, i);
+    }
+    return raw.slice().sort((a, b) => {
+      const ra = rankByKey.get(a.key) ?? Number.POSITIVE_INFINITY;
+      const rb = rankByKey.get(b.key) ?? Number.POSITIVE_INFINITY;
+      if (ra !== rb) return ra - rb;
+      return a.title.localeCompare(b.title);
+    });
+  }, [templatesQuery.data]);
 
   const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
   const [localHasNonSystem, setLocalHasNonSystem] = useState<boolean | null>(null);
