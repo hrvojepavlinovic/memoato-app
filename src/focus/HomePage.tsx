@@ -584,6 +584,38 @@ export function HomePage() {
     setQuickLogOpen(true);
   }
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.repeat) return;
+      if (quickLogOpen) return;
+      if (orderMode) return;
+      if (!window.matchMedia("(min-width: 640px)").matches) return;
+
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase() ?? "";
+      if (tag === "input" || tag === "textarea" || (target as any)?.isContentEditable) return;
+
+      const key = (e.key ?? "").toLowerCase();
+      if (key === "l") {
+        e.preventDefault();
+        setQuickLogSeedCategoryId(null);
+        setQuickLogOpen(true);
+        return;
+      }
+      if (key === "n") {
+        if (!notesCategoryId) return;
+        e.preventDefault();
+        setQuickLogSeedCategoryId(notesCategoryId);
+        setQuickLogOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [notesCategoryId, orderMode, quickLogOpen]);
+
   if (isLoading) {
     return <div className="mx-auto w-full max-w-screen-lg px-4 py-6" />;
   }
