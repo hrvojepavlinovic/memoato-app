@@ -109,6 +109,7 @@ function GoalProgress({
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const pace = goal > 0 ? expectedPace01(c.period) : 0;
   const paceClamped = clamp01(pace);
+  const paceLinePos = goal > 0 ? Math.min(0.98, Math.max(0.02, paceClamped)) : 0;
   const dir = normalizeGoalDirection(c);
   const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
   const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
@@ -126,21 +127,6 @@ function GoalProgress({
         <span className="tabular-nums">{rightLabel}</span>
       </div>
       <div className="relative mt-1">
-        {goal > 0 ? (
-          <div
-            className="pointer-events-none absolute -top-2 left-0 h-0 w-full"
-            aria-hidden="true"
-            title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
-          >
-            <div
-              className="absolute top-0 -translate-x-1/2"
-              style={{ left: `${paceClamped * 100}%` }}
-            >
-              <div className="h-3 w-[2px] rounded-full bg-neutral-950/25 dark:bg-white/25" />
-              <div className="-mt-1 h-2 w-2 rotate-45 rounded-[2px] bg-neutral-950/20 dark:bg-white/20" />
-            </div>
-          </div>
-        ) : null}
         <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
           <div
             className="h-full rounded-full"
@@ -148,6 +134,14 @@ function GoalProgress({
             aria-label={`${periodLabel(c.period)} progress`}
           />
         </div>
+        {goal > 0 ? (
+          <div
+            className="pointer-events-none absolute -top-1 -bottom-1 w-[2px] -translate-x-1/2 rounded-full bg-neutral-950/15 dark:bg-white/15"
+            style={{ left: `${paceLinePos * 100}%` }}
+            aria-hidden="true"
+            title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
+          />
+        ) : null}
       </div>
     </div>
   );
