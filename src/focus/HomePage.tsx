@@ -49,6 +49,44 @@ function withHexAlpha(hex: unknown, alphaHex: string): string | null {
   return `${h}${alphaHex}`;
 }
 
+function clamp01(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(1, Math.max(0, n));
+}
+
+function expectedPace01(period: CategoryWithStats["period"]): number {
+  const now = new Date();
+
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  if (period === "day") {
+    const ms = now.getTime() - startOfDay.getTime();
+    return clamp01(ms / (24 * 60 * 60 * 1000));
+  }
+
+  if (period === "week") {
+    const day = startOfDay.getDay(); // 0=Sun..6=Sat
+    const diff = (day + 6) % 7; // Mon=0..Sun=6
+    const start = new Date(startOfDay);
+    start.setDate(startOfDay.getDate() - diff);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    return clamp01((now.getTime() - start.getTime()) / (end.getTime() - start.getTime()));
+  }
+
+  if (period === "month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return clamp01((now.getTime() - start.getTime()) / (end.getTime() - start.getTime()));
+  }
+
+  // year
+  const start = new Date(now.getFullYear(), 0, 1);
+  const end = new Date(now.getFullYear() + 1, 0, 1);
+  return clamp01((now.getTime() - start.getTime()) / (end.getTime() - start.getTime()));
+}
+
 function GoalProgress({
   c,
   right = "status",
@@ -59,6 +97,7 @@ function GoalProgress({
   const goal = c.goalWeekly ?? 0;
   const done = c.thisWeekTotal;
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
+  const pace = goal > 0 ? expectedPace01(c.period) : 0;
   const dir = normalizeGoalDirection(c);
   const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
   const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
@@ -75,7 +114,15 @@ function GoalProgress({
         <span>{periodLabel(c.period)}</span>
         <span className="tabular-nums">{rightLabel}</span>
       </div>
-      <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200">
+      <div className="relative mt-1 h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+        {goal > 0 ? (
+          <div
+            className="pointer-events-none absolute top-0 bottom-0 w-[2px] bg-neutral-950/20 dark:bg-white/20"
+            style={{ left: `${pace * 100}%` }}
+            aria-hidden="true"
+            title={`Pace: ${Math.round(pace * 100)}% of ${periodLabel(c.period).toLowerCase()} elapsed`}
+          />
+        ) : null}
         <div
           className="h-full rounded-full"
           style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
