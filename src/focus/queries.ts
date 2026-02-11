@@ -113,6 +113,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     string,
     { count: number; activeDays: Set<string>; sumMinutes: number }
   >();
+  const recentAmountByCategory = new Map<string, { sum: number; count: number; lastAmount: number | null }>();
   if (categoryIds.length > 0) {
     const recentEvents = await context.entities.Event.findMany({
       where: {
@@ -121,7 +122,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
         categoryId: { in: categoryIds },
         occurredAt: { gte: recentStart, lt: dayEnd },
       },
-      select: { categoryId: true, occurredAt: true, occurredOn: true },
+      select: { categoryId: true, occurredAt: true, occurredOn: true, amount: true },
       orderBy: [{ occurredAt: "desc" }],
       take: 2000,
     });
@@ -141,6 +142,15 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       prev.sumMinutes += minute;
       prev.activeDays.add(dayKey);
       recentTimingByCategory.set(ev.categoryId, prev);
+
+      const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : null;
+      if (amount != null) {
+        const aPrev = recentAmountByCategory.get(ev.categoryId) ?? { sum: 0, count: 0, lastAmount: null };
+        aPrev.sum += amount;
+        aPrev.count += 1;
+        if (aPrev.lastAmount == null) aPrev.lastAmount = amount; // events are sorted desc
+        recentAmountByCategory.set(ev.categoryId, aPrev);
+      }
     }
   }
 
@@ -277,6 +287,9 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     const recentAvgMinuteOfDay30d = timing && timing.count > 0 ? Math.round(timing.sumMinutes / timing.count) : null;
     const recentAvgEventsPerDay30d =
       timing && timing.activeDays.size > 0 ? timing.count / timing.activeDays.size : 0;
+    const recentAmt = recentAmountByCategory.get(c.id);
+    const recentAvgAmount30d = recentAmt && recentAmt.count > 0 ? recentAmt.sum / recentAmt.count : null;
+    const recentLastAmount30d = recentAmt?.lastAmount ?? null;
 
     return {
       id: c.id,
@@ -299,6 +312,8 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       thisWeekTotal: windowValue(periodStats, c.id, agg),
       thisYearTotal: windowValue(yearStats, c.id, agg),
       lastValue: lastByCategory.get(c.id) ?? null,
+      recentAvgAmount30d,
+      recentLastAmount30d,
       recentActiveDays30d,
       recentAvgMinuteOfDay30d,
       recentAvgEventsPerDay30d,

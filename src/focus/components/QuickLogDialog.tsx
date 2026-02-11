@@ -139,6 +139,18 @@ function timeFitScore(nowMinute: number, typicalMinute: number): number {
   return clamp01(s);
 }
 
+function relativeDiff(a: number, b: number): number {
+  return Math.abs(a - b) / Math.max(1, Math.abs(b));
+}
+
+function relativeCloseness(a: number, b: number): number {
+  const d = relativeDiff(a, b);
+  // d=0   -> 1.00
+  // d=0.5 -> ~0.74
+  // d=1.0 -> ~0.36
+  return clamp01(Math.exp(-Math.pow(d / 0.85, 2)));
+}
+
 function amountFitScore(args: {
   c: CategoryWithStats;
   displayTitle: string;
@@ -152,24 +164,20 @@ function amountFitScore(args: {
   const title = normalizeText(displayTitle);
   const isDecimal = !Number.isInteger(amount);
 
-  if (c.chartType === "line") {
-    if (c.lastValue == null) return isDecimal ? 0.55 : 0.35;
-    const denom = Math.max(1, Math.abs(c.lastValue));
-    const diff = Math.abs(amount - c.lastValue);
-    const closeness = 1 - clamp01(diff / (denom * 0.25 + 1));
-    const decimalBoost = isDecimal ? 0.15 : 0;
-    const weightBoost = key === "weight" || u === "kg" || title.includes("weight") ? 0.1 : 0;
-    return clamp01(closeness + decimalBoost + weightBoost);
-  }
+  const last = c.recentLastAmount30d ?? (c.chartType === "line" ? c.lastValue : null);
+  const avg = c.recentAvgAmount30d;
+  const typical = c.goalWeekly != null && c.goalWeekly > 0 ? c.goalWeekly / 7 : null;
 
-  // Typical is "daily share of weekly goal" when present.
-  if (c.goalWeekly != null && c.goalWeekly > 0) {
-    const typical = c.goalWeekly / 7;
-    const denom = Math.max(1, typical);
-    const diff = Math.abs(amount - typical);
-    const closeness = 1 - clamp01(diff / (denom * 1.25 + 1));
+  let closeness = 0;
+  if (last != null) closeness = Math.max(closeness, relativeCloseness(amount, last));
+  if (avg != null) closeness = Math.max(closeness, relativeCloseness(amount, avg));
+  if (typical != null) closeness = Math.max(closeness, relativeCloseness(amount, typical) * 0.85);
+
+  if (closeness > 0) {
+    const decimalBoost = isDecimal ? 0.12 : 0;
+    const weightBoost = key === "weight" || u === "kg" || title.includes("weight") ? 0.1 : 0;
     const unitBoost = u === "ml" || u === "l" || u === "kcal" ? 0.1 : 0;
-    return clamp01(closeness + unitBoost);
+    return clamp01(closeness + decimalBoost + weightBoost + unitBoost);
   }
 
   // Binary/session categories.
@@ -623,19 +631,21 @@ export function QuickLogDialog({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                      className="inline-flex h-10 flex-none items-center gap-2 rounded-full border bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
                       style={{ borderColor: selectedAccent }}
-                      aria-label="Pick category"
-                      title="Pick category"
+                      aria-label="Change category"
+                      title="Change category"
                       onClick={() => {
                         const el = document.getElementById("memoato-quicklog-pick");
                         el?.scrollIntoView({ behavior: "smooth", block: "start" });
                       }}
                       disabled={saving}
                     >
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M6 9l6 6 6-6" />
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M21 12a9 9 0 1 1-3-6.7" />
+                        <path d="M21 3v6h-6" />
                       </svg>
+                      <span>Change</span>
                     </button>
                   </div>
                 </div>

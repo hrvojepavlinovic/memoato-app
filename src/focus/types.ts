@@ -32,6 +32,8 @@ export type CategoryWithStats = {
   thisWeekTotal: number;
   thisYearTotal: number;
   lastValue: number | null;
+  recentAvgAmount30d: number | null;
+  recentLastAmount30d: number | null;
   recentActiveDays30d: number;
   recentAvgMinuteOfDay30d: number | null;
   recentAvgEventsPerDay30d: number;

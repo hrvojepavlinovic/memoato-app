@@ -300,6 +300,8 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     string,
     { count: number; activeDays: Set<string>; sumMinutes: number }
   >();
+  const recentAmountByCategory = new Map<string, { sum: number; count: number; lastAmount: number | null }>();
+  const recentLastOccurredAtByCategory = new Map<string, Date>();
 
   for (const ev of events) {
     if (ev.kind !== "SESSION") continue;
@@ -344,6 +346,18 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
       prev.sumMinutes += minute;
       prev.activeDays.add(ev.occurredOn);
       recentTimingByCategory.set(categoryId, prev);
+
+      const aPrev = recentAmountByCategory.get(categoryId) ?? { sum: 0, count: 0, lastAmount: null };
+      aPrev.sum += amount;
+      aPrev.count += 1;
+      recentAmountByCategory.set(categoryId, aPrev);
+
+      const prevRecentLast = recentLastOccurredAtByCategory.get(categoryId);
+      if (!prevRecentLast || t.getTime() > prevRecentLast.getTime()) {
+        recentLastOccurredAtByCategory.set(categoryId, t);
+        const row = recentAmountByCategory.get(categoryId);
+        if (row) row.lastAmount = amount;
+      }
     }
   }
 
@@ -404,6 +418,9 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     const recentAvgMinuteOfDay30d = timing && timing.count > 0 ? Math.round(timing.sumMinutes / timing.count) : null;
     const recentAvgEventsPerDay30d =
       timing && timing.activeDays.size > 0 ? timing.count / timing.activeDays.size : 0;
+    const recentAmt = recentAmountByCategory.get(c.id);
+    const recentAvgAmount30d = recentAmt && recentAmt.count > 0 ? recentAmt.sum / recentAmt.count : null;
+    const recentLastAmount30d = recentAmt?.lastAmount ?? null;
 
     return {
       id: c.id,
@@ -426,6 +443,8 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
       thisWeekTotal: windowValue(periodSumMap, periodCountMap, c.id, agg),
       thisYearTotal: windowValue(sums.year, counts.year, c.id, agg),
       lastValue: lastByCategory.get(c.id) ?? null,
+      recentAvgAmount30d,
+      recentLastAmount30d,
       recentActiveDays30d,
       recentAvgMinuteOfDay30d,
       recentAvgEventsPerDay30d,
