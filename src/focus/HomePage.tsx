@@ -1003,7 +1003,7 @@ export function HomePage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {orderedCategories.map((c) => {
               const displayTitle = displayTitleById[c.id] ?? c.title;
               const accent = resolveAccentForTheme(c.accentHex, theme.isDark) ?? c.accentHex;
