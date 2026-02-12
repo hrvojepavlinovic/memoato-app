@@ -842,7 +842,7 @@ export function ProfilePage() {
 	          <div className="mt-5">
 	            <div className="mb-2 text-sm font-semibold">Categories layout</div>
 	            <div className="text-sm text-neutral-500 dark:text-neutral-400">
-	              Choose list (1 per row) or grid (2 per row) on mobile.
+	              Choose list or grid.
 	            </div>
 	            <div className="mt-3 grid grid-cols-2 gap-2">
 	              {(["list", "grid"] as const).map((layout) => {
