@@ -42,6 +42,7 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
       nextUpEnabled: true,
       themePreference: true,
       quickLogFabSide: true,
+      homeCategoryLayout: true,
     },
   });
   if (!user) {
@@ -82,6 +83,7 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
     themePreference:
       user.themePreference === "dark" ? "dark" : user.themePreference === "light" ? "light" : null,
     quickLogFabSide: user.quickLogFabSide === "left" ? "left" : "right",
+    homeCategoryLayout: user.homeCategoryLayout === "grid" ? "grid" : "list",
     email: email && email.includes("@") ? email : null,
     isEmailVerified,
     hasEmailAuth,

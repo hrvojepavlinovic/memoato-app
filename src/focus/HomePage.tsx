@@ -505,6 +505,7 @@ export function HomePage() {
   const isSuccess = privacy.mode === "local" ? true : categoriesQuery.isSuccess;
   const nextUpEnabled = privacy.mode === "local" ? false : (profileQuery.data?.nextUpEnabled ?? false);
   const quickLogFabSide = privacy.mode === "local" ? "right" : (profileQuery.data?.quickLogFabSide ?? "right");
+  const homeCategoryLayout = privacy.mode === "local" ? "list" : (profileQuery.data?.homeCategoryLayout ?? "list");
   const ensuredOnceRef = useRef(false);
   const [titleById, setTitleById] = useState<Record<string, string>>({});
   const [orderMode, setOrderMode] = useState(false);
@@ -1005,12 +1006,8 @@ export function HomePage() {
         <>
           <div
             className={[
-              "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:pl-0 sm:pr-0 lg:grid-cols-3",
-              !orderMode && !quickLogOpen
-                ? quickLogFabSide === "left"
-                  ? "pl-[96px]"
-                  : "pr-[96px]"
-                : "",
+              "grid gap-3 sm:grid-cols-2 lg:grid-cols-3",
+              homeCategoryLayout === "grid" ? "grid-cols-2" : "grid-cols-1",
             ].join(" ")}
           >
             {orderedCategories.map((c) => {
@@ -1110,7 +1107,7 @@ export function HomePage() {
             quickLogFabSide === "left" ? "left-4" : "right-4",
           ].join(" ")}
         >
-          <div className="rounded-3xl bg-neutral-950/10 p-3 backdrop-blur-lg ring-1 ring-neutral-950/10 dark:bg-neutral-950/35 dark:ring-white/10">
+          <div className="pointer-events-none rounded-3xl bg-neutral-950/10 p-3 backdrop-blur-lg ring-1 ring-neutral-950/10 dark:bg-neutral-950/35 dark:ring-white/10">
             <div className="flex flex-col items-center gap-3">
             <div className="relative">
               <div
@@ -1120,7 +1117,7 @@ export function HomePage() {
               <button
                 type="button"
                 onClick={() => openQuickLog(null)}
-                className="relative flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-white shadow-lg hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
+                className="pointer-events-auto relative flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-white shadow-lg hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
                 aria-label="Quick log"
                 title="Log"
               >
@@ -1146,7 +1143,7 @@ export function HomePage() {
               <button
                 type="button"
                 onClick={() => openQuickLog(notesCategoryId)}
-                className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
                 aria-label="Quick note"
                 title="Note"
                 disabled={!notesCategoryId}

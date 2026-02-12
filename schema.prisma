@@ -20,6 +20,7 @@ model User {
   nextUpEnabled Boolean @default(false)
   themePreference String?
   quickLogFabSide String @default("right")
+  homeCategoryLayout String @default("list")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

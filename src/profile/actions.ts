@@ -9,6 +9,7 @@ import type {
   RequestAccountDeletion,
   RequestEmailChange,
   SendPasswordResetForCurrentUser,
+  SetHomeCategoryLayout,
   SetNextUpEnabled,
   SetQuickLogFabSide,
   SetThemePreference,
@@ -171,6 +172,19 @@ export const setQuickLogFabSide: SetQuickLogFabSide<{ side: "left" | "right" }, 
   await context.entities.User.update({
     where: { id: userId },
     data: { quickLogFabSide: side },
+  });
+  return { success: true };
+};
+
+export const setHomeCategoryLayout: SetHomeCategoryLayout<{ layout: "list" | "grid" }, { success: true }> = async (
+  args,
+  context,
+) => {
+  const { userId } = requireAuth(context);
+  const layout = args.layout === "grid" ? "grid" : "list";
+  await context.entities.User.update({
+    where: { id: userId },
+    data: { homeCategoryLayout: layout },
   });
   return { success: true };
 };

@@ -13,6 +13,7 @@ import {
 	  requestAccountDeletion,
 	  requestEmailChange,
 	  sendPasswordResetForCurrentUser,
+	  setHomeCategoryLayout,
 	  setNextUpEnabled,
 	  setQuickLogFabSide,
 	  updateCategory,
@@ -97,6 +98,7 @@ export function ProfilePage() {
 	  const [busy, setBusy] = useState<string | null>(null);
 	  const [nextUpEnabledPref, setNextUpEnabledPref] = useState<boolean | null>(null);
 	  const [fabSidePref, setFabSidePref] = useState<"left" | "right" | null>(null);
+	  const [homeLayoutPref, setHomeLayoutPref] = useState<"list" | "grid" | null>(null);
 
   useEffect(() => {
     if (!q.data) return;
@@ -114,6 +116,11 @@ export function ProfilePage() {
 	    if (!q.data) return;
 	    setFabSidePref(q.data.quickLogFabSide);
 	  }, [q.data?.quickLogFabSide]);
+
+	  useEffect(() => {
+	    if (!q.data) return;
+	    setHomeLayoutPref(q.data.homeCategoryLayout);
+	  }, [q.data?.homeCategoryLayout]);
 
   useEffect(() => {
     setPendingMode(privacy.mode);
@@ -826,6 +833,52 @@ export function ProfilePage() {
 	                    ].join(" ")}
 	                  >
 	                    {side === "left" ? "Left" : "Right"}
+	                  </button>
+	                );
+	              })}
+	            </div>
+	          </div>
+
+	          <div className="mt-5">
+	            <div className="mb-2 text-sm font-semibold">Categories layout</div>
+	            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+	              Choose list (1 per row) or grid (2 per row) on mobile.
+	            </div>
+	            <div className="mt-3 grid grid-cols-2 gap-2">
+	              {(["list", "grid"] as const).map((layout) => {
+	                const active = (homeLayoutPref ?? q.data?.homeCategoryLayout ?? "list") === layout;
+	                const isDisabled = busy === "homeLayout" || q.isLoading || !q.data;
+	                return (
+	                  <button
+	                    key={layout}
+	                    type="button"
+	                    disabled={isDisabled}
+	                    onClick={async () => {
+	                      if (!q.data) return;
+	                      setMessage(null);
+	                      setBusy("homeLayout");
+	                      setHomeLayoutPref(layout);
+	                      try {
+	                        await setHomeCategoryLayout({ layout });
+	                        await q.refetch();
+	                      } catch (e: any) {
+	                        setHomeLayoutPref(q.data.homeCategoryLayout);
+	                        setMessage(e?.message ?? "Failed to update setting.");
+	                      } finally {
+	                        setBusy(null);
+	                      }
+	                    }}
+	                    aria-pressed={active}
+	                    className={[
+	                      "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
+	                      isDisabled
+	                        ? "cursor-not-allowed opacity-70"
+	                        : active
+	                        ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+	                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+	                    ].join(" ")}
+	                  >
+	                    {layout === "list" ? "List" : "Grid"}
 	                  </button>
 	                );
 	              })}

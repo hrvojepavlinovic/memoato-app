@@ -259,6 +259,11 @@ action setQuickLogFabSide {
   entities: [User]
 }
 
+action setHomeCategoryLayout {
+  fn: import { setHomeCategoryLayout } from "@src/profile/actions",
+  entities: [User]
+}
+
 action requestEmailChange {
   fn: import { requestEmailChange } from "@src/profile/actions",
   entities: [User]

@@ -5,6 +5,7 @@ export type ProfileData = {
   nextUpEnabled: boolean;
   themePreference: "light" | "dark" | null;
   quickLogFabSide: "left" | "right";
+  homeCategoryLayout: "list" | "grid";
   email: string | null;
   isEmailVerified: boolean;
   hasEmailAuth: boolean;
