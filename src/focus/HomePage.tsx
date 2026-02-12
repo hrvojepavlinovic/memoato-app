@@ -239,15 +239,29 @@ function tileShowsDwyCounts(c: CategoryWithStats, displayTitle: string): boolean
 
 function TileDwyCounts({ c }: { c: CategoryWithStats }) {
   return (
-    <div className="flex items-baseline gap-2 whitespace-nowrap text-xs font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
-      <span className="text-neutral-500 dark:text-neutral-400">D</span>
-      <span>{c.todayCount ?? 0}</span>
-      <span className="text-neutral-300 dark:text-neutral-700">·</span>
-      <span className="text-neutral-500 dark:text-neutral-400">W</span>
-      <span>{c.thisWeekCount ?? 0}</span>
-      <span className="text-neutral-300 dark:text-neutral-700">·</span>
-      <span className="text-neutral-500 dark:text-neutral-400">Y</span>
-      <span>{c.thisYearCount ?? 0}</span>
+    <div className="grid grid-cols-3 items-end gap-3 text-center tabular-nums">
+      <div>
+        <div className="text-base font-semibold leading-none text-neutral-950 dark:text-neutral-100">{c.todayCount ?? 0}</div>
+        <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Today
+        </div>
+      </div>
+      <div>
+        <div className="text-base font-semibold leading-none text-neutral-950 dark:text-neutral-100">
+          {c.thisWeekCount ?? 0}
+        </div>
+        <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Week
+        </div>
+      </div>
+      <div>
+        <div className="text-base font-semibold leading-none text-neutral-950 dark:text-neutral-100">
+          {c.thisYearCount ?? 0}
+        </div>
+        <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Year
+        </div>
+      </div>
     </div>
   );
 }
