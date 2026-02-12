@@ -231,6 +231,27 @@ function tileTypeChip(c: CategoryWithStats): string {
   return "total";
 }
 
+function tileShowsDwyCounts(c: CategoryWithStats, displayTitle: string): boolean {
+  const k = titleKey(displayTitle);
+  if (k === "notes" || k === "padel" || k === "football") return true;
+  return false;
+}
+
+function TileDwyCounts({ c }: { c: CategoryWithStats }) {
+  return (
+    <div className="flex items-baseline gap-2 whitespace-nowrap text-xs font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
+      <span className="text-neutral-500 dark:text-neutral-400">D</span>
+      <span>{c.todayCount ?? 0}</span>
+      <span className="text-neutral-300 dark:text-neutral-700">·</span>
+      <span className="text-neutral-500 dark:text-neutral-400">W</span>
+      <span>{c.thisWeekCount ?? 0}</span>
+      <span className="text-neutral-300 dark:text-neutral-700">·</span>
+      <span className="text-neutral-500 dark:text-neutral-400">Y</span>
+      <span>{c.thisYearCount ?? 0}</span>
+    </div>
+  );
+}
+
 function tileGlance(c: CategoryWithStats, displayTitle: string): { value: string; label: string } {
   if (c.chartType === "line") {
     const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
@@ -1069,17 +1090,23 @@ export function HomePage() {
                     </div>
                   ) : (
                     <div className="relative min-h-[46px] pt-1">
-                      <div className="flex items-baseline gap-2">
-                        <div className="min-w-0 flex-none text-lg font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
-                          {glance.value}
+                      {tileShowsDwyCounts(c, displayTitle) ? (
+                        <div className="pt-1">
+                          <TileDwyCounts c={c} />
                         </div>
-                        <div
-                          className="min-w-0 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400"
-                          title={glance.label}
-                        >
-                          {glance.label}
+                      ) : (
+                        <div className="flex items-baseline gap-2">
+                          <div className="min-w-0 flex-none text-lg font-semibold tabular-nums text-neutral-950 dark:text-neutral-100">
+                            {glance.value}
+                          </div>
+                          <div
+                            className="min-w-0 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400"
+                            title={glance.label}
+                          >
+                            {glance.label}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>

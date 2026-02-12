@@ -28,6 +28,9 @@ export type CategoryWithStats = {
   goalWeekly: number | null;
   goalValue: number | null;
   todayCount: number;
+  thisWeekCount: number;
+  thisMonthCount: number;
+  thisYearCount: number;
   todayTotal: number;
   thisWeekTotal: number;
   thisYearTotal: number;
