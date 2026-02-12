@@ -231,17 +231,38 @@ function textMatchScore(args: {
   return clamp01(frac * 0.8 + wholeBoost);
 }
 
-function alreadyLoggedPenalty(c: CategoryWithStats): number {
+function alreadyLoggedPenalty(args: { c: CategoryWithStats; tScore: number }): number {
+  const { c, tScore } = args;
   const todayCount = c.todayCount ?? 0;
   if (todayCount <= 0) return 0;
 
-  // If the category is often logged multiple times per day, don't penalize.
-  const avgPerDay = c.recentAvgEventsPerDay30d ?? 0;
-  if (avgPerDay >= 1.5) return 0.1;
+  const hasExplicitText = tScore >= 0.45;
 
-  // For value-type categories, suggesting again today is usually wrong.
-  if (c.chartType === "line") return 0.7;
+  // Value-type categories (e.g. weight) are usually logged once per day.
+  if (c.chartType === "line") return hasExplicitText ? 0.35 : 0.95;
 
+  // Stats are already computed over "active" days only (days with at least 1 entry).
+  // This avoids underestimating repeatability for categories you don't log every day.
+  const activeDays = c.recentActiveDays30d ?? 0;
+  const avgPerActiveDay = c.recentAvgEventsPerDay30d ?? 0;
+
+  // If a category is typically logged once per active day, only suggest it if not logged today.
+  // Still allow it when the user explicitly typed the category name.
+  if (activeDays >= 4 && avgPerActiveDay > 0 && avgPerActiveDay <= 1.2) {
+    return hasExplicitText ? 0.35 : 0.95;
+  }
+
+  // Multi-log categories: allow repeat suggestions until you're near your usual max.
+  if (activeDays >= 4 && avgPerActiveDay > 0) {
+    const typical = Math.max(1, Math.round(avgPerActiveDay));
+    const maxLikely = Math.max(typical, Math.ceil(avgPerActiveDay * 2));
+    if (todayCount < typical) return Math.min(0.12, 0.05 * todayCount);
+    if (todayCount < maxLikely) return Math.min(0.55, 0.18 + (todayCount - typical + 1) * 0.12);
+    return 0.85;
+  }
+
+  // Fallback: light penalty unless we have strong evidence otherwise.
+  if (avgPerActiveDay >= 1.5) return 0.1;
   return 0.35;
 }
 
@@ -269,7 +290,7 @@ function defaultSuggestScore(c: CategoryWithStats, displayTitle: string, nowMinu
   }
 
   const keyPenalty = key === "kcal" ? 0.05 : 0;
-  const loggedPenalty = alreadyLoggedPenalty(c);
+  const loggedPenalty = alreadyLoggedPenalty({ c, tScore: 0 });
   return clamp01(due * 0.55 + remaining * 0.45 - keyPenalty - loggedPenalty);
 }
 
@@ -300,7 +321,7 @@ function rankCategories(args: {
       const tScore = hint ? textMatchScore({ c, displayTitle, hint }) : 0;
       const aScore = amount != null ? amountFitScore({ c, displayTitle, amount, key }) : 0;
       const timeScore = timeFitScore(nowMinute, c.recentAvgMinuteOfDay30d ?? 12 * 60);
-      const loggedPenalty = alreadyLoggedPenalty(c);
+      const loggedPenalty = alreadyLoggedPenalty({ c, tScore });
 
       let score = 0;
       if (!hint && amount == null) {
@@ -845,7 +866,12 @@ export function QuickLogDialog({
                       if (saving) return;
                       submit();
                     }}
-                    placeholder={seededNotes ? "Write a note…" : "e.g. 600 water, push ups 30, or just a note"}
+                    inputMode={seededNotes ? "text" : "decimal"}
+                    autoCapitalize={seededNotes ? "sentences" : "none"}
+                    autoCorrect={seededNotes ? "on" : "off"}
+                    spellCheck={seededNotes}
+                    enterKeyHint="done"
+                    placeholder={seededNotes ? "Write a note…" : "e.g. 600"}
                     className="block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 pr-20 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                     disabled={saving}
                   />

@@ -1030,7 +1030,7 @@ export function HomePage() {
                     aria-label={`Open ${displayTitle}`}
                   />
 
-                  <div className="relative flex items-start justify-between gap-3">
+                  <div className="relative flex items-start gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <div
                         className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
@@ -1040,7 +1040,7 @@ export function HomePage() {
                         <div className="text-lg leading-none">{c.emoji ?? ""}</div>
                       </div>
 	                      <div className="min-w-0">
-	                        <div className="flex items-center gap-2 pr-10">
+	                        <div className="flex items-center gap-2">
 	                          <div
 	                            className="min-w-0 truncate text-base font-semibold leading-tight text-neutral-950 dark:text-neutral-100"
 	                            title={displayTitle}
@@ -1055,24 +1055,6 @@ export function HomePage() {
 	                        </div>
 	                      </div>
 	                    </div>
-
-                    <button
-                      type="button"
-                      className="relative z-20 inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-                      style={{ borderColor: accent }}
-                      aria-label={`Quick add to ${displayTitle}`}
-                      title="Quick add"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openQuickLog(c.id);
-                      }}
-                    >
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 5v14" />
-                        <path d="M5 12h14" />
-                      </svg>
-                    </button>
                   </div>
 
                   {c.chartType !== "line" && c.goalWeekly != null && c.goalWeekly > 0 ? (
