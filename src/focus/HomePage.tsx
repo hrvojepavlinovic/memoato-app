@@ -237,17 +237,19 @@ function tileShowsDwyCounts(c: CategoryWithStats, displayTitle: string): boolean
   return false;
 }
 
-function TileDwyCounts({ c }: { c: CategoryWithStats }) {
+function TileDwyCounts({ c, accent }: { c: CategoryWithStats; accent: string }) {
   return (
     <div className="grid grid-cols-3 items-end gap-3 text-center tabular-nums">
       <div>
-        <div className="text-base font-semibold leading-none text-neutral-950 dark:text-neutral-100">{c.todayCount ?? 0}</div>
+        <div className="text-base font-semibold leading-none" style={{ color: accent }}>
+          {c.todayCount ?? 0}
+        </div>
         <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Today
         </div>
       </div>
       <div>
-        <div className="text-base font-semibold leading-none text-neutral-950 dark:text-neutral-100">
+        <div className="text-base font-semibold leading-none" style={{ color: accent }}>
           {c.thisWeekCount ?? 0}
         </div>
         <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
@@ -255,7 +257,7 @@ function TileDwyCounts({ c }: { c: CategoryWithStats }) {
         </div>
       </div>
       <div>
-        <div className="text-base font-semibold leading-none text-neutral-950 dark:text-neutral-100">
+        <div className="text-base font-semibold leading-none" style={{ color: accent }}>
           {c.thisYearCount ?? 0}
         </div>
         <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
@@ -1106,7 +1108,7 @@ export function HomePage() {
                     <div className="relative min-h-[46px] pt-1">
                       {tileShowsDwyCounts(c, displayTitle) ? (
                         <div className="pt-1">
-                          <TileDwyCounts c={c} />
+                          <TileDwyCounts c={c} accent={accent} />
                         </div>
                       ) : (
                         <div className="flex items-baseline gap-2">
