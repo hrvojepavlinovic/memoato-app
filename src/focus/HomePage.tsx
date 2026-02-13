@@ -551,7 +551,7 @@ export function HomePage() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [quickLogSeedCategoryId, setQuickLogSeedCategoryId] = useState<string | null>(null);
-  const [pendingQuickNote, setPendingQuickNote] = useState(false);
+  const [quickLogMode, setQuickLogMode] = useState<"log" | "note">("log");
   const dragPointerIdRef = useRef<number | null>(null);
   const reorderItemByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const onboardingDone = useMemo(() => {
@@ -566,7 +566,6 @@ export function HomePage() {
     const notes = categories.find((c) => (c.slug ?? "").trim().toLowerCase() === "notes");
     return notes?.id ?? null;
   }, [categories]);
-  const noteDisabled = !notesCategoryId;
 
   useEffect(() => {
     if (privacy.mode === "local") return;
@@ -689,17 +688,16 @@ export function HomePage() {
   }, [categories, titleById]);
 
   function openQuickLog(seedCategoryId: string | null) {
+    setQuickLogMode("log");
     setQuickLogSeedCategoryId(seedCategoryId);
     setQuickLogOpen(true);
   }
 
   async function requestQuickNote(): Promise<void> {
-    if (notesCategoryId) {
-      openQuickLog(notesCategoryId);
-      return;
-    }
-
-    setPendingQuickNote(true);
+    setQuickLogMode("note");
+    setQuickLogSeedCategoryId(notesCategoryId);
+    setQuickLogOpen(true);
+    if (notesCategoryId) return;
     if (privacy.mode === "local") return;
     try {
       await ensureDefaultCategories();
@@ -708,14 +706,6 @@ export function HomePage() {
       // ignore
     }
   }
-
-  useEffect(() => {
-    if (!pendingQuickNote) return;
-    if (quickLogOpen) return;
-    if (!notesCategoryId) return;
-    setPendingQuickNote(false);
-    openQuickLog(notesCategoryId);
-  }, [notesCategoryId, pendingQuickNote, quickLogOpen]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -738,10 +728,8 @@ export function HomePage() {
         return;
       }
       if (key === "n") {
-        if (!notesCategoryId) return;
         e.preventDefault();
-        setQuickLogSeedCategoryId(notesCategoryId);
-        setQuickLogOpen(true);
+        requestQuickNote();
       }
     };
 
@@ -879,11 +867,9 @@ export function HomePage() {
           type="button"
           className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-left shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
           onClick={() => {
-            if (noteDisabled) return;
             requestQuickNote();
           }}
           aria-label="Quick note"
-          aria-disabled={noteDisabled}
         >
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -895,7 +881,7 @@ export function HomePage() {
             <div
               className={[
                 "flex h-11 w-11 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100",
-                noteDisabled ? "opacity-60" : "",
+                !notesCategoryId ? "opacity-60" : "",
               ].join(" ")}
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -1169,10 +1155,12 @@ export function HomePage() {
             onClose={() => {
               setQuickLogOpen(false);
               setQuickLogSeedCategoryId(null);
+              setQuickLogMode("log");
             }}
             categories={orderedCategories}
             displayTitleById={displayTitleById}
             seedCategoryId={quickLogSeedCategoryId}
+            mode={quickLogMode}
           />
         </>
       )}
@@ -1220,13 +1208,11 @@ export function HomePage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (noteDisabled) return;
                   requestQuickNote();
                 }}
                 className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
                 aria-label="Quick note"
                 title="Note"
-                aria-disabled={noteDisabled}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path d="M12 20h9" />

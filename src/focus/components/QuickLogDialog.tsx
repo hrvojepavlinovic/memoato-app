@@ -378,12 +378,14 @@ export function QuickLogDialog({
   categories,
   displayTitleById,
   seedCategoryId,
+  mode = "log",
 }: {
   open: boolean;
   onClose: () => void;
   categories: CategoryWithStats[];
   displayTitleById: Record<string, string>;
   seedCategoryId: string | null;
+  mode?: "log" | "note";
 }) {
   const privacy = usePrivacy();
   const theme = useTheme();
@@ -421,7 +423,12 @@ export function QuickLogDialog({
     selected && selected.accentHex ? resolveAccentForTheme(selected.accentHex, theme.isDark) ?? selected.accentHex : "#0A0A0A";
   const selectedIsNotes = selected ? isNotesCategory(selected) : false;
   const selectedUnit = unitLabel(selected?.unit);
-  const seededNotes = !!seedCategoryId && selectionMode === "seed" && selectedIsNotes;
+  const forceNotes = mode === "note";
+  const notesCategoryIdFromCats = React.useMemo(() => {
+    const notes = categories.find((c) => isNotesCategory(c));
+    return notes?.id ?? null;
+  }, [categories]);
+  const seededNotes = forceNotes || (!!seedCategoryId && selectionMode === "seed" && selectedIsNotes);
 
   const recentRemoteQuery = useQuery(
     getCategoryEvents,
@@ -467,11 +474,20 @@ export function QuickLogDialog({
     setRaw("");
     setSaving(false);
     setShowPicker(false);
-    setSelectionMode(seedCategoryId ? "seed" : "auto");
+    setSelectionMode(seedCategoryId || forceNotes ? "seed" : "auto");
     setSelectedCategoryId(seedCategoryId);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
-  }, [open, seedCategoryId]);
+  }, [open, forceNotes, seedCategoryId]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    if (!forceNotes) return;
+    if (!notesCategoryIdFromCats) return;
+    if (selectedCategoryId === notesCategoryIdFromCats) return;
+    setSelectedCategoryId(notesCategoryIdFromCats);
+    setSelectionMode("seed");
+  }, [forceNotes, notesCategoryIdFromCats, open, selectedCategoryId]);
 
   React.useLayoutEffect(() => {
     if (!open) return;
@@ -640,7 +656,9 @@ export function QuickLogDialog({
             <div className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:rounded-t-2xl">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-base font-semibold text-neutral-950 dark:text-neutral-100">Quick log</div>
+                  <div className="text-base font-semibold text-neutral-950 dark:text-neutral-100">
+                    {seededNotes ? "Quick note" : "Quick log"}
+                  </div>
                   <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     {seededNotes ? "Write a note." : "Type a number, a category, or a note."}
                   </div>
@@ -785,6 +803,25 @@ export function QuickLogDialog({
                       })()}
                     </div>
                   ) : null}
+                </div>
+              ) : seededNotes ? (
+                <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className="flex h-9 w-9 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950"
+                        aria-hidden="true"
+                      >
+                        <div className="text-lg leading-none">📝</div>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">Notes</div>
+                        <div className="truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                          {notesCategoryIdFromCats ? "Ready" : "Loading…"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : null}
 
