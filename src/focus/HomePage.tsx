@@ -565,6 +565,7 @@ export function HomePage() {
     const notes = categories.find((c) => (c.slug ?? "").trim().toLowerCase() === "notes");
     return notes?.id ?? null;
   }, [categories]);
+  const noteDisabled = !notesCategoryId;
 
   useEffect(() => {
     if (privacy.mode === "local") return;
@@ -852,9 +853,12 @@ export function HomePage() {
         <button
           type="button"
           className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-left shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-          onClick={() => openQuickLog(notesCategoryId)}
+          onClick={() => {
+            if (noteDisabled) return;
+            openQuickLog(notesCategoryId);
+          }}
           aria-label="Quick note"
-          disabled={!notesCategoryId}
+          aria-disabled={noteDisabled}
         >
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -863,7 +867,12 @@ export function HomePage() {
                 Write a quick note (press N)
               </div>
             </div>
-            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100">
+            <div
+              className={[
+                "flex h-11 w-11 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100",
+                noteDisabled ? "opacity-60" : "",
+              ].join(" ")}
+            >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12 20h9" />
                 <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
@@ -1185,11 +1194,14 @@ export function HomePage() {
               />
               <button
                 type="button"
-                onClick={() => openQuickLog(notesCategoryId)}
+                onClick={() => {
+                  if (noteDisabled) return;
+                  openQuickLog(notesCategoryId);
+                }}
                 className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
                 aria-label="Quick note"
                 title="Note"
-                disabled={!notesCategoryId}
+                aria-disabled={noteDisabled}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path d="M12 20h9" />
