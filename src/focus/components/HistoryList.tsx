@@ -392,18 +392,18 @@ export function HistoryList({
                       <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end sm:justify-end">
                         <Button
                           className="h-10 w-full sm:w-auto"
-                          onClick={() => onSave(ev)}
-                          disabled={row.saving}
-                        >
-                          {row.saving ? "Saving…" : "Save"}
-                        </Button>
-                        <Button
-                          className="h-10 w-full sm:w-auto"
                           variant="danger"
                           onClick={() => onDelete(ev)}
                           disabled={row.saving}
                         >
                           Delete
+                        </Button>
+                        <Button
+                          className="h-10 w-full sm:w-auto"
+                          onClick={() => onSave(ev)}
+                          disabled={row.saving}
+                        >
+                          {row.saving ? "Saving…" : "Save"}
                         </Button>
                       </div>
                     </div>
