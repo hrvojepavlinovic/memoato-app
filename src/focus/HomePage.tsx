@@ -551,6 +551,7 @@ export function HomePage() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [quickLogSeedCategoryId, setQuickLogSeedCategoryId] = useState<string | null>(null);
+  const [pendingQuickNote, setPendingQuickNote] = useState(false);
   const dragPointerIdRef = useRef<number | null>(null);
   const reorderItemByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const onboardingDone = useMemo(() => {
@@ -691,6 +692,30 @@ export function HomePage() {
     setQuickLogSeedCategoryId(seedCategoryId);
     setQuickLogOpen(true);
   }
+
+  async function requestQuickNote(): Promise<void> {
+    if (notesCategoryId) {
+      openQuickLog(notesCategoryId);
+      return;
+    }
+
+    setPendingQuickNote(true);
+    if (privacy.mode === "local") return;
+    try {
+      await ensureDefaultCategories();
+      await categoriesQuery.refetch();
+    } catch {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
+    if (!pendingQuickNote) return;
+    if (quickLogOpen) return;
+    if (!notesCategoryId) return;
+    setPendingQuickNote(false);
+    openQuickLog(notesCategoryId);
+  }, [notesCategoryId, pendingQuickNote, quickLogOpen]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -855,7 +880,7 @@ export function HomePage() {
           className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-left shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
           onClick={() => {
             if (noteDisabled) return;
-            openQuickLog(notesCategoryId);
+            requestQuickNote();
           }}
           aria-label="Quick note"
           aria-disabled={noteDisabled}
@@ -1196,7 +1221,7 @@ export function HomePage() {
                 type="button"
                 onClick={() => {
                   if (noteDisabled) return;
-                  openQuickLog(notesCategoryId);
+                  requestQuickNote();
                 }}
                 className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
                 aria-label="Quick note"
