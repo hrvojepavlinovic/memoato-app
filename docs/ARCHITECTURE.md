@@ -13,7 +13,8 @@
 ## Data model (Prisma)
 
 - `User`: account profile + role
-  - Preferences: `nextUpEnabled`, `themePreference`
+  - Preferences: `nextUpEnabled`, `themePreference`, `quickLogFabSide`, `homeCategoryLayout`
+  - Optional public stats share: `publicStatsEnabled`, `publicStatsToken`, `publicStatsCategoryIds`
 - `Category`: a user-owned tracker (title/slug/type/period/goals/accent/emoji)
   - Optional `sortOrder` supports manual ordering on the Home dashboard.
 - `CategoryTemplate`: preset category definitions used on “New category” (defaults, emoji, accent, goals, aggregation).

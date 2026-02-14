@@ -12,9 +12,12 @@ import {
 	  getProfile,
 	  requestAccountDeletion,
 	  requestEmailChange,
+	  rotatePublicStatsToken,
 	  sendPasswordResetForCurrentUser,
 	  setHomeCategoryLayout,
 	  setNextUpEnabled,
+	  setPublicStatsCategories,
+	  setPublicStatsEnabled,
 	  setQuickLogFabSide,
 	  updateCategory,
 	  updateEvent,
@@ -83,6 +86,7 @@ export function ProfilePage() {
   const q = useQuery(getProfile);
   const privacy = usePrivacy();
   const theme = useTheme();
+  const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
   const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
 
   const [username, setUsername] = useState("");
@@ -99,6 +103,8 @@ export function ProfilePage() {
 	  const [nextUpEnabledPref, setNextUpEnabledPref] = useState<boolean | null>(null);
 	  const [fabSidePref, setFabSidePref] = useState<"left" | "right" | null>(null);
 	  const [homeLayoutPref, setHomeLayoutPref] = useState<"list" | "grid" | null>(null);
+	  const [publicStatsEnabledPref, setPublicStatsEnabledPref] = useState<boolean | null>(null);
+	  const [publicStatsCategoryIdsPref, setPublicStatsCategoryIdsPref] = useState<string[] | null>(null);
 
   useEffect(() => {
     if (!q.data) return;
@@ -122,6 +128,12 @@ export function ProfilePage() {
 	    setHomeLayoutPref(q.data.homeCategoryLayout);
 	  }, [q.data?.homeCategoryLayout]);
 
+	  useEffect(() => {
+	    if (!q.data) return;
+	    setPublicStatsEnabledPref(q.data.publicStatsEnabled);
+	    setPublicStatsCategoryIdsPref(q.data.publicStatsCategoryIds);
+	  }, [q.data?.publicStatsEnabled, q.data?.publicStatsCategoryIds]);
+
   useEffect(() => {
     setPendingMode(privacy.mode);
   }, [privacy.mode]);
@@ -130,6 +142,26 @@ export function ProfilePage() {
     if (!q.data?.email) return "n/a";
     return q.data.needsEmailVerification ? `${q.data.email} (unverified)` : q.data.email;
   }, [q.data?.email, q.data?.needsEmailVerification]);
+
+  const publicStatsUrl = useMemo(() => {
+    const token = q.data?.publicStatsToken;
+    if (!token) return null;
+    return `https://api.memoato.com/public/stats/${token}`;
+  }, [q.data?.publicStatsToken]);
+
+  const shareCategories = useMemo(() => {
+    if (privacy.mode === "local") return [];
+    const cats = (categoriesQuery.data ?? []) as any[];
+    return cats
+      .filter((c) => !c?.sourceArchivedAt)
+      .map((c) => ({
+        id: String(c.id),
+        title: String(c.title ?? "Untitled"),
+        slug: typeof c.slug === "string" ? c.slug : null,
+        unit: typeof c.unit === "string" ? c.unit : null,
+      }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+  }, [categoriesQuery.data, privacy.mode]);
 
   async function onSaveProfile() {
     setMessage(null);
@@ -885,6 +917,200 @@ export function ProfilePage() {
 	            </div>
 	          </div>
 	        </div>
+
+        <div className="card p-4">
+          <div className="mb-3 text-sm font-semibold">Public stats</div>
+          {privacy.mode === "local" ? (
+            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+              Available in Cloud mode.
+            </div>
+          ) : (
+            <>
+              <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                Share selected categories as a public JSON feed for your personal website.
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {([true, false] as const).map((enabled) => {
+                  const active = (publicStatsEnabledPref ?? q.data?.publicStatsEnabled ?? false) === enabled;
+                  const isDisabled = busy === "publicStats" || q.isLoading || !q.data;
+                  return (
+                    <button
+                      key={String(enabled)}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={async () => {
+                        if (!q.data) return;
+                        setMessage(null);
+                        setBusy("publicStats");
+                        setPublicStatsEnabledPref(enabled);
+                        try {
+                          await setPublicStatsEnabled({ enabled });
+                          await q.refetch();
+                        } catch (e: any) {
+                          setPublicStatsEnabledPref(q.data.publicStatsEnabled);
+                          setMessage(e?.message ?? "Failed to update setting.");
+                        } finally {
+                          setBusy(null);
+                        }
+                      }}
+                      aria-pressed={active}
+                      className={[
+                        "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
+                        isDisabled
+                          ? "cursor-not-allowed opacity-70"
+                          : active
+                          ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+                          : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+                      ].join(" ")}
+                    >
+                      {enabled ? "On" : "Off"}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {publicStatsEnabledPref ?? q.data?.publicStatsEnabled ? (
+                <div className="mt-5">
+                  <div className="mb-2 text-sm font-semibold">Public JSON URL</div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <input
+                      value={publicStatsUrl ?? ""}
+                      readOnly
+                      className={inputClassName}
+                      onFocus={(e) => e.currentTarget.select()}
+                    />
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        if (!publicStatsUrl) return;
+                        try {
+                          await navigator.clipboard.writeText(publicStatsUrl);
+                          setMessage("Link copied.");
+                        } catch {
+                          window.prompt("Copy link:", publicStatsUrl);
+                        }
+                      }}
+                      disabled={!publicStatsUrl}
+                      className="h-10 w-full sm:w-auto"
+                    >
+                      Copy
+                    </Button>
+                  </div>
+
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        if (!q.data) return;
+                        setMessage(null);
+                        setBusy("publicStatsRotate");
+                        try {
+                          await rotatePublicStatsToken();
+                          await q.refetch();
+                          setMessage("Link rotated.");
+                        } catch (e: any) {
+                          setMessage(e?.message ?? "Failed to rotate link.");
+                        } finally {
+                          setBusy(null);
+                        }
+                      }}
+                      disabled={busy === "publicStatsRotate" || q.isLoading || !q.data}
+                      className="h-10 w-full sm:w-auto"
+                    >
+                      Rotate link
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        if (!q.data) return;
+                        const ok = window.confirm("Revoke the public link? You can enable it again later.");
+                        if (!ok) return;
+                        setMessage(null);
+                        setBusy("publicStatsRevoke");
+                        setPublicStatsEnabledPref(false);
+                        try {
+                          await setPublicStatsEnabled({ enabled: false });
+                          await q.refetch();
+                          setMessage("Public link revoked.");
+                        } catch (e: any) {
+                          setPublicStatsEnabledPref(q.data.publicStatsEnabled);
+                          setMessage(e?.message ?? "Failed to revoke link.");
+                        } finally {
+                          setBusy(null);
+                        }
+                      }}
+                      disabled={busy === "publicStatsRevoke" || q.isLoading || !q.data}
+                      className="h-10 w-full sm:w-auto"
+                    >
+                      Revoke
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mt-5">
+                <div className="mb-2 text-sm font-semibold">Categories</div>
+                <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                  Values are the last entry in each calendar period.
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {shareCategories.map((c) => {
+                    const selected = (publicStatsCategoryIdsPref ?? q.data?.publicStatsCategoryIds ?? []).includes(c.id);
+                    const isDisabled = busy === "publicStatsCats" || q.isLoading || !q.data;
+                    const subtitle = c.unit ? `${c.unit}` : c.slug ? c.slug : "";
+                    return (
+                      <label
+                        key={c.id}
+                        className={[
+                          "flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2",
+                          selected
+                            ? "border-neutral-950 bg-neutral-50 dark:border-white dark:bg-neutral-900"
+                            : "border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950",
+                          isDisabled ? "opacity-70" : "",
+                        ].join(" ")}
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                            {c.title}
+                          </div>
+                          {subtitle ? (
+                            <div className="truncate text-xs text-neutral-500 dark:text-neutral-400">
+                              {subtitle}
+                            </div>
+                          ) : null}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          disabled={isDisabled}
+                          onChange={async () => {
+                            if (!q.data) return;
+                            setMessage(null);
+                            setBusy("publicStatsCats");
+                            const current = publicStatsCategoryIdsPref ?? q.data.publicStatsCategoryIds ?? [];
+                            const next = selected ? current.filter((id) => id !== c.id) : [...current, c.id];
+                            setPublicStatsCategoryIdsPref(next);
+                            try {
+                              await setPublicStatsCategories({ categoryIds: next });
+                              await q.refetch();
+                            } catch (e: any) {
+                              setPublicStatsCategoryIdsPref(q.data.publicStatsCategoryIds);
+                              setMessage(e?.message ?? "Failed to update categories.");
+                            } finally {
+                              setBusy(null);
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-neutral-300 text-neutral-900 accent-neutral-900 dark:border-neutral-600 dark:accent-white"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="card p-4">
           <div className="mb-3 text-sm font-semibold">Reminders</div>

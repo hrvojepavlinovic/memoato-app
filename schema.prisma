@@ -21,6 +21,9 @@ model User {
   themePreference String?
   quickLogFabSide String @default("right")
   homeCategoryLayout String @default("list")
+  publicStatsEnabled Boolean @default(false)
+  publicStatsToken String? @unique
+  publicStatsCategoryIds Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

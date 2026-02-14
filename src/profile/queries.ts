@@ -43,6 +43,9 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
       themePreference: true,
       quickLogFabSide: true,
       homeCategoryLayout: true,
+      publicStatsEnabled: true,
+      publicStatsToken: true,
+      publicStatsCategoryIds: true,
     },
   });
   if (!user) {
@@ -75,6 +78,12 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
   const hasGoogleAuth = !!googleIdentity;
   const needsEmailVerification = hasEmailAuth && !isEmailVerified;
 
+  const publicStatsCategoryIdsRaw = user.publicStatsCategoryIds;
+  const publicStatsCategoryIds =
+    Array.isArray(publicStatsCategoryIdsRaw) && publicStatsCategoryIdsRaw.every((x) => typeof x === "string")
+      ? (publicStatsCategoryIdsRaw as string[])
+      : [];
+
   return {
     username: user.username,
     firstName: user.firstName,
@@ -84,6 +93,9 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
       user.themePreference === "dark" ? "dark" : user.themePreference === "light" ? "light" : null,
     quickLogFabSide: user.quickLogFabSide === "left" ? "left" : "right",
     homeCategoryLayout: user.homeCategoryLayout === "grid" ? "grid" : "list",
+    publicStatsEnabled: user.publicStatsEnabled === true,
+    publicStatsToken: typeof user.publicStatsToken === "string" && user.publicStatsToken.trim() ? user.publicStatsToken : null,
+    publicStatsCategoryIds,
     email: email && email.includes("@") ? email : null,
     isEmailVerified,
     hasEmailAuth,

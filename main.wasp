@@ -54,6 +54,9 @@ app memoato {
   },
   client: {
     rootComponent: import { App } from "@src/App",
+  },
+  server: {
+    setupFn: import { setupPublicStatsRoutes } from "@src/public/serverSetup"
   }
 }
 
@@ -262,6 +265,21 @@ action setQuickLogFabSide {
 action setHomeCategoryLayout {
   fn: import { setHomeCategoryLayout } from "@src/profile/actions",
   entities: [User]
+}
+
+action setPublicStatsEnabled {
+  fn: import { setPublicStatsEnabled } from "@src/profile/actions",
+  entities: [User, Category]
+}
+
+action rotatePublicStatsToken {
+  fn: import { rotatePublicStatsToken } from "@src/profile/actions",
+  entities: [User]
+}
+
+action setPublicStatsCategories {
+  fn: import { setPublicStatsCategories } from "@src/profile/actions",
+  entities: [User, Category]
 }
 
 action requestEmailChange {

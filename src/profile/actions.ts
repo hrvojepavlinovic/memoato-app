@@ -3,6 +3,7 @@ import { ensureValidEmail, throwValidationError } from "wasp/auth/validation";
 import { HttpError, prisma } from "wasp/server";
 import { emailSender } from "wasp/server/email";
 import { config as waspServerConfig } from "wasp/server";
+import { randomBytes } from "node:crypto";
 import type {
   ConfirmAccountDeletion,
   ConfirmEmailChange,
@@ -11,7 +12,10 @@ import type {
   SendPasswordResetForCurrentUser,
   SetHomeCategoryLayout,
   SetNextUpEnabled,
+  RotatePublicStatsToken,
   SetQuickLogFabSide,
+  SetPublicStatsCategories,
+  SetPublicStatsEnabled,
   SetThemePreference,
   UpdateProfile,
 } from "wasp/server/operations";
@@ -85,6 +89,85 @@ function parseProviderData(providerData: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+function generatePublicToken(): string {
+  // 32 bytes => 43 chars base64url.
+  return randomBytes(32).toString("base64url");
+}
+
+async function updateUserWithFreshPublicToken(args: {
+  userId: string;
+  data: Record<string, unknown>;
+}): Promise<void> {
+  let lastErr: any = null;
+  for (let i = 0; i < 5; i += 1) {
+    const token = generatePublicToken();
+    try {
+      await prisma.user.update({
+        where: { id: args.userId },
+        data: { ...args.data, publicStatsToken: token } as any,
+      });
+      return;
+    } catch (e: any) {
+      lastErr = e;
+      if (e?.code !== "P2002") throw e;
+    }
+  }
+  throw lastErr ?? new HttpError(500, "Failed to generate public token.");
+}
+
+function normalizeCategoryIds(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const out: string[] = [];
+  for (const raw of input) {
+    if (typeof raw !== "string") continue;
+    const v = raw.trim();
+    if (!v) continue;
+    out.push(v);
+  }
+  return Array.from(new Set(out)).slice(0, 25);
+}
+
+async function pickDefaultPublicStatsCategoryIds(userId: string): Promise<string[]> {
+  const categories = await prisma.category.findMany({
+    where: { userId, sourceArchivedAt: null },
+    select: { id: true, title: true, slug: true },
+  });
+  const byKey = new Map<string, string>();
+  for (const c of categories) {
+    const slugKey = (c.slug ?? "").trim().toLowerCase();
+    if (slugKey) byKey.set(slugKey, c.id);
+    const titleKey = c.title.trim().toLowerCase();
+    if (titleKey) byKey.set(titleKey, c.id);
+  }
+
+  const preferred: string[] = [];
+  const wantKeys = [
+    "weight",
+    "push-ups",
+    "push ups",
+    "pull-ups",
+    "pull ups",
+    "active-kcal",
+    "active kcal",
+    "indoor-cycling",
+    "indoor cycling",
+    "steps",
+    "water-intake",
+    "water intake",
+    "water",
+  ];
+  for (const key of wantKeys) {
+    const id = byKey.get(key);
+    if (id && !preferred.includes(id)) preferred.push(id);
+  }
+
+  // Fall back to the first few categories if none matched.
+  if (preferred.length === 0) {
+    return categories.slice(0, 5).map((c) => c.id);
+  }
+  return preferred.slice(0, 10);
 }
 
 async function ensureEmailNotTaken(email: string) {
@@ -185,6 +268,83 @@ export const setHomeCategoryLayout: SetHomeCategoryLayout<{ layout: "list" | "gr
   await context.entities.User.update({
     where: { id: userId },
     data: { homeCategoryLayout: layout },
+  });
+  return { success: true };
+};
+
+export const setPublicStatsEnabled: SetPublicStatsEnabled<{ enabled: boolean }, { success: true }> = async (
+  args,
+  context,
+) => {
+  const { userId } = requireAuth(context);
+  const enabled = args.enabled === true;
+
+  if (!enabled) {
+    await context.entities.User.update({
+      where: { id: userId },
+      data: { publicStatsEnabled: false, publicStatsToken: null },
+    });
+    return { success: true };
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { publicStatsToken: true, publicStatsCategoryIds: true },
+  });
+
+  const currentCategoryIds = normalizeCategoryIds(existing?.publicStatsCategoryIds);
+  const nextCategoryIds =
+    currentCategoryIds.length > 0 ? currentCategoryIds : await pickDefaultPublicStatsCategoryIds(userId);
+
+  const token =
+    typeof existing?.publicStatsToken === "string" && existing.publicStatsToken.trim()
+      ? existing.publicStatsToken
+      : null;
+
+  if (token) {
+    await context.entities.User.update({
+      where: { id: userId },
+      data: { publicStatsEnabled: true, publicStatsToken: token, publicStatsCategoryIds: nextCategoryIds as any },
+    });
+  } else {
+    await updateUserWithFreshPublicToken({
+      userId,
+      data: { publicStatsEnabled: true, publicStatsCategoryIds: nextCategoryIds as any },
+    });
+  }
+
+  return { success: true };
+};
+
+export const rotatePublicStatsToken: RotatePublicStatsToken<void, { success: true }> = async (_args, context) => {
+  const { userId } = requireAuth(context);
+  await updateUserWithFreshPublicToken({ userId, data: { publicStatsEnabled: true } });
+  return { success: true };
+};
+
+export const setPublicStatsCategories: SetPublicStatsCategories<{ categoryIds: string[] }, { success: true }> = async (
+  args,
+  context,
+) => {
+  const { userId } = requireAuth(context);
+  const categoryIds = normalizeCategoryIds(args.categoryIds);
+  if (categoryIds.length === 0) {
+    await context.entities.User.update({
+      where: { id: userId },
+      data: { publicStatsCategoryIds: [] as any },
+    });
+    return { success: true };
+  }
+
+  const owned = await prisma.category.findMany({
+    where: { userId, sourceArchivedAt: null, id: { in: categoryIds } },
+    select: { id: true },
+  });
+  const ownedIds = owned.map((c) => c.id);
+
+  await context.entities.User.update({
+    where: { id: userId },
+    data: { publicStatsCategoryIds: ownedIds as any },
   });
   return { success: true };
 };

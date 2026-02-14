@@ -6,6 +6,9 @@ export type ProfileData = {
   themePreference: "light" | "dark" | null;
   quickLogFabSide: "left" | "right";
   homeCategoryLayout: "list" | "grid";
+  publicStatsEnabled: boolean;
+  publicStatsToken: string | null;
+  publicStatsCategoryIds: string[];
   email: string | null;
   isEmailVerified: boolean;
   hasEmailAuth: boolean;

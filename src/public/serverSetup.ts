@@ -1,0 +1,167 @@
+import type { ServerSetupFn } from "wasp/server";
+import { prisma } from "wasp/server";
+
+function setCors(res: any): void {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
+function toIsoDate(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function startOfDay(d: Date): Date {
+  const out = new Date(d);
+  out.setHours(0, 0, 0, 0);
+  return out;
+}
+
+function startOfIsoWeek(d: Date): Date {
+  const out = startOfDay(d);
+  const day = out.getDay(); // 0 (Sun) .. 6 (Sat)
+  const isoIndex = (day + 6) % 7; // 0 (Mon) .. 6 (Sun)
+  out.setDate(out.getDate() - isoIndex);
+  return out;
+}
+
+function startOfMonth(d: Date): Date {
+  const out = startOfDay(d);
+  out.setDate(1);
+  return out;
+}
+
+function startOfYear(d: Date): Date {
+  const out = startOfDay(d);
+  out.setMonth(0, 1);
+  return out;
+}
+
+async function getLastAmountInRange(args: {
+  userId: string;
+  categoryId: string;
+  from: Date;
+  to: Date;
+}): Promise<number | null> {
+  const ev = await prisma.event.findFirst({
+    where: {
+      userId: args.userId,
+      categoryId: args.categoryId,
+      kind: "SESSION",
+      occurredOn: { gte: args.from, lte: args.to },
+    },
+    orderBy: [{ occurredAt: "desc" }],
+    select: { amount: true },
+  });
+  return typeof ev?.amount === "number" ? ev.amount : null;
+}
+
+function parseCategoryIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v === "string" && v.trim()) out.push(v.trim());
+  }
+  return Array.from(new Set(out)).slice(0, 25);
+}
+
+function addPublicStatsRoutes(app: any): void {
+  app.options("/public/stats/:token", (_req, res) => {
+    setCors(res);
+    res.status(204).end();
+  });
+
+  app.get("/public/stats/:token", async (req, res) => {
+    setCors(res);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=60");
+
+    const token = String((req as any)?.params?.token ?? "").trim();
+    if (!token || token.length < 20) {
+      res.status(404).end(JSON.stringify({ error: "not_found" }));
+      return;
+    }
+
+    try {
+      const user = await prisma.user.findFirst({
+        where: { publicStatsEnabled: true, publicStatsToken: token },
+        select: { id: true, publicStatsCategoryIds: true },
+      });
+      if (!user) {
+        res.status(404).end(JSON.stringify({ error: "not_found" }));
+        return;
+      }
+
+      const categoryIds = parseCategoryIds(user.publicStatsCategoryIds);
+      if (categoryIds.length === 0) {
+        res.status(200).end(
+          JSON.stringify({
+            generatedAt: new Date().toISOString(),
+            aggregation: "last",
+            calendar: null,
+            categories: [],
+          }),
+        );
+        return;
+      }
+
+      const categories = await prisma.category.findMany({
+        where: { userId: user.id, sourceArchivedAt: null, id: { in: categoryIds } },
+        select: { id: true, slug: true, title: true, unit: true },
+      });
+
+      const byId = new Map(categories.map((c) => [c.id, c]));
+      const ordered = categoryIds.map((id) => byId.get(id)).filter(Boolean) as typeof categories;
+
+      const now = new Date();
+      const today = startOfDay(now);
+      const weekStart = startOfIsoWeek(now);
+      const monthStart = startOfMonth(now);
+      const yearStart = startOfYear(now);
+
+      const calendar = {
+        today: { from: toIsoDate(today), to: toIsoDate(today) },
+        week: { from: toIsoDate(weekStart), to: toIsoDate(today) },
+        month: { from: toIsoDate(monthStart), to: toIsoDate(today) },
+        year: { from: toIsoDate(yearStart), to: toIsoDate(today) },
+      };
+
+      const outCategories = await Promise.all(
+        ordered.map(async (c) => {
+          const [todayVal, weekVal, monthVal, yearVal] = await Promise.all([
+            getLastAmountInRange({ userId: user.id, categoryId: c.id, from: today, to: today }),
+            getLastAmountInRange({ userId: user.id, categoryId: c.id, from: weekStart, to: today }),
+            getLastAmountInRange({ userId: user.id, categoryId: c.id, from: monthStart, to: today }),
+            getLastAmountInRange({ userId: user.id, categoryId: c.id, from: yearStart, to: today }),
+          ]);
+
+          return {
+            slug: typeof c.slug === "string" && c.slug.trim() ? c.slug : null,
+            title: c.title,
+            unit: c.unit ?? null,
+            today: todayVal,
+            week: weekVal,
+            month: monthVal,
+            year: yearVal,
+          };
+        }),
+      );
+
+      res.status(200).end(
+        JSON.stringify({
+          generatedAt: new Date().toISOString(),
+          aggregation: "last",
+          calendar,
+          categories: outCategories,
+        }),
+      );
+    } catch (_e: any) {
+      res.status(500).end(JSON.stringify({ error: "server_error" }));
+    }
+  });
+}
+
+export const setupPublicStatsRoutes: ServerSetupFn = async ({ app }) => {
+  addPublicStatsRoutes(app as any);
+};
