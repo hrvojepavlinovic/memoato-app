@@ -67,12 +67,12 @@ function parseCategoryIds(raw: unknown): string[] {
 }
 
 function addPublicStatsRoutes(app: any): void {
-  app.options("/public/stats/:token", (_req, res) => {
+  app.options("/public/stats/:token", (_req: any, res: any) => {
     setCors(res);
     res.status(204).end();
   });
 
-  app.get("/public/stats/:token", async (req, res) => {
+  app.get("/public/stats/:token", async (req: any, res: any) => {
     setCors(res);
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=60");
