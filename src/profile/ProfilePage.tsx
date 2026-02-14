@@ -149,6 +149,10 @@ export function ProfilePage() {
     return `https://api.memoato.com/public/stats/${token}`;
   }, [q.data?.publicStatsToken]);
 
+  const isPublicStatsEnabled = useMemo(() => {
+    return (publicStatsEnabledPref ?? q.data?.publicStatsEnabled ?? false) === true;
+  }, [publicStatsEnabledPref, q.data?.publicStatsEnabled]);
+
   const shareCategories = useMemo(() => {
     if (privacy.mode === "local") return [];
     const cats = (categoriesQuery.data ?? []) as any[];
@@ -970,7 +974,7 @@ export function ProfilePage() {
                 })}
               </div>
 
-              {publicStatsEnabledPref ?? q.data?.publicStatsEnabled ? (
+              {isPublicStatsEnabled ? (
                 <div className="mt-5">
                   <div className="mb-2 text-sm font-semibold">Public JSON URL</div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
@@ -1049,65 +1053,67 @@ export function ProfilePage() {
                 </div>
               ) : null}
 
-              <div className="mt-5">
-                <div className="mb-2 text-sm font-semibold">Categories</div>
-                <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                  Values are the last entry in each calendar period.
-                </div>
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {shareCategories.map((c) => {
-                    const selected = (publicStatsCategoryIdsPref ?? q.data?.publicStatsCategoryIds ?? []).includes(c.id);
-                    const isDisabled = busy === "publicStatsCats" || q.isLoading || !q.data;
-                    const subtitle = c.unit ? `${c.unit}` : c.slug ? c.slug : "";
-                    return (
-                      <label
-                        key={c.id}
-                        className={[
-                          "flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2",
-                          selected
-                            ? "border-neutral-950 bg-neutral-50 dark:border-white dark:bg-neutral-900"
-                            : "border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950",
-                          isDisabled ? "opacity-70" : "",
-                        ].join(" ")}
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                            {c.title}
-                          </div>
-                          {subtitle ? (
-                            <div className="truncate text-xs text-neutral-500 dark:text-neutral-400">
-                              {subtitle}
+              {isPublicStatsEnabled ? (
+                <div className="mt-5">
+                  <div className="mb-2 text-sm font-semibold">Categories</div>
+                  <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Values are the last entry in each calendar period.
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {shareCategories.map((c) => {
+                      const selected = (publicStatsCategoryIdsPref ?? q.data?.publicStatsCategoryIds ?? []).includes(c.id);
+                      const isDisabled = busy === "publicStatsCats" || q.isLoading || !q.data;
+                      const subtitle = c.unit ? `${c.unit}` : c.slug ? c.slug : "";
+                      return (
+                        <label
+                          key={c.id}
+                          className={[
+                            "flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2",
+                            selected
+                              ? "border-neutral-950 bg-neutral-50 dark:border-white dark:bg-neutral-900"
+                              : "border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950",
+                            isDisabled ? "opacity-70" : "",
+                          ].join(" ")}
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                              {c.title}
                             </div>
-                          ) : null}
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          disabled={isDisabled}
-                          onChange={async () => {
-                            if (!q.data) return;
-                            setMessage(null);
-                            setBusy("publicStatsCats");
-                            const current = publicStatsCategoryIdsPref ?? q.data.publicStatsCategoryIds ?? [];
-                            const next = selected ? current.filter((id) => id !== c.id) : [...current, c.id];
-                            setPublicStatsCategoryIdsPref(next);
-                            try {
-                              await setPublicStatsCategories({ categoryIds: next });
-                              await q.refetch();
-                            } catch (e: any) {
-                              setPublicStatsCategoryIdsPref(q.data.publicStatsCategoryIds);
-                              setMessage(e?.message ?? "Failed to update categories.");
-                            } finally {
-                              setBusy(null);
-                            }
-                          }}
-                          className="h-4 w-4 rounded border-neutral-300 text-neutral-900 accent-neutral-900 dark:border-neutral-600 dark:accent-white"
-                        />
-                      </label>
-                    );
-                  })}
+                            {subtitle ? (
+                              <div className="truncate text-xs text-neutral-500 dark:text-neutral-400">
+                                {subtitle}
+                              </div>
+                            ) : null}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            disabled={isDisabled}
+                            onChange={async () => {
+                              if (!q.data) return;
+                              setMessage(null);
+                              setBusy("publicStatsCats");
+                              const current = publicStatsCategoryIdsPref ?? q.data.publicStatsCategoryIds ?? [];
+                              const next = selected ? current.filter((id) => id !== c.id) : [...current, c.id];
+                              setPublicStatsCategoryIdsPref(next);
+                              try {
+                                await setPublicStatsCategories({ categoryIds: next });
+                                await q.refetch();
+                              } catch (e: any) {
+                                setPublicStatsCategoryIdsPref(q.data.publicStatsCategoryIds);
+                                setMessage(e?.message ?? "Failed to update categories.");
+                              } finally {
+                                setBusy(null);
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-neutral-300 text-neutral-900 accent-neutral-900 dark:border-neutral-600 dark:accent-white"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </>
           )}
         </div>
