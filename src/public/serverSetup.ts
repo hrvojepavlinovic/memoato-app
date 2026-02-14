@@ -57,6 +57,24 @@ async function getLastAmountInRange(args: {
   return typeof ev?.amount === "number" ? ev.amount : null;
 }
 
+async function getSumAmountInRange(args: {
+  userId: string;
+  categoryId: string;
+  from: Date;
+  to: Date;
+}): Promise<number> {
+  const res = await prisma.event.aggregate({
+    where: {
+      userId: args.userId,
+      categoryId: args.categoryId,
+      kind: "SESSION",
+      occurredOn: { gte: args.from, lte: args.to },
+    },
+    _sum: { amount: true },
+  });
+  return typeof res._sum.amount === "number" ? res._sum.amount : 0;
+}
+
 function parseCategoryIds(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   const out: string[] = [];
@@ -108,7 +126,7 @@ function addPublicStatsRoutes(app: any): void {
 
       const categories = await prisma.category.findMany({
         where: { userId: user.id, sourceArchivedAt: null, id: { in: categoryIds } },
-        select: { id: true, slug: true, title: true, unit: true },
+        select: { id: true, slug: true, title: true, unit: true, chartType: true, bucketAggregation: true },
       });
 
       const byId = new Map(categories.map((c) => [c.id, c]));
@@ -129,17 +147,31 @@ function addPublicStatsRoutes(app: any): void {
 
       const outCategories = await Promise.all(
         ordered.map(async (c) => {
-          const [todayVal, weekVal, monthVal, yearVal] = await Promise.all([
-            getLastAmountInRange({ userId: user.id, categoryId: c.id, from: today, to: today }),
-            getLastAmountInRange({ userId: user.id, categoryId: c.id, from: weekStart, to: today }),
-            getLastAmountInRange({ userId: user.id, categoryId: c.id, from: monthStart, to: today }),
-            getLastAmountInRange({ userId: user.id, categoryId: c.id, from: yearStart, to: today }),
-          ]);
+          const aggregation =
+            (c.bucketAggregation ?? "").trim().toLowerCase() === "last" || (c.chartType ?? "").trim().toLowerCase() === "line"
+              ? "last"
+              : "sum";
+
+          const [todayVal, weekVal, monthVal, yearVal] =
+            aggregation === "last"
+              ? await Promise.all([
+                  getLastAmountInRange({ userId: user.id, categoryId: c.id, from: today, to: today }),
+                  getLastAmountInRange({ userId: user.id, categoryId: c.id, from: weekStart, to: today }),
+                  getLastAmountInRange({ userId: user.id, categoryId: c.id, from: monthStart, to: today }),
+                  getLastAmountInRange({ userId: user.id, categoryId: c.id, from: yearStart, to: today }),
+                ])
+              : await Promise.all([
+                  getSumAmountInRange({ userId: user.id, categoryId: c.id, from: today, to: today }),
+                  getSumAmountInRange({ userId: user.id, categoryId: c.id, from: weekStart, to: today }),
+                  getSumAmountInRange({ userId: user.id, categoryId: c.id, from: monthStart, to: today }),
+                  getSumAmountInRange({ userId: user.id, categoryId: c.id, from: yearStart, to: today }),
+                ]);
 
           return {
             slug: typeof c.slug === "string" && c.slug.trim() ? c.slug : null,
             title: c.title,
             unit: c.unit ?? null,
+            aggregation,
             today: todayVal,
             week: weekVal,
             month: monthVal,
@@ -151,7 +183,7 @@ function addPublicStatsRoutes(app: any): void {
       res.status(200).end(
         JSON.stringify({
           generatedAt: new Date().toISOString(),
-          aggregation: "last",
+          aggregation: "auto",
           calendar,
           categories: outCategories,
         }),
