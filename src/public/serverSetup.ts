@@ -172,10 +172,10 @@ function addPublicStatsRoutes(app: any): void {
             title: c.title,
             unit: c.unit ?? null,
             aggregation,
-            today: todayVal,
-            week: weekVal,
-            month: monthVal,
-            year: yearVal,
+            today: todayVal ?? 0,
+            week: weekVal ?? 0,
+            month: monthVal ?? 0,
+            year: yearVal ?? 0,
           };
         }),
       );
