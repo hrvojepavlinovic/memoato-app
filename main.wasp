@@ -152,9 +152,34 @@ page CategoryPage {
   component: import { CategoryPage } from "@src/focus/CategoryPage"
 }
 
+route PublicUserRoute { path: "/u/:username", to: PublicUserPage }
+page PublicUserPage {
+  component: import { PublicUserPage } from "@src/public/PublicUserPage"
+}
+
+route PublicUserCategoryRoute { path: "/u/:username/c/:categorySlug", to: PublicUserCategoryPage }
+page PublicUserCategoryPage {
+  component: import { PublicUserCategoryPage } from "@src/public/PublicUserCategoryPage"
+}
+
 query getCategories {
   fn: import { getCategories } from "@src/focus/queries",
   entities: [Category, Event]
+}
+
+query getPublicUserDashboard {
+  fn: import { getPublicUserDashboard } from "@src/public/dashboardQueries",
+  entities: [User, Category, Event]
+}
+
+query getPublicUserCategorySeries {
+  fn: import { getPublicUserCategorySeries } from "@src/public/dashboardQueries",
+  entities: [User, Category, Event]
+}
+
+query getPublicUserCategoryLineSeries {
+  fn: import { getPublicUserCategoryLineSeries } from "@src/public/dashboardQueries",
+  entities: [User, Category, Event]
 }
 
 query getCategorySeries {
