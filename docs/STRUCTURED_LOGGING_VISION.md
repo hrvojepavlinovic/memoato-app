@@ -164,6 +164,48 @@ This avoids:
 - A giant category taxonomy
 - A UI that feels like a database
 
+## Goals and multi dimensional entries
+
+The simplest version of goals is what Memoato already does today. A category can have a goal for its primary metric and period.
+
+Once entries can have extra fields and durations, goals can evolve into a separate layer without breaking the existing model.
+
+Principles:
+
+- A goal is a target for a specific metric
+- A metric can be a category primary value or a category field, for example indoor bike `kcal` or indoor bike `km`
+- One entry can contribute to multiple goals
+- Missing fields should not break goals, they just reduce coverage
+
+Examples:
+
+- Weight goal can reference the Weight category primary value, using the last value each day
+- Cardio goal can reference Indoor Bike `minutes` and Run `minutes`
+- Active kcal goal can be derived, summing kcal from multiple workout categories
+
+How to model it, backwards compatible:
+
+- Keep category goals as the default simple path
+- Add optional explicit goals that can reference:
+  - category primary value
+  - category field key
+  - derived rollup metric
+- Add contribution rules that define what contributes to a goal:
+  - which categories and which field or value is used
+  - how it aggregates
+  - optional coefficient, for example 0.5x for low confidence signals
+
+Coverage and trust:
+
+- Any goal view that uses optional fields must show coverage, for example 11 of 14 sessions include minutes
+- For derived goals, the UI must show what is included so it is never a black box
+
+UX, keep friction low:
+
+- Auto link contributions by rules so logging stays fast
+- Allow an entry to override contributions only when needed
+- Surface the goal impact in the review, not during the log flow by default
+
 ## UX principles to keep it ADHD friendly
 
 - Logging should still be fast with one input and one tap
@@ -176,4 +218,3 @@ This avoids:
 - Should durations be inferred when two entries for the same category are close together
 - Should we support true "sessions" with child entries, or keep everything as single events with fields
 - How much of finance needs first class entities like accounts and inventory vs fields only
-
