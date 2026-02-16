@@ -49,29 +49,25 @@ function expectedPace01(period: CategoryWithStats["period"]): number {
   if (period === "week") {
     const day = startOfDay.getDay(); // 0=Sun..6=Sat
     const diff = (day + 6) % 7; // Mon=0..Sun=6
-    const dayIndex = diff + 1; // Mon=1..Sun=7
-    return clamp01(dayIndex / 7);
+    const start = new Date(startOfDay);
+    start.setDate(startOfDay.getDate() - diff);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    const ms = now.getTime() - start.getTime();
+    return clamp01(ms / (end.getTime() - start.getTime()));
   }
 
   if (period === "month") {
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
-    const dayIndex = Math.max(
-      1,
-      Math.min(totalDays, Math.round((startOfDay.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1),
-    );
-    return clamp01(dayIndex / totalDays);
+    const ms = now.getTime() - start.getTime();
+    return clamp01(ms / (end.getTime() - start.getTime()));
   }
 
   const start = new Date(now.getFullYear(), 0, 1);
   const end = new Date(now.getFullYear() + 1, 0, 1);
-  const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
-  const dayIndex = Math.max(
-    1,
-    Math.min(totalDays, Math.round((startOfDay.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1),
-  );
-  return clamp01(dayIndex / totalDays);
+  const ms = now.getTime() - start.getTime();
+  return clamp01(ms / (end.getTime() - start.getTime()));
 }
 
 function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
