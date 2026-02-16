@@ -5,6 +5,7 @@ import { Dialog } from "../../shared/components/Dialog";
 import { usePrivacy } from "../../privacy/PrivacyProvider";
 import { encryptUtf8ToEncryptedString } from "../../privacy/crypto";
 import { parseNumberInput } from "../../shared/lib/parseNumberInput";
+import { parseStructuredLogInput } from "../../shared/lib/parseStructuredLogInput";
 import { resolveAccentForTheme } from "../../theme/colors";
 import { useTheme } from "../../theme/ThemeProvider";
 import { localCreateEvent, localGetCategoryEvents } from "../local";
@@ -77,32 +78,20 @@ const KEY_ALIASES: Record<string, string[]> = {
 };
 
 type ParsedQuickLog = {
-  amount: number | null;
   hint: string;
   raw: string;
+  quantities: { value: number; unit: string | null }[];
+  hasExplicitUnit: boolean;
 };
 
 function parseQuickLogInput(raw: string): ParsedQuickLog {
-  const s = raw.trim();
-  if (!s) return { amount: null, hint: "", raw };
-
-  // number first: "30 push ups"
-  const m1 = s.match(/^([+-]?\d+(?:[.,]\d+)?)\s*(.*)$/);
-  if (m1) {
-    const amount = parseNumberInput(m1[1]);
-    const hint = (m1[2] ?? "").trim();
-    if (amount != null) return { amount, hint, raw };
-  }
-
-  // number last: "push ups 30"
-  const m2 = s.match(/^(.*\S)\s+([+-]?\d+(?:[.,]\d+)?)$/);
-  if (m2) {
-    const amount = parseNumberInput(m2[2]);
-    const hint = (m2[1] ?? "").trim();
-    if (amount != null) return { amount, hint, raw };
-  }
-
-  return { amount: null, hint: s, raw };
+  const parsed = parseStructuredLogInput(raw);
+  return {
+    raw,
+    hint: parsed.hint,
+    quantities: parsed.quantities.map((q) => ({ value: q.value, unit: q.unit })),
+    hasExplicitUnit: parsed.hasExplicitUnit,
+  };
 }
 
 function replaceAmountInRaw(raw: string, nextAmount: number): string {
@@ -149,6 +138,65 @@ function relativeCloseness(a: number, b: number): number {
   // d=0.5 -> ~0.74
   // d=1.0 -> ~0.36
   return clamp01(Math.exp(-Math.pow(d / 0.85, 2)));
+}
+
+function normalizedUnit(u: unknown): string | null {
+  if (typeof u !== "string") return null;
+  const n = normalizeText(u);
+  if (!n || n === "x") return null;
+  if (n === "kgs" || n === "kilogram" || n === "kilograms") return "kg";
+  if (n === "litre" || n === "litres" || n === "liter" || n === "liters") return "l";
+  if (n === "mins" || n === "minute" || n === "minutes" || n === "m") return "min";
+  if (n === "hr" || n === "hrs" || n === "hour" || n === "hours") return "h";
+  if (n === "cal" || n === "cals" || n === "calorie" || n === "calories") return "kcal";
+  return n;
+}
+
+function pickAmountForCategory(args: {
+  parsed: ParsedQuickLog;
+  c: CategoryWithStats;
+  displayTitle: string;
+}): number | null {
+  const { parsed, c, displayTitle } = args;
+  if (isNotesCategory(c)) return null;
+
+  const key = categoryKey(c, displayTitle);
+  const catUnit = normalizedUnit(c.unit);
+  const quantities = parsed.quantities ?? [];
+
+  if (catUnit) {
+    const match = quantities.find((q) => q.unit && normalizedUnit(q.unit) === catUnit);
+    if (match) return match.value;
+  }
+
+  const unitless = quantities.filter((q) => q.unit == null).map((q) => q.value);
+  const hasOtherUnits = quantities.some((q) => q.unit != null);
+
+  // Session-like categories.
+  if (key === "padel" || key === "football" || c.categoryType === "DO" || c.categoryType === "DONT") {
+    // If the input is basically "padel 2" (no other structured units, no extra hint), respect that.
+    const hintTokens = tokenize(parsed.hint);
+    const labelTokens = tokenize(displayTitle);
+    const hintIsJustLabel = hintTokens.length > 0 && hintTokens.every((t) => labelTokens.includes(t));
+    if (!hasOtherUnits && unitless.length === 1 && hintIsJustLabel) return unitless[0];
+    return 1;
+  }
+
+  if (unitless.length === 1) return unitless[0];
+  if (unitless.length > 1) {
+    let best = unitless[0];
+    let bestScore = -1;
+    for (const amount of unitless) {
+      const s = amountFitScore({ c, displayTitle, amount, key });
+      if (s > bestScore) {
+        bestScore = s;
+        best = amount;
+      }
+    }
+    return best;
+  }
+
+  return null;
 }
 
 function amountFitScore(args: {
@@ -309,7 +357,8 @@ function rankCategories(args: {
   parsed: ParsedQuickLog;
 }): RankedCandidate[] {
   const { categories, displayTitleById, themeIsDark, nowMinute, parsed } = args;
-  const { amount, hint } = parsed;
+  const hint = parsed.hint;
+  const inputHasNumber = (parsed.quantities ?? []).length > 0;
 
   return categories
     .filter((c) => !c.isSystem || isNotesCategory(c))
@@ -319,39 +368,38 @@ function rankCategories(args: {
       const key = categoryKey(c, displayTitle);
 
       const tScore = hint ? textMatchScore({ c, displayTitle, hint }) : 0;
+      const amount = pickAmountForCategory({ parsed, c, displayTitle });
       const aScore = amount != null ? amountFitScore({ c, displayTitle, amount, key }) : 0;
       const timeScore = timeFitScore(nowMinute, c.recentAvgMinuteOfDay30d ?? 12 * 60);
       const loggedPenalty = alreadyLoggedPenalty({ c, tScore });
 
+      const hasExplicitUnit = parsed.hasExplicitUnit === true;
+      const catUnit = normalizedUnit(c.unit);
+      const unitMatches =
+        catUnit != null && (parsed.quantities ?? []).some((q) => q.unit && normalizedUnit(q.unit) === catUnit);
+      const unitBoost = unitMatches ? 0.18 : 0;
+      const unitPenalty = hasExplicitUnit && catUnit != null && !unitMatches ? 0.22 : hasExplicitUnit && catUnit == null ? 0.08 : 0;
+
       let score = 0;
-      if (!hint && amount == null) {
-        score = defaultSuggestScore(c, displayTitle, nowMinute);
-      } else if (hint && amount == null) {
+      if (!hint && !inputHasNumber) {
+        score = clamp01(defaultSuggestScore(c, displayTitle, nowMinute) + unitBoost - unitPenalty);
+      } else if (hint && !inputHasNumber) {
         // Text only is usually category selection or Notes.
         const notesBoost = isNotesCategory(c) ? 0.55 : 0;
-        score = clamp01(tScore * 0.85 + timeScore * 0.15 + notesBoost - loggedPenalty);
-      } else if (!hint && amount != null) {
+        score = clamp01(tScore * 0.85 + timeScore * 0.15 + notesBoost - loggedPenalty + unitBoost - unitPenalty);
+      } else if (!hint && inputHasNumber) {
         // Number only.
         const notesPenalty = isNotesCategory(c) ? 0.45 : 0;
-        score = clamp01(aScore * 0.75 + timeScore * 0.25 - notesPenalty - loggedPenalty);
+        score = clamp01(aScore * 0.75 + timeScore * 0.25 - notesPenalty - loggedPenalty + unitBoost - unitPenalty);
       } else {
         // Both number and hint.
         const notesPenalty = isNotesCategory(c) ? 0.7 : 0;
-        score = clamp01(tScore * 0.65 + aScore * 0.25 + timeScore * 0.1 - notesPenalty - loggedPenalty);
+        score = clamp01(tScore * 0.65 + aScore * 0.25 + timeScore * 0.1 - notesPenalty - loggedPenalty + unitBoost - unitPenalty);
       }
 
       return { c, displayTitle, accent, score };
     })
     .sort((a, b) => b.score - a.score || a.displayTitle.localeCompare(b.displayTitle));
-}
-
-function amountFromParsedOrDefault(parsed: ParsedQuickLog, c: CategoryWithStats, displayTitle: string): number | null {
-  if (parsed.amount != null) return parsed.amount;
-  if (isNotesCategory(c)) return 1;
-  if (c.categoryType === "DO" || c.categoryType === "DONT") return 1;
-  const key = categoryKey(c, displayTitle);
-  if (key === "padel" || key === "football") return 1;
-  return null;
 }
 
 function useIsMobileSm(): boolean {
@@ -490,6 +538,43 @@ export function QuickLogDialog({
 
   React.useEffect(() => {
     if (!open) return;
+    if (!selectedFieldsSchema) return;
+    if (seededNotes) return;
+    if (!parsed.quantities || parsed.quantities.length === 0) return;
+
+    setDetailValues((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const def of selectedFieldsSchema) {
+        const key = def.key;
+        if (!key) continue;
+        if ((next[key] ?? "").trim() !== "") continue;
+        if (def.type !== "number") continue;
+
+        const defUnit = normalizedUnit(def.unit ?? "");
+        if (!defUnit) continue;
+
+        const match = parsed.quantities.find((q) => q.unit && normalizedUnit(q.unit) === defUnit);
+        if (match) {
+          next[key] = formatValue(match.value);
+          changed = true;
+          continue;
+        }
+
+        if (def.storeAs === "duration" && defUnit === "min") {
+          const h = parsed.quantities.find((q) => q.unit && normalizedUnit(q.unit) === "h");
+          if (h) {
+            next[key] = formatValue(h.value * 60);
+            changed = true;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [open, parsed.quantities, seededNotes, selectedFieldsSchema]);
+
+  React.useEffect(() => {
+    if (!open) return;
     if (!forceNotes) return;
     if (!notesCategoryIdFromCats) return;
     if (selectedCategoryId === notesCategoryIdFromCats) return;
@@ -594,12 +679,8 @@ export function QuickLogDialog({
 
     const displayTitle = selectedDisplayTitle ?? selected.title;
     const isNotes = selectedIsNotes;
-    const amount = amountFromParsedOrDefault(parsed, selected, displayTitle);
-    const noteText = seededNotes
-      ? raw.trim()
-      : parsed.hint.trim().length > 0
-        ? parsed.hint.trim()
-        : parsed.raw.trim();
+    const amount = pickAmountForCategory({ parsed, c: selected, displayTitle });
+    const noteText = raw.trim();
 
     if (!isNotes) {
       if (amount == null || amount <= 0) {
