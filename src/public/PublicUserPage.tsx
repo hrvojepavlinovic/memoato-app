@@ -219,7 +219,7 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
         </div>
         {goal > 0 ? (
           <div
-            className="pointer-events-none absolute top-1/2 h-3 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-200 dark:bg-neutral-800"
+            className="pointer-events-none absolute top-1/2 h-4 w-[3px] -translate-x-1/2 -translate-y-[60%] rounded-full bg-neutral-200 dark:bg-neutral-800"
             style={{ left: `${paceLinePos * 100}%` }}
             aria-hidden="true"
           />
