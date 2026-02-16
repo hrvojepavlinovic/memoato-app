@@ -70,6 +70,7 @@ model Category {
   targetCount    Int?
   period         String?
   targetDuration Int?
+  fieldsSchema   Json?
 
   sourceCreatedAt  DateTime?
   sourceArchivedAt DateTime?
@@ -100,6 +101,7 @@ model CategoryTemplate {
   goalValue Float?
   accentHex String @default("#0A0A0A")
   emoji String?
+  fieldsSchema Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

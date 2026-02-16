@@ -10,6 +10,7 @@ import type {
   CategoryChartType,
   CategoryEventItem,
   CategoryWithStats,
+  CategoryFieldsSchema,
   GoalDirection,
   BucketAggregation,
   LinePoint,
@@ -91,6 +92,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       goalDirection: true,
       goalWeekly: true,
       goalValue: true,
+      fieldsSchema: true,
     },
     orderBy: [{ title: "asc" }],
   });
@@ -257,6 +259,32 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     return chartType === "line" ? "last" : "sum";
   }
 
+  function normalizeFieldsSchemaArray(v: unknown): CategoryFieldsSchema | null {
+    if (!Array.isArray(v)) return null;
+    const out: any[] = [];
+    for (const raw of v) {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+      const r = raw as Record<string, unknown>;
+      const key = typeof r.key === "string" ? r.key.trim() : "";
+      const label = typeof r.label === "string" ? r.label.trim() : "";
+      const type = typeof r.type === "string" ? r.type.trim().toLowerCase() : "";
+      if (!key || !label) continue;
+      if (type !== "number" && type !== "text") continue;
+      const unit = typeof r.unit === "string" && r.unit.trim() ? r.unit.trim() : null;
+      const placeholder =
+        typeof r.placeholder === "string" && r.placeholder.trim() ? r.placeholder.trim() : null;
+      const storeAs = typeof r.storeAs === "string" && r.storeAs.trim() ? r.storeAs.trim() : null;
+      out.push({ key, label, type, unit, placeholder, storeAs });
+    }
+    return out.length > 0 ? (out as any) : null;
+  }
+
+  function safeFieldsSchema(v: unknown): CategoryFieldsSchema | null {
+    if (Array.isArray(v)) return normalizeFieldsSchemaArray(v);
+    // If we ever stored it as an object, ignore it for now.
+    return null;
+  }
+
   function windowValue(m: Map<string, WindowStats>, categoryId: string, agg: BucketAggregation): number {
     const row = m.get(categoryId);
     if (!row) return 0;
@@ -307,6 +335,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       period,
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
+      fieldsSchema: safeFieldsSchema(c.fieldsSchema),
       todayCount: windowCount(dayStats, c.id),
       thisWeekCount: windowCount(weekStats, c.id),
       thisMonthCount: windowCount(monthStats, c.id),

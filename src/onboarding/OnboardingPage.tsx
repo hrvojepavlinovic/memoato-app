@@ -25,6 +25,7 @@ type Template = {
   goalValue: number | null;
   accentHex: string;
   emoji: string | null;
+  fieldsSchema?: any | null;
 };
 
 const RECOMMENDED_KEYS = ["weight", "active_kcal", "steps", "water"];
@@ -197,6 +198,7 @@ export function OnboardingPage() {
             goalValue: t.chartType === "line" ? t.goalValue : null,
             accentHex: t.accentHex,
             emoji: t.emoji,
+            fieldsSchema: t.fieldsSchema ?? null,
           });
         }
       } else {
@@ -224,6 +226,7 @@ export function OnboardingPage() {
             goalValue: t.chartType === "line" ? (t.goalValue ?? undefined) : undefined,
             accentHex: t.accentHex,
             emoji: t.emoji ?? undefined,
+            fieldsSchema: t.fieldsSchema ?? undefined,
           } as any);
         }
       }

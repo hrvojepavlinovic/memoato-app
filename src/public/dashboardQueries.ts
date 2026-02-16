@@ -8,6 +8,7 @@ import type {
   BucketAggregation,
   CategoryChartType,
   CategoryWithStats,
+  CategoryFieldsSchema,
   LinePoint,
   Period,
   SeriesBucket,
@@ -86,6 +87,29 @@ function normalizeBucketAggregation(chartType: CategoryChartType, v: unknown): B
   return chartType === "line" ? "last" : "sum";
 }
 
+function normalizeFieldsSchemaArray(v: unknown): CategoryFieldsSchema | null {
+  if (!Array.isArray(v)) return null;
+  const out: any[] = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const r = raw as Record<string, unknown>;
+    const key = typeof r.key === "string" ? r.key.trim() : "";
+    const label = typeof r.label === "string" ? r.label.trim() : "";
+    const type = typeof r.type === "string" ? r.type.trim().toLowerCase() : "";
+    if (!key || !label) continue;
+    if (type !== "number" && type !== "text") continue;
+    const unit = typeof r.unit === "string" && r.unit.trim() ? r.unit.trim() : null;
+    const placeholder = typeof r.placeholder === "string" && r.placeholder.trim() ? r.placeholder.trim() : null;
+    const storeAs = typeof r.storeAs === "string" && r.storeAs.trim() ? r.storeAs.trim() : null;
+    out.push({ key, label, type, unit, placeholder, storeAs });
+  }
+  return out.length > 0 ? (out as any) : null;
+}
+
+function safeFieldsSchema(v: unknown): CategoryFieldsSchema | null {
+  return normalizeFieldsSchemaArray(v);
+}
+
 type WindowStats = { sum: number; avg: number; count: number };
 
 async function getCategoriesWithStatsForUser(args: {
@@ -112,6 +136,7 @@ async function getCategoriesWithStatsForUser(args: {
       goalDirection: true,
       goalWeekly: true,
       goalValue: true,
+      fieldsSchema: true,
     },
     orderBy: [{ title: "asc" }],
   });
@@ -233,6 +258,7 @@ async function getCategoriesWithStatsForUser(args: {
       period,
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
+      fieldsSchema: safeFieldsSchema(c.fieldsSchema),
       todayCount: windowCount(dayStats, c.id),
       thisWeekCount: windowCount(weekStats, c.id),
       thisMonthCount: windowCount(monthStats, c.id),

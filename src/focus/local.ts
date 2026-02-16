@@ -26,6 +26,7 @@ export type LocalCategory = {
   goalDirection?: GoalDirection | null;
   goalWeekly: number | null;
   goalValue: number | null;
+  fieldsSchema?: any | null;
   sourceArchivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -37,6 +38,7 @@ export type LocalEvent = {
   kind: "SESSION";
   categoryId: string;
   amount: number;
+  duration?: number | null;
   rawText: string | null;
   occurredAt: string; // ISO
   occurredOn: string; // YYYY-MM-DD
@@ -438,6 +440,7 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
       period,
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
+      fieldsSchema: (c as any).fieldsSchema ?? null,
       todayCount: counts.day.get(c.id) ?? 0,
       thisWeekCount: counts.week.get(c.id) ?? 0,
       thisMonthCount: counts.month.get(c.id) ?? 0,
@@ -579,6 +582,7 @@ export async function localCreateCategory(args: {
   bucketAggregation?: BucketAggregation | null;
   goalDirection?: GoalDirection | null;
   isSystem?: boolean | null;
+  fieldsSchema?: any | null;
 }): Promise<Pick<CategoryWithStats, "id" | "slug">> {
   const db = await openDb();
   const now = new Date().toISOString();
@@ -621,6 +625,7 @@ export async function localCreateCategory(args: {
     goalDirection: args.goalDirection ?? null,
     goalWeekly: needsPeriod ? args.goal ?? null : null,
     goalValue: chartType === "line" ? args.goalValue ?? null : null,
+    fieldsSchema: args.fieldsSchema ?? null,
     sourceArchivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -725,6 +730,8 @@ export async function localCreateEvent(args: {
   categoryId: string;
   amount: number;
   occurredOn?: string;
+  duration?: number | null;
+  fields?: Record<string, number | string> | null;
   note?: string | null;
   noteEnc?: any | null;
 }): Promise<void> {
@@ -734,6 +741,26 @@ export async function localCreateEvent(args: {
 
   const id = crypto.randomUUID();
   const nextData: Record<string, unknown> = {};
+  const cleanDuration =
+    typeof args.duration === "number" && Number.isFinite(args.duration) && args.duration > 0
+      ? Math.round(Math.min(args.duration, 24 * 60))
+      : null;
+  const cleanFields: Record<string, number | string> = {};
+  if (args.fields && typeof args.fields === "object" && !Array.isArray(args.fields)) {
+    for (const [k, v] of Object.entries(args.fields)) {
+      const key = String(k).trim();
+      if (!key) continue;
+      if (typeof v === "number" && Number.isFinite(v)) {
+        cleanFields[key] = v;
+      } else if (typeof v === "string") {
+        const s = v.trim();
+        if (s) cleanFields[key] = s;
+      }
+    }
+  }
+  if (Object.keys(cleanFields).length > 0) {
+    nextData.fields = cleanFields;
+  }
   if (args.noteEnc != null) {
     nextData.noteEnc = args.noteEnc as any;
     nextData.note = null;
@@ -747,6 +774,7 @@ export async function localCreateEvent(args: {
     kind: "SESSION",
     categoryId: args.categoryId,
     amount: args.amount,
+    duration: cleanDuration,
     rawText: null,
     occurredAt: occurredAt.toISOString(),
     occurredOn: toIsoDate(occurredOn),

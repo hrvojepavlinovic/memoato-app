@@ -394,6 +394,8 @@ export function QuickLogDialog({
   const [selectedCategoryId, setSelectedCategoryId] = React.useState<string | null>(null);
   const [selectionMode, setSelectionMode] = React.useState<"seed" | "auto" | "manual">("auto");
   const [showPicker, setShowPicker] = React.useState(false);
+  const [detailsOpen, setDetailsOpen] = React.useState(false);
+  const [detailValues, setDetailValues] = React.useState<Record<string, string>>({});
   const inputRef = React.useRef<HTMLInputElement>(null);
   const isMobile = useIsMobileSm();
   const [mobileViewport, setMobileViewport] = React.useState<{ height: number; top: number }>({ height: 0, top: 0 });
@@ -423,6 +425,10 @@ export function QuickLogDialog({
     selected && selected.accentHex ? resolveAccentForTheme(selected.accentHex, theme.isDark) ?? selected.accentHex : "#0A0A0A";
   const selectedIsNotes = selected ? isNotesCategory(selected) : false;
   const selectedUnit = unitLabel(selected?.unit);
+  const selectedFieldsSchema = React.useMemo(() => {
+    if (!selected || selectedIsNotes) return null;
+    return selected.fieldsSchema && Array.isArray(selected.fieldsSchema) ? selected.fieldsSchema : null;
+  }, [selected, selectedIsNotes]);
   const forceNotes = mode === "note";
   const notesCategoryIdFromCats = React.useMemo(() => {
     const notes = categories.find((c) => isNotesCategory(c));
@@ -474,6 +480,8 @@ export function QuickLogDialog({
     setRaw("");
     setSaving(false);
     setShowPicker(false);
+    setDetailsOpen(false);
+    setDetailValues({});
     setSelectionMode(seedCategoryId || forceNotes ? "seed" : "auto");
     setSelectedCategoryId(seedCategoryId);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
@@ -607,12 +615,32 @@ export function QuickLogDialog({
 
     setSaving(true);
     try {
+      const fieldsToSend: Record<string, number | string> = {};
+      let durationToSend: number | null = null;
+      if (!isNotes && selectedFieldsSchema) {
+        for (const def of selectedFieldsSchema) {
+          const key = def.key;
+          const rawVal = (detailValues[key] ?? "").trim();
+          if (!rawVal) continue;
+          if (def.type === "number") {
+            const n = parseNumberInput(rawVal);
+            if (n == null) continue;
+            fieldsToSend[key] = n;
+            if (def.storeAs === "duration") durationToSend = n;
+          } else {
+            fieldsToSend[key] = rawVal;
+          }
+        }
+      }
+
       if (privacy.mode === "local") {
         if (!privacy.userId) return;
         await localCreateEvent({
           userId: privacy.userId,
           categoryId: selected.id,
           amount: amount ?? 1,
+          ...(durationToSend != null ? { duration: durationToSend } : {}),
+          ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
           ...(isNotes ? { note: noteText } : {}),
         });
       } else if (isNotes && privacy.mode === "encrypted") {
@@ -623,7 +651,13 @@ export function QuickLogDialog({
         const noteEnc = await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, noteText);
         await createEvent({ categoryId: selected.id, amount: 1, noteEnc } as any);
       } else {
-        await createEvent({ categoryId: selected.id, amount: amount ?? 1, ...(isNotes ? { note: noteText } : {}) } as any);
+        await createEvent({
+          categoryId: selected.id,
+          amount: amount ?? 1,
+          ...(durationToSend != null ? { duration: durationToSend } : {}),
+          ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
+          ...(isNotes ? { note: noteText } : {}),
+        } as any);
       }
 
       await invalidateHomeStats();
@@ -636,6 +670,8 @@ export function QuickLogDialog({
   function onChipPick(categoryId: string) {
     setSelectedCategoryId(categoryId);
     setSelectionMode("manual");
+    setDetailsOpen(false);
+    setDetailValues({});
   }
 
   function setQuickAmount(n: number) {
@@ -888,6 +924,56 @@ export function QuickLogDialog({
             </div>
 
             <div className="border-t border-neutral-200 bg-white/90 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:rounded-b-2xl">
+              {selectedFieldsSchema && !seededNotes ? (
+                <div className="mb-2">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setDetailsOpen((v) => !v)}
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
+                      disabled={saving}
+                    >
+                      {detailsOpen ? "Hide details" : "Add details"}
+                    </button>
+                    {detailsOpen ? (
+                      <button
+                        type="button"
+                        onClick={() => setDetailValues({})}
+                        className="rounded-lg px-2 py-1 text-xs font-semibold text-neutral-500 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
+                        disabled={saving}
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  {detailsOpen ? (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {selectedFieldsSchema.slice(0, 4).map((def) => (
+                        <div key={def.key} className="relative">
+                          <input
+                            value={detailValues[def.key] ?? ""}
+                            onChange={(e) =>
+                              setDetailValues((prev) => ({ ...prev, [def.key]: e.target.value }))
+                            }
+                            inputMode={def.type === "number" ? "decimal" : "text"}
+                            placeholder={def.placeholder ?? def.label}
+                            className={
+                              "block h-10 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 " +
+                              (def.unit ? "pr-12" : "")
+                            }
+                            disabled={saving}
+                          />
+                          {def.unit ? (
+                            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                              {def.unit}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="flex items-center gap-2">
                 <div className="relative min-w-0 flex-1">
                   <input

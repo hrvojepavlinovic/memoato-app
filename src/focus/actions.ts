@@ -334,6 +334,16 @@ type CreateCategoryArgs = {
   goalValue?: number;
   accentHex: string;
   emoji?: string;
+  fieldsSchema?:
+    | Array<{
+        key: string;
+        label: string;
+        type: "number" | "text";
+        unit?: string | null;
+        placeholder?: string | null;
+        storeAs?: "duration" | null;
+      }>
+    | null;
 };
 
 function normalizeHex(s: string): string {
@@ -370,8 +380,29 @@ function normalizeGoalDirection(v: unknown): string | null {
   throw new HttpError(400, "Goal direction must be 'at_least', 'at_most', or 'target'.");
 }
 
+function normalizeFieldsSchemaInput(
+  v: CreateCategoryArgs["fieldsSchema"],
+): CreateCategoryArgs["fieldsSchema"] {
+  if (!Array.isArray(v)) return null;
+  const out: any[] = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const r = raw as Record<string, unknown>;
+    const key = typeof r.key === "string" ? r.key.trim() : "";
+    const label = typeof r.label === "string" ? r.label.trim() : "";
+    const type = typeof r.type === "string" ? r.type.trim().toLowerCase() : "";
+    if (!key || !label) continue;
+    if (type !== "number" && type !== "text") continue;
+    const unit = typeof r.unit === "string" && r.unit.trim() ? r.unit.trim() : null;
+    const placeholder = typeof r.placeholder === "string" && r.placeholder.trim() ? r.placeholder.trim() : null;
+    const storeAs = typeof r.storeAs === "string" && r.storeAs.trim() ? r.storeAs.trim() : null;
+    out.push({ key, label, type, unit, placeholder, storeAs });
+  }
+  return out.length > 0 ? out : null;
+}
+
 export const createCategory: CreateCategory<CreateCategoryArgs, Category> = async (
-  { title, categoryType, chartType, bucketAggregation, goalDirection, period, unit, goal, goalValue, accentHex, emoji },
+  { title, categoryType, chartType, bucketAggregation, goalDirection, period, unit, goal, goalValue, accentHex, emoji, fieldsSchema },
   context,
 ) => {
   if (!context.user) {
@@ -391,6 +422,7 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
   const cleanChartType = normalizeChartType(chartType, fallbackChartType);
   const cleanAgg = normalizeBucketAggregation(bucketAggregation, cleanChartType);
   const cleanDir = normalizeGoalDirection(goalDirection);
+  const cleanFieldsSchema = normalizeFieldsSchemaInput(fieldsSchema);
 
   const needsPeriod = cleanChartType !== "line";
   if (needsPeriod && !period) {
@@ -428,6 +460,7 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
       goalDirection: cleanDir,
       goalWeekly: needsPeriod && goal != null ? goal : null,
       goalValue: cleanChartType === "line" && goalValue != null ? goalValue : null,
+      fieldsSchema: cleanFieldsSchema,
       kind: categoryType === "DO" || categoryType === "DONT" ? "count" : "amount",
       type: "Simple",
       createdAt: new Date(),
@@ -659,6 +692,8 @@ type CreateEventArgs = {
   categoryId: Category["id"];
   amount: number;
   occurredOn?: string; // YYYY-MM-DD
+  duration?: number | null; // minutes
+  fields?: Record<string, number | string> | null;
   note?: string | null;
   noteEnc?: any | null;
 };
@@ -688,7 +723,7 @@ function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Dat
 }
 
 export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
-  { categoryId, amount, occurredOn, note, noteEnc },
+  { categoryId, amount, occurredOn, duration, fields, note, noteEnc },
   context,
 ) => {
   if (!context.user) {
@@ -708,6 +743,26 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
   const occurred = parseOccurred(occurredOn);
   const unit = category.unit && category.unit !== "x" ? ` ${category.unit}` : "";
   const nextData: Record<string, unknown> = {};
+  const cleanDuration =
+    typeof duration === "number" && Number.isFinite(duration) && duration > 0
+      ? Math.round(Math.min(duration, 24 * 60))
+      : null;
+  const cleanFields: Record<string, number | string> = {};
+  if (fields && typeof fields === "object" && !Array.isArray(fields)) {
+    for (const [k, v] of Object.entries(fields)) {
+      const key = String(k).trim();
+      if (!key) continue;
+      if (typeof v === "number" && Number.isFinite(v)) {
+        cleanFields[key] = v;
+      } else if (typeof v === "string") {
+        const s = v.trim();
+        if (s) cleanFields[key] = s;
+      }
+    }
+  }
+  if (Object.keys(cleanFields).length > 0) {
+    nextData.fields = cleanFields;
+  }
   if (noteEnc != null) {
     nextData.noteEnc = noteEnc as any;
     nextData.note = null;
@@ -722,6 +777,7 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
       kind: "SESSION",
       categoryId,
       amount,
+      duration: cleanDuration ?? undefined,
       rawText: `${category.title} ${amount}${unit}`,
       occurredAt: occurred.occurredAt,
       occurredOn: occurred.occurredOn,

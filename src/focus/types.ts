@@ -11,6 +11,17 @@ export type CategoryChartType = "bar" | "line";
 export type BucketAggregation = "sum" | "avg" | "last";
 export type GoalDirection = "at_least" | "at_most" | "target";
 
+export type CategoryFieldType = "number" | "text";
+export type CategoryFieldDef = {
+  key: string;
+  label: string;
+  type: CategoryFieldType;
+  unit?: string | null;
+  placeholder?: string | null;
+  storeAs?: "duration" | null;
+};
+export type CategoryFieldsSchema = CategoryFieldDef[];
+
 export type CategoryWithStats = {
   id: string;
   title: string;
@@ -27,6 +38,7 @@ export type CategoryWithStats = {
   period: Period | null;
   goalWeekly: number | null;
   goalValue: number | null;
+  fieldsSchema: CategoryFieldsSchema | null;
   todayCount: number;
   thisWeekCount: number;
   thisMonthCount: number;

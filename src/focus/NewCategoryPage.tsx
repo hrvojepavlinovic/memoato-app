@@ -38,6 +38,7 @@ type CategoryTemplateItem = {
   goalValue: number | null;
   accentHex: string;
   emoji: string | null;
+  fieldsSchema?: any | null;
 };
 
 function SelectChevron({ disabled }: { disabled?: boolean }) {
@@ -74,6 +75,7 @@ export function NewCategoryPage() {
   const [accentHex, setAccentHex] = useState("#0A0A0A");
   const [accentHexInput, setAccentHexInput] = useState("#0A0A0A");
   const [emoji, setEmoji] = useState("");
+  const [fieldsSchema, setFieldsSchema] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const effectiveChartType: ChartType =
@@ -91,13 +93,17 @@ export function NewCategoryPage() {
 
   function applyTemplateByKey(nextKey: string) {
     setTemplateKey(nextKey);
-    if (nextKey === "custom") return;
+    if (nextKey === "custom") {
+      setFieldsSchema(null);
+      return;
+    }
     const t = templates.find((x) => x.key === nextKey);
     if (!t) return;
 
     setTitle(t.title);
     setCategoryType(t.categoryType);
     setChartType(t.chartType);
+    setFieldsSchema(t.fieldsSchema ?? null);
     if (t.chartType === "bar") {
       setPeriod(t.period ?? "week");
       const agg = (t.bucketAggregation ?? "").toLowerCase();
@@ -160,6 +166,7 @@ export function NewCategoryPage() {
           emoji: emoji.trim() || null,
           bucketAggregation,
           goalDirection,
+          fieldsSchema,
         });
         navigate(`/c/${created.slug ?? created.id}`);
         return;
@@ -186,6 +193,7 @@ export function NewCategoryPage() {
         goalValue: effectiveChartType === "line" ? (gv ?? undefined) : undefined,
         accentHex: cleanHex,
         emoji: emoji.trim() || undefined,
+        fieldsSchema: fieldsSchema ?? undefined,
       } as any);
       navigate(`/c/${(created as any).slug ?? created.id}`);
     } finally {

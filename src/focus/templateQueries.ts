@@ -14,6 +14,16 @@ type CategoryTemplateItem = {
   goalValue: number | null;
   accentHex: string;
   emoji: string | null;
+  fieldsSchema:
+    | Array<{
+        key: string;
+        label: string;
+        type: "number" | "text";
+        unit?: string | null;
+        placeholder?: string | null;
+        storeAs?: "duration" | null;
+      }>
+    | null;
 };
 
 function normalizeChartType(v: unknown): "bar" | "line" {
@@ -53,6 +63,7 @@ export const getCategoryTemplates: GetCategoryTemplates<void, CategoryTemplateIt
       goalValue: true,
       accentHex: true,
       emoji: true,
+      fieldsSchema: true,
     },
     orderBy: [{ title: "asc" }],
   });
@@ -76,6 +87,6 @@ export const getCategoryTemplates: GetCategoryTemplates<void, CategoryTemplateIt
     goalValue: typeof t.goalValue === "number" ? t.goalValue : null,
     accentHex: typeof t.accentHex === "string" ? t.accentHex : "#0A0A0A",
     emoji: typeof t.emoji === "string" && t.emoji.trim() ? t.emoji.trim() : null,
+    fieldsSchema: t.fieldsSchema ?? null,
   }));
 };
-
