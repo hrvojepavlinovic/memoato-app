@@ -10,6 +10,12 @@ Memoato is:
 - **API-first.** Wasp queries/actions power the domain so that native apps can simply call the same endpoints later.
 - **PWA-ready.** We ship installable assets, icon meta, service worker caching, and install + analytics hooks for secondary platforms.
 
+Memoato is also evolving toward structured journal logs:
+
+- An entry can have optional extra fields (distance, duration, venue)
+- Some metrics are derived rollups (Active kcal from multiple workout categories)
+- Missing fields are allowed and analytics must show coverage
+
 ## MVP goals
 
 1. **Home dashboard** with a grid of category cards showing emoji, accent color, quick stats, and progress bars / numeric glances depending on the category type.
@@ -29,17 +35,21 @@ Memoato is:
   - `chartType`: `bar` (totals per bucket) or `line` (values over time).
   - `period`: day/week/month/year (bar charts only. Line charts have no period field).
   - `unit`: optional text (omit `x` when there is no service unit).
+  - Optional extra fields schema:
+    - `fieldsSchema` is a JSON definition that allows a category to capture additional structured fields per entry, for example distance or duration
   - Goals:
     - `goalWeekly`: per-period goal (used by bar charts for the selected `period`).
     - `goalValue`: target value (used by line charts like weight).
     - `goalDirection`: `at_least` (higher is better) or `at_most` (lower is better).
   - Multiple entries per bucket:
     - `bucketAggregation`: `sum` | `avg` | `last` (bar charts use `sum`/`avg`. Line charts use `last`/`avg`).
+  - Derived rollups:
+    - `rollupToActiveKcal` marks kcal categories that should contribute to the Active kcal rollup
   - Optional manual ordering:
     - `sortOrder` is used by the Home dashboard when the user sets a custom order (drag-and-drop reorder mode).
     - New categories created after a custom order is set appear at the bottom until reordered (or the order is reset).
-  - Category templates:
-    - Built-in presets (emoji/accent/goals/aggregation) are stored as `CategoryTemplate` rows and shown on the “New category” page.
+  - Category templates (legacy onboarding):
+    - Presets exist as `CategoryTemplate` rows, but the product direction is to make them optional and move onboarding to a log-first flow (see below).
 
 ### Events
 
@@ -47,7 +57,10 @@ Memoato is:
   - `amount` (number, accepts integers, decimals with `.` or `,` input).
   - `createdAt` (when inserted) and `occurredAt` (timestamp with time), plus `occurredOn` (date-only) for grouping/backfilling.
   - `rawText` for quick reference and `data` to store raw import payloads.
+    - `data.fields` can store optional structured values, based on the category `fieldsSchema`
   - `kind` (default `SESSION`) and optional `source`.
+  - Optional duration:
+    - `duration` (minutes) can be captured as a structured field for time bound sessions
   - Constraints:
     - The UI prevents selecting future dates for `occurredAt`.
 
@@ -55,16 +68,20 @@ Memoato is:
 
 Memoato starts with a built-in, non-deletable **Notes** system category.
 
-For everything else, new users are guided through a first-run onboarding where they **multi-select templates** (weight, water, push ups, etc.).
-Templates are backed by `CategoryTemplate` rows and can be reused later from the “New category” template picker.
+For everything else, the intended onboarding is template free.
 
-Example starter templates:
+Instead of picking templates up front, the user logs a thing in a natural way and Memoato learns what to track:
 
-| Title | Period | Goal | Chart | Emoji | Accent | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| Water | day | 2 000 ml/day | bar | 💧 | `#0EA5E9` | Daily target |
-| Push ups | week | 300 reps/week | bar | 💪 | `#F59E0B` | Weekly goal |
-| Weight | N/A | 85 kg target | line | ⚖️ | `#0EA5E9` | Line chart with target |
+- `300 ml water` becomes a Water metric and later prompts for a goal
+- `indoor bike 240 kcal 25 min 7.4 km` becomes a workout metric with optional dimensions
+- `football 1h Poljud 2 goals 780 kcal` becomes a structured match entry
+
+We can still offer suggested starters as shortcuts, but they should never be required and they should not block the first log.
+
+Backwards compatibility:
+
+- Existing users can keep their current categories and goals.
+- Template based category creation can remain available until log-first onboarding is fully shipped.
 
 More categories can be added by the user. Each one can pick a type (track number, do’s, don’ts, or goal value) plus a period. Every card stores an optional emoji that sits inside a round pill with an accent border.
 
@@ -132,6 +149,10 @@ When a user has no non-system categories, Memoato opens an onboarding screen:
   - Preferences:
     - Theme preference is stored per user (`User.themePreference`).
     - Next up visibility is stored per user (`User.nextUpEnabled`).
+    - Active kcal rollup mode is stored per user (`User.activeKcalRollupEnabled`):
+      - Auto: rollup is enabled unless the user logs manual Active kcal entries
+      - On: always roll up kcal categories into Active kcal
+      - Off: never roll up
 
 ### Auth providers
 

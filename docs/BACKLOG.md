@@ -10,9 +10,9 @@ This is a living list of what to do next. Keep it short and reorder often.
 ## P0 (speed / activation)
 
 - Home: add “Quick log” (one-tap, keyboard-first) so time-to-log is ~10s on mobile.
-- Improve onboarding activation (template multi-select, good defaults, explain Notes).
+- Improve onboarding activation (log-first flow, infer metrics, suggest goals at the right moment, explain Notes).
 - Improve “predict next log” (recency + time-of-day heuristic, no AI required).
-- Add an optional command-bar style input (e.g. `push ups 30`, `weight 85.2`) to reduce taps.
+- Add parsing for common units and hints (ml, kg, kcal, min, km) so natural logs become structured data over time.
 
 ## P1 (UX)
 

@@ -4,6 +4,35 @@ Memoato started as a fast habit tracker. The next evolution can be a lightweight
 
 The goal is not to turn Memoato into a complex database UI. The goal is to keep logging under 3 seconds while making the data rich enough to answer real questions later.
 
+## Template free onboarding (log first, learn as you go)
+
+Long term, Memoato should not depend on picking templates during onboarding.
+
+The default flow should be:
+
+1. You log a thing in a natural way
+2. Memoato recognizes what it is and starts tracking it
+3. Memoato asks only the minimum follow up questions, only when it matters
+
+Example:
+
+- You log `300 ml water`
+  - Memoato starts a Water metric
+  - Later it prompts for a daily goal (or suggests one)
+
+- You log `indoor bike 240 kcal 25 min 7.4 km`
+  - Memoato starts tracking Indoor bike
+  - It stores kcal as the primary value
+  - It stores minutes and km as optional extra fields
+  - It rolls kcal into Active kcal automatically (see rollups)
+
+- You log `football 1h Poljud 2 goals 780 kcal`
+  - Memoato starts tracking Football matches
+  - It stores duration, venue, goals, and kcal as structured fields
+  - It rolls kcal into Active kcal
+
+Important: this can start as deterministic parsing and gradual suggestions. AI can be optional later. The UX should stay snappy even without AI.
+
 ## What changes in mindset
 
 Instead of thinking "an entry belongs to one category and has one value", think:
@@ -87,6 +116,13 @@ Important:
 
 - Derived metrics should stay optional
 - The user should be able to understand what is included
+
+Active kcal is the first rollup to support because it is a very common need.
+
+Key principle:
+
+- You should not have to log calories twice
+- You should still be able to add manual corrections so the total matches a wearable or a daily summary
 
 ### 5) Context hierarchy for "why" (optional)
 

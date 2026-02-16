@@ -2,7 +2,16 @@
 
 ## Vision & mission
 
-Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuzzy reminders. The mission is to let a single user capture meaningful health, habit, and appointment data with as little friction as possible, typing a number, hitting Enter, and seeing a clear, colorful dashboard while the API remains reusable for future native apps.
+Memoato is a fast, minimalist tracking app that replaces bulky spreadsheets and fuzzy reminders.
+
+The mission is to let a single user capture meaningful data with as little friction as possible, see progress quickly, and keep the API reusable for future native apps.
+
+The product direction is "log first":
+
+- Let the user log naturally
+- Infer the metric and optional dimensions over time
+- Ask for goals only when it matters
+- Keep the interface snappy and predictable
 
 ## Shipped recently (Feb 2026)
 
@@ -12,6 +21,7 @@ Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuz
 - PWA install banner and improved icons (maskable and rounded).
 - Mobile wrapper scaffold and reminders UI (Capacitor).
 - SEO for humans and LLMs (sitemap, robots, JSON-LD, `llms.txt`).
+- Structured logging building blocks: optional extra fields on entries and Active kcal rollups.
 
 ## Pillars
 
@@ -24,7 +34,7 @@ Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuz
 
 | Phase | Focus | Success metrics |
 | --- | --- | --- |
-| 1. Foundation | Wasp + Prisma schema, DB setup (`memoato`), default categories, basic dashboard + category detail, import plan drafted. | `wasp db migrate-dev` succeeds, default categories seeded, user can add/edit events, profile page available. |
+| 1. Foundation | Wasp + Prisma schema, DB setup (`memoato`), Notes system category, basic dashboard + category detail, import plan drafted. | `wasp db migrate-dev` succeeds, Notes exists, user can add/edit events, profile page available. |
 | 2. Experience polish | Accent-based progress bars, strikethrough goal lines, history editing/deletion, responsive layout tweaks (period picker placement, mobile-friendly charts, button alignment). | All categories show colored progress bars or glances, categories can be reordered on Home, charts auto-scroll to latest period, history entries are editable. |
 | 3. Ops, PWA, SEO | PM2+Cloudflare deployment, Databuddy instrumentation, install prompts, icons, sitemap and structured data, `/sudo` admin insights. | App accessible via `app.memoato.com`, analytics dashboard shows events, install prompt triggers on Android/iOS, `/sudo` works for admins. |
 | 4. Import & export | JSON import path defined, raw payload stored, profile export available, admin insights include import metadata. | JSON exports can be ingested, profile export downloads categories/events, admin sees counts per user. |
@@ -39,10 +49,10 @@ Memoato is the fast, minimalist tracker that replaces bulky spreadsheets and fuz
 ## Technical next steps
 
 1. Harden the import story once the JSON export arrives: determine schema, write transformation logic, and persist raw payload + mapping details.
-2. Ship “Quick log” (command bar style input) to minimize time-to-log on mobile.
-3. Add lightweight categorization (tags or folders) so large tracker sets stay manageable.
-4. Coach Mode: evolve Next up into a Daily Plan (deterministic first), then Weekly Review behind opt-in.
-5. Expand `/sudo` (optional) with last login and import metadata.
+2. Ship "log first" onboarding: start with a blank slate and infer categories, units, and goals from real logs.
+3. Expand structured logging: optional extra fields, duration, and coverage in analytics.
+4. Add lightweight categorization (tags or folders) so large tracker sets stay manageable.
+5. Coach Mode: evolve Next up into a Daily Plan (deterministic first), then Weekly Review behind opt in.
 
 ## Questions for you (please answer in order so we can iterate)
 
