@@ -209,23 +209,25 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
         </span>
       </div>
       <div className="relative mt-1 h-4">
-        <div
-          className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800"
-        >
-          <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }} />
-        </div>
-        {goal > 0 ? (
-          <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 h-2 -translate-y-1/2" aria-hidden="true">
+        <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+          {pct > 0 ? (
             <div
-              className="absolute top-0 h-full w-[2px] rounded-full"
+              className={pct >= 0.999 ? "h-full rounded-full" : "h-full rounded-l-full"}
+              style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
+            />
+          ) : null}
+          {goal > 0 ? (
+            <div
+              className="pointer-events-none absolute inset-y-[1px] w-[2px] rounded-full"
               style={{
                 left: `${paceLinePos * 100}%`,
                 transform: "translateX(-50%)",
-                backgroundColor: withHexAlpha(c.accentHex, "CC") ?? c.accentHex,
+                backgroundColor: withHexAlpha(c.accentHex, "B3") ?? c.accentHex,
               }}
+              aria-hidden="true"
             />
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </div>
   );
