@@ -218,10 +218,9 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
           ) : null}
           {goal > 0 ? (
             <div
-              className="pointer-events-none absolute inset-y-[1px] w-[2px] rounded-full"
+              className="pointer-events-none absolute inset-y-[1px] w-px rounded-full"
               style={{
                 left: `${paceLinePos * 100}%`,
-                transform: "translateX(-50%)",
                 backgroundColor: withHexAlpha(c.accentHex, "B3") ?? c.accentHex,
               }}
               aria-hidden="true"
