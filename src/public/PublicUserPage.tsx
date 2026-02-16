@@ -218,7 +218,7 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
           ) : null}
           {goal > 0 ? (
             <div
-              className="pointer-events-none absolute inset-y-[1px] w-px rounded-full"
+              className="pointer-events-none absolute inset-y-0 w-px rounded-full"
               style={{
                 left: `${paceLinePos * 100}%`,
                 backgroundColor: withHexAlpha(c.accentHex, "B3") ?? c.accentHex,
