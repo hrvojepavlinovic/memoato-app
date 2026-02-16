@@ -13,6 +13,9 @@ This is a living list of what to do next. Keep it short and reorder often.
 - Improve onboarding activation (log-first flow, infer metrics, suggest goals at the right moment, explain Notes).
 - Improve “predict next log” (recency + time-of-day heuristic, no AI required).
 - Add parsing for common units and hints (ml, kg, kcal, min, km) so natural logs become structured data over time.
+- Add alias memory so text like `water` or `bike` matches existing categories.
+- Add a fast create flow when a log does not match any category (pre fill title and unit, no goal required).
+- Add progressive goal prompts after the user has logged a category a few times.
 
 ## P1 (UX)
 
@@ -22,6 +25,7 @@ This is a living list of what to do next. Keep it short and reorder often.
 - App: add optional per-entry note editing UX polish (keyboard, spacing, truncation).
 - Categories: add simple categorization (tags or folders) so users can group trackers.
 - Categories: explore richer “custom fields” without bloating logging speed.
+- Structured logging implementation plan: `docs/LOG_FIRST_IMPLEMENTATION.md`.
 
 ## P2 (community + marketing)
 
