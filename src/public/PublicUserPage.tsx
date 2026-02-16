@@ -198,6 +198,8 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const pace = goal > 0 ? expectedPace01(c.period) : 0;
   const paceLinePos = goal > 0 ? Math.min(0.98, Math.max(0.02, clamp01(pace))) : 0;
+  const dir = normalizeGoalDirection(c);
+  const isOver = goal > 0 && dir === "at_most" && done > goal;
 
   return (
     <div className="mt-0">
@@ -213,14 +215,17 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
           {pct > 0 ? (
             <div
               className={pct >= 0.999 ? "h-full rounded-full" : "h-full rounded-l-full"}
-              style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
+              style={{ width: `${pct * 100}%`, backgroundColor: isOver ? "#ef4444" : c.accentHex }}
             />
           ) : null}
         </div>
         {goal > 0 ? (
           <div
-            className="pointer-events-none absolute top-1/2 h-3 w-[4px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-200 dark:bg-neutral-800"
-            style={{ left: `${paceLinePos * 100}%` }}
+            className="pointer-events-none absolute top-1/2 h-3 w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-200 dark:bg-neutral-800"
+            style={{
+              left: `${paceLinePos * 100}%`,
+              backgroundColor: isOver ? "#ef4444" : pct >= paceLinePos ? c.accentHex : undefined,
+            }}
             aria-hidden="true"
           />
         ) : null}

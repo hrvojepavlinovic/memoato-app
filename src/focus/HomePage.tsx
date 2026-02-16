@@ -104,6 +104,7 @@ function GoalProgress({
   const paceClamped = clamp01(pace);
   const paceLinePos = goal > 0 ? Math.min(0.98, Math.max(0.02, paceClamped)) : 0;
   const dir = normalizeGoalDirection(c);
+  const isOver = goal > 0 && dir === "at_most" && done > goal;
   const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
   const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
   const rightLabel =
@@ -124,15 +125,18 @@ function GoalProgress({
           {pct > 0 ? (
             <div
               className={pct >= 0.999 ? "h-full rounded-full" : "h-full rounded-l-full"}
-              style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
+              style={{ width: `${pct * 100}%`, backgroundColor: isOver ? "#ef4444" : c.accentHex }}
               aria-label={`${periodLabel(c.period)} progress`}
             />
           ) : null}
         </div>
         {goal > 0 ? (
           <div
-            className="pointer-events-none absolute top-1/2 h-3 w-[4px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-200 dark:bg-neutral-800"
-            style={{ left: `${paceLinePos * 100}%` }}
+            className="pointer-events-none absolute top-1/2 h-3 w-[6px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-200 dark:bg-neutral-800"
+            style={{
+              left: `${paceLinePos * 100}%`,
+              backgroundColor: isOver ? "#ef4444" : pct >= paceLinePos ? c.accentHex : undefined,
+            }}
             aria-hidden="true"
             title={`Pace: ${Math.round(paceClamped * 100)}% of ${periodLabel(c.period).toLowerCase()}`}
           />
