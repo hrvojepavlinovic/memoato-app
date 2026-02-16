@@ -216,17 +216,14 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
               style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}
             />
           ) : null}
-          {goal > 0 ? (
-            <div
-              className="pointer-events-none absolute inset-y-0 w-[2px] rounded-full"
-              style={{
-                left: `${paceLinePos * 100}%`,
-                backgroundColor: withHexAlpha(c.accentHex, "B3") ?? c.accentHex,
-              }}
-              aria-hidden="true"
-            />
-          ) : null}
         </div>
+        {goal > 0 ? (
+          <div
+            className="pointer-events-none absolute top-1/2 h-3 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-200 dark:bg-neutral-800"
+            style={{ left: `${paceLinePos * 100}%` }}
+            aria-hidden="true"
+          />
+        ) : null}
       </div>
     </div>
   );
