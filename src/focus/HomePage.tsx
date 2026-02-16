@@ -97,14 +97,18 @@ function GoalProgress({
   c: CategoryWithStats;
   right?: "status" | "goal" | "fraction";
 }) {
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const [barWidthPx, setBarWidthPx] = useState<number | null>(null);
   const goal = c.goalWeekly ?? 0;
   const done = c.thisWeekTotal;
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const pace = goal > 0 ? expectedPace01(c.period) : 0;
   const paceClamped = clamp01(pace);
   const paceLinePos = goal > 0 ? Math.min(0.98, Math.max(0.02, paceClamped)) : 0;
-  const bubbleEaseRange = 0.04;
-  const bubbleFill = goal > 0 ? clamp01((pct - (paceLinePos - bubbleEaseRange)) / (2 * bubbleEaseRange)) : 0;
+  const markerWidthPx = 8;
+  const markerHalfPct = barWidthPx && barWidthPx > 0 ? (markerWidthPx / 2) / barWidthPx : 0.04;
+  const bubbleRange = Math.max(0.008, Math.min(0.08, markerHalfPct));
+  const bubbleFill = goal > 0 ? clamp01((pct - (paceLinePos - bubbleRange)) / (2 * bubbleRange)) : 0;
   const dir = normalizeGoalDirection(c);
   const unit = c.unit && c.unit !== "x" ? ` ${c.unit}` : "";
   const status = goalDeltaLabel({ direction: dir, kind: "total", done, goal, unit });
@@ -115,6 +119,16 @@ function GoalProgress({
         ? `${formatValue(done)}/${formatValue(goal)}${unit}`
         : status;
 
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const update = () => setBarWidthPx(el.getBoundingClientRect().width || null);
+    update();
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="mt-0">
       <div className="flex items-center justify-between text-[11px] font-medium text-neutral-500">
@@ -122,7 +136,10 @@ function GoalProgress({
         <span className="tabular-nums">{rightLabel}</span>
       </div>
       <div className="relative mt-1 h-4">
-        <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+        <div
+          ref={barRef}
+          className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800"
+        >
           <div
             className="h-full rounded-full"
             style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }}

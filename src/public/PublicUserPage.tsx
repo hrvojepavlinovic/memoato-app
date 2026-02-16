@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getPublicUserDashboard, useQuery } from "wasp/client/operations";
 import type { CategoryWithStats, GoalDirection } from "../focus/types";
@@ -193,13 +193,27 @@ function tileGlance(c: CategoryWithStats, displayTitle: string): { value: string
 }
 
 function GoalProgress({ c }: { c: CategoryWithStats }) {
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const [barWidthPx, setBarWidthPx] = useState<number | null>(null);
   const goal = c.goalWeekly ?? 0;
   const done = c.thisWeekTotal;
   const pct = goal > 0 ? Math.min(1, Math.max(0, done / goal)) : 0;
   const pace = goal > 0 ? expectedPace01(c.period) : 0;
   const paceLinePos = goal > 0 ? Math.min(0.98, Math.max(0.02, clamp01(pace))) : 0;
-  const bubbleEaseRange = 0.04;
-  const bubbleFill = goal > 0 ? clamp01((pct - (paceLinePos - bubbleEaseRange)) / (2 * bubbleEaseRange)) : 0;
+  const markerWidthPx = 8;
+  const markerHalfPct = barWidthPx && barWidthPx > 0 ? (markerWidthPx / 2) / barWidthPx : 0.04;
+  const bubbleRange = Math.max(0.008, Math.min(0.08, markerHalfPct));
+  const bubbleFill = goal > 0 ? clamp01((pct - (paceLinePos - bubbleRange)) / (2 * bubbleRange)) : 0;
+
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const update = () => setBarWidthPx(el.getBoundingClientRect().width || null);
+    update();
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <div className="mt-0">
@@ -211,7 +225,10 @@ function GoalProgress({ c }: { c: CategoryWithStats }) {
         </span>
       </div>
       <div className="relative mt-1 h-4">
-        <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+        <div
+          ref={barRef}
+          className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800"
+        >
           <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, backgroundColor: c.accentHex }} />
         </div>
         {goal > 0 ? (
