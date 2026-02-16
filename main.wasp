@@ -164,7 +164,7 @@ page PublicUserCategoryPage {
 
 query getCategories {
   fn: import { getCategories } from "@src/focus/queries",
-  entities: [Category, Event]
+  entities: [User, Category, Event]
 }
 
 query getPublicUserDashboard {
@@ -184,7 +184,7 @@ query getPublicUserCategoryLineSeries {
 
 query getCategorySeries {
   fn: import { getCategorySeries } from "@src/focus/queries",
-  entities: [Event, Category]
+  entities: [User, Event, Category]
 }
 
 query getCategoryLineSeries {
@@ -194,7 +194,7 @@ query getCategoryLineSeries {
 
 query getCategoryEvents {
   fn: import { getCategoryEvents } from "@src/focus/queries",
-  entities: [Event, Category]
+  entities: [User, Event, Category]
 }
 
 query getCategoryTemplates {
@@ -289,6 +289,11 @@ action setQuickLogFabSide {
 
 action setHomeCategoryLayout {
   fn: import { setHomeCategoryLayout } from "@src/profile/actions",
+  entities: [User]
+}
+
+action setActiveKcalRollupMode {
+  fn: import { setActiveKcalRollupMode } from "@src/profile/actions",
   entities: [User]
 }
 

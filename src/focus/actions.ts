@@ -344,6 +344,7 @@ type CreateCategoryArgs = {
         storeAs?: "duration" | null;
       }>
     | null;
+  rollupToActiveKcal?: boolean | null;
 };
 
 function normalizeHex(s: string): string {
@@ -402,7 +403,7 @@ function normalizeFieldsSchemaInput(
 }
 
 export const createCategory: CreateCategory<CreateCategoryArgs, Category> = async (
-  { title, categoryType, chartType, bucketAggregation, goalDirection, period, unit, goal, goalValue, accentHex, emoji, fieldsSchema },
+  { title, categoryType, chartType, bucketAggregation, goalDirection, period, unit, goal, goalValue, accentHex, emoji, fieldsSchema, rollupToActiveKcal },
   context,
 ) => {
   if (!context.user) {
@@ -423,6 +424,10 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
   const cleanAgg = normalizeBucketAggregation(bucketAggregation, cleanChartType);
   const cleanDir = normalizeGoalDirection(goalDirection);
   const cleanFieldsSchema = normalizeFieldsSchemaInput(fieldsSchema);
+  const wantsRollup = rollupToActiveKcal === true;
+  const inferredRollup =
+    cleanUnit.trim().toLowerCase() === "kcal" && titleKey(cleanTitle) !== "active kcal";
+  const cleanRollupToActiveKcal = wantsRollup || (rollupToActiveKcal == null && inferredRollup);
 
   const needsPeriod = cleanChartType !== "line";
   if (needsPeriod && !period) {
@@ -461,6 +466,7 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
       goalWeekly: needsPeriod && goal != null ? goal : null,
       goalValue: cleanChartType === "line" && goalValue != null ? goalValue : null,
       fieldsSchema: cleanFieldsSchema,
+      rollupToActiveKcal: cleanRollupToActiveKcal,
       kind: categoryType === "DO" || categoryType === "DONT" ? "count" : "amount",
       type: "Simple",
       createdAt: new Date(),
@@ -481,6 +487,8 @@ type UpdateCategoryArgs = {
   goalValue?: number;
   accentHex: string;
   emoji?: string;
+  fieldsSchema?: CreateCategoryArgs["fieldsSchema"];
+  rollupToActiveKcal?: boolean | null;
 };
 
 export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = async (
@@ -497,6 +505,8 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
     goalValue,
     accentHex,
     emoji,
+    fieldsSchema,
+    rollupToActiveKcal,
   },
   context,
 ) => {
@@ -507,7 +517,7 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
   const userId = context.user.id;
   const existing = await context.entities.Category.findFirst({
     where: { id: categoryId, userId, sourceArchivedAt: null },
-    select: { id: true, slug: true },
+    select: { id: true, slug: true, unit: true, fieldsSchema: true, rollupToActiveKcal: true },
   });
   if (!existing) {
     throw new HttpError(404, "Category not found");
@@ -526,6 +536,8 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
   const cleanChartType = normalizeChartType(chartType, fallbackChartType);
   const cleanAgg = normalizeBucketAggregation(bucketAggregation, cleanChartType);
   const cleanDir = normalizeGoalDirection(goalDirection);
+  const cleanFieldsSchema =
+    fieldsSchema === undefined ? (existing as any).fieldsSchema ?? null : normalizeFieldsSchemaInput(fieldsSchema);
 
   const needsPeriod = cleanChartType !== "line";
   if (needsPeriod && !period) {
@@ -534,6 +546,11 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
 
   const resolvedUnit =
     cleanUnit.length === 0 || cleanUnit.toLowerCase() === "x" ? null : cleanUnit;
+
+  const inferredRollup =
+    (resolvedUnit ?? "").trim().toLowerCase() === "kcal" && titleKey(cleanTitle) !== "active kcal";
+  const cleanRollupToActiveKcal =
+    rollupToActiveKcal != null ? rollupToActiveKcal === true : inferredRollup;
 
   // If the category somehow has no slug (legacy), generate a stable slug once.
   let slug = existing.slug;
@@ -567,6 +584,8 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
       goalDirection: cleanDir,
       goalWeekly: needsPeriod ? goal ?? null : null,
       goalValue: cleanChartType === "line" ? goalValue ?? null : null,
+      fieldsSchema: cleanFieldsSchema as any,
+      rollupToActiveKcal: cleanRollupToActiveKcal,
       kind: categoryType === "DO" || categoryType === "DONT" ? "count" : "amount",
     } as any,
   });

@@ -21,6 +21,7 @@ model User {
   themePreference String?
   quickLogFabSide String @default("right")
   homeCategoryLayout String @default("list")
+  activeKcalRollupEnabled Boolean?
   publicStatsEnabled Boolean @default(false)
   publicStatsToken String? @unique
   publicStatsCategoryIds Json?
@@ -71,6 +72,7 @@ model Category {
   period         String?
   targetDuration Int?
   fieldsSchema   Json?
+  rollupToActiveKcal Boolean @default(false)
 
   sourceCreatedAt  DateTime?
   sourceArchivedAt DateTime?

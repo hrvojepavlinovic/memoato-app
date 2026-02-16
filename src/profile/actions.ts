@@ -10,6 +10,7 @@ import type {
   RequestAccountDeletion,
   RequestEmailChange,
   SendPasswordResetForCurrentUser,
+  SetActiveKcalRollupMode,
   SetHomeCategoryLayout,
   SetNextUpEnabled,
   RotatePublicStatsToken,
@@ -268,6 +269,19 @@ export const setHomeCategoryLayout: SetHomeCategoryLayout<{ layout: "list" | "gr
   await context.entities.User.update({
     where: { id: userId },
     data: { homeCategoryLayout: layout },
+  });
+  return { success: true };
+};
+
+export const setActiveKcalRollupMode: SetActiveKcalRollupMode<
+  { mode: "auto" | "on" | "off" },
+  { success: true }
+> = async (args, context) => {
+  const { userId } = requireAuth(context);
+  const mode = args.mode === "on" || args.mode === "off" ? args.mode : "auto";
+  await context.entities.User.update({
+    where: { id: userId },
+    data: { activeKcalRollupEnabled: mode === "auto" ? null : mode === "on" },
   });
   return { success: true };
 };

@@ -12,6 +12,15 @@ type CategoryType = "NUMBER" | "DO" | "DONT";
 type ChartType = CategoryChartType;
 type BarAgg = Extract<BucketAggregation, "sum" | "avg">;
 type LineAgg = Extract<BucketAggregation, "last" | "avg">;
+type FieldType = "number" | "text";
+type FieldDef = {
+  key: string;
+  label: string;
+  type: FieldType;
+  unit?: string | null;
+  placeholder?: string | null;
+  storeAs?: "duration" | null;
+};
 
 const typeOptions: { value: CategoryType; label: string; hint: string }[] = [
   { value: "NUMBER", label: "Track number", hint: "Counts, minutes, kcal, etc." },
@@ -52,6 +61,9 @@ export function EditCategoryPage() {
   const [accentHex, setAccentHex] = useState("#0A0A0A");
   const [accentHexInput, setAccentHexInput] = useState("#0A0A0A");
   const [emoji, setEmoji] = useState("");
+  const [rollupToActiveKcal, setRollupToActiveKcal] = useState<boolean>(false);
+  const [fieldsSchema, setFieldsSchema] = useState<FieldDef[]>([]);
+  const [fieldsOpen, setFieldsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   function defaultGoalDirectionForCategory(c: any): GoalDirection {
@@ -94,6 +106,9 @@ export function EditCategoryPage() {
     setAccentHex(hex);
     setAccentHexInput(hex);
     setEmoji(category.emoji ?? "");
+    setRollupToActiveKcal(category.rollupToActiveKcal === true);
+    const rawSchema = (category as any).fieldsSchema;
+    setFieldsSchema(Array.isArray(rawSchema) ? (rawSchema as FieldDef[]) : []);
   }, [category]);
 
   useEffect(() => {
@@ -198,6 +213,8 @@ export function EditCategoryPage() {
           emoji: emoji.trim() || null,
           bucketAggregation,
           goalDirection,
+          rollupToActiveKcal,
+          fieldsSchema,
         });
         await localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats as any));
         navigate(`/c/${category.slug ?? category.id}`);
@@ -215,6 +232,8 @@ export function EditCategoryPage() {
           goalValue: effectiveChartType === "line" ? (gv ?? undefined) : undefined,
           accentHex: cleanHex,
           emoji: emoji.trim() || undefined,
+          rollupToActiveKcal,
+          fieldsSchema,
         } as any);
         await categoriesQuery.refetch();
         navigate(`/c/${(updated as any).slug ?? updated.id}`);
@@ -428,6 +447,143 @@ export function EditCategoryPage() {
               <option value="target">Target</option>
             </select>
           </label>
+
+          <div className="sm:col-span-2">
+            <div className="rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Extra fields (optional)</div>
+                  <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                    Add dimensions like km or minutes. Only used when you fill them in.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFieldsOpen((v) => !v)}
+                  className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
+                >
+                  {fieldsOpen ? "Hide" : "Edit"}
+                </button>
+              </div>
+
+              {fieldsOpen ? (
+                <div className="mt-3 space-y-3">
+                  {fieldsSchema.map((f, idx) => (
+                    <div key={`${f.key}-${idx}`} className="grid grid-cols-1 gap-2 sm:grid-cols-6">
+                      <input
+                        value={f.label}
+                        onChange={(e) => {
+                          const label = e.target.value;
+                          setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, label } : x)));
+                        }}
+                        placeholder="Label"
+                        className="sm:col-span-2 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                      />
+                      <input
+                        value={f.key}
+                        onChange={(e) => {
+                          const key = e.target.value;
+                          setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, key } : x)));
+                        }}
+                        placeholder="key (e.g. km)"
+                        className="sm:col-span-2 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                      />
+                      <select
+                        value={f.type}
+                        onChange={(e) => {
+                          const type = (e.target.value === "text" ? "text" : "number") as FieldType;
+                          setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, type } : x)));
+                        }}
+                        className="sm:col-span-1 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                      >
+                        <option value="number">Number</option>
+                        <option value="text">Text</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setFieldsSchema((prev) => prev.filter((_, i) => i !== idx))}
+                        className="sm:col-span-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                      >
+                        Remove
+                      </button>
+
+                      <input
+                        value={f.unit ?? ""}
+                        onChange={(e) => {
+                          const unit = e.target.value;
+                          setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, unit: unit.trim() || null } : x)));
+                        }}
+                        placeholder="Unit (optional)"
+                        className="sm:col-span-2 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                      />
+                      <input
+                        value={f.placeholder ?? ""}
+                        onChange={(e) => {
+                          const placeholder = e.target.value;
+                          setFieldsSchema((prev) =>
+                            prev.map((x, i) => (i === idx ? { ...x, placeholder: placeholder.trim() || null } : x)),
+                          );
+                        }}
+                        placeholder="Placeholder (optional)"
+                        className="sm:col-span-3 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                      />
+                      <label className="sm:col-span-1 flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
+                        <input
+                          type="checkbox"
+                          checked={f.storeAs === "duration"}
+                          onChange={(e) => {
+                            const storeAs = e.target.checked ? ("duration" as const) : null;
+                            setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, storeAs } : x)));
+                          }}
+                        />
+                        Duration
+                      </label>
+                    </div>
+                  ))}
+
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      disabled={fieldsSchema.length >= 4}
+                      onClick={() =>
+                        setFieldsSchema((prev) => [
+                          ...prev,
+                          { key: "", label: "", type: "number", unit: null, placeholder: null, storeAs: null },
+                        ])
+                      }
+                      className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100 active:bg-neutral-200 disabled:opacity-60 dark:text-neutral-100 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
+                    >
+                      Add field
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFieldsSchema([])}
+                      className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-500 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {unit.trim().toLowerCase() === "kcal" && (category.slug ?? "").toLowerCase() !== "active-kcal" ? (
+            <label className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
+              <div>
+                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Counts toward Active kcal</div>
+                <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                  When enabled, entries in this category are included in Active kcal totals.
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={rollupToActiveKcal}
+                onChange={(e) => setRollupToActiveKcal(e.target.checked)}
+                className="h-5 w-5"
+              />
+            </label>
+          ) : null}
         </div>
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

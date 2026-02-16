@@ -75,6 +75,25 @@ async function getSumAmountInRange(args: {
   return typeof res._sum.amount === "number" ? res._sum.amount : 0;
 }
 
+async function getSumAmountInRangeMany(args: {
+  userId: string;
+  categoryIds: string[];
+  from: Date;
+  to: Date;
+}): Promise<number> {
+  if (args.categoryIds.length === 0) return 0;
+  const res = await prisma.event.aggregate({
+    where: {
+      userId: args.userId,
+      categoryId: { in: args.categoryIds },
+      kind: "SESSION",
+      occurredOn: { gte: args.from, lte: args.to },
+    },
+    _sum: { amount: true },
+  });
+  return typeof res._sum.amount === "number" ? res._sum.amount : 0;
+}
+
 function parseCategoryIds(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   const out: string[] = [];
@@ -104,7 +123,7 @@ function addPublicStatsRoutes(app: any): void {
     try {
       const user = await prisma.user.findFirst({
         where: { publicStatsEnabled: true, publicStatsToken: token },
-        select: { id: true, publicStatsCategoryIds: true },
+        select: { id: true, publicStatsCategoryIds: true, activeKcalRollupEnabled: true },
       });
       if (!user) {
         res.status(404).end(JSON.stringify({ error: "not_found" }));
@@ -126,7 +145,15 @@ function addPublicStatsRoutes(app: any): void {
 
       const categories = await prisma.category.findMany({
         where: { userId: user.id, sourceArchivedAt: null, id: { in: categoryIds } },
-        select: { id: true, slug: true, title: true, unit: true, chartType: true, bucketAggregation: true },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          unit: true,
+          chartType: true,
+          bucketAggregation: true,
+          rollupToActiveKcal: true,
+        },
       });
 
       const byId = new Map(categories.map((c) => [c.id, c]));
@@ -152,6 +179,36 @@ function addPublicStatsRoutes(app: any): void {
               ? "last"
               : "sum";
 
+          const isActiveKcal = String(c.slug ?? "").trim().toLowerCase() === "active-kcal";
+          const wantsRollup = user.activeKcalRollupEnabled === true;
+          const forbidsRollup = user.activeKcalRollupEnabled === false;
+          const rollupEnabled =
+            isActiveKcal && !forbidsRollup
+              ? wantsRollup ||
+                (user.activeKcalRollupEnabled == null &&
+                  !(await prisma.event.findFirst({
+                    where: { userId: user.id, categoryId: c.id, kind: "SESSION" },
+                    select: { id: true },
+                  })))
+              : false;
+
+          const contributorIds =
+            rollupEnabled && aggregation === "sum"
+              ? (
+                  await prisma.category.findMany({
+                    where: {
+                      userId: user.id,
+                      sourceArchivedAt: null,
+                      rollupToActiveKcal: true,
+                      unit: { equals: "kcal", mode: "insensitive" },
+                      NOT: { id: c.id },
+                    },
+                    select: { id: true },
+                  })
+                ).map((x) => String(x.id))
+              : [];
+          const idsForSum = rollupEnabled && aggregation === "sum" ? [c.id, ...contributorIds] : [c.id];
+
           const [todayVal, weekVal, monthVal, yearVal] =
             aggregation === "last"
               ? await Promise.all([
@@ -161,10 +218,10 @@ function addPublicStatsRoutes(app: any): void {
                   getLastAmountInRange({ userId: user.id, categoryId: c.id, from: yearStart, to: today }),
                 ])
               : await Promise.all([
-                  getSumAmountInRange({ userId: user.id, categoryId: c.id, from: today, to: today }),
-                  getSumAmountInRange({ userId: user.id, categoryId: c.id, from: weekStart, to: today }),
-                  getSumAmountInRange({ userId: user.id, categoryId: c.id, from: monthStart, to: today }),
-                  getSumAmountInRange({ userId: user.id, categoryId: c.id, from: yearStart, to: today }),
+                  getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: today, to: today }),
+                  getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: weekStart, to: today }),
+                  getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: monthStart, to: today }),
+                  getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: yearStart, to: today }),
                 ]);
 
           return {

@@ -6,6 +6,7 @@ export type ProfileData = {
   themePreference: "light" | "dark" | null;
   quickLogFabSide: "left" | "right";
   homeCategoryLayout: "list" | "grid";
+  activeKcalRollupEnabled: boolean | null;
   publicStatsEnabled: boolean;
   publicStatsToken: string | null;
   publicStatsCategoryIds: string[];

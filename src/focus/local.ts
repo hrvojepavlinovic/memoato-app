@@ -27,6 +27,7 @@ export type LocalCategory = {
   goalWeekly: number | null;
   goalValue: number | null;
   fieldsSchema?: any | null;
+  rollupToActiveKcal?: boolean;
   sourceArchivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -441,6 +442,7 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
       fieldsSchema: (c as any).fieldsSchema ?? null,
+      rollupToActiveKcal: (c as any).rollupToActiveKcal === true,
       todayCount: counts.day.get(c.id) ?? 0,
       thisWeekCount: counts.week.get(c.id) ?? 0,
       thisMonthCount: counts.month.get(c.id) ?? 0,
@@ -583,6 +585,7 @@ export async function localCreateCategory(args: {
   goalDirection?: GoalDirection | null;
   isSystem?: boolean | null;
   fieldsSchema?: any | null;
+  rollupToActiveKcal?: boolean | null;
 }): Promise<Pick<CategoryWithStats, "id" | "slug">> {
   const db = await openDb();
   const now = new Date().toISOString();
@@ -608,6 +611,9 @@ export async function localCreateCategory(args: {
   }
   const chartType: CategoryChartType = args.chartType ?? (args.categoryType === "GOAL" ? "line" : "bar");
   const needsPeriod = chartType !== "line";
+  const unitLower = (args.unit ?? "").trim().toLowerCase();
+  const inferredRollup = unitLower === "kcal" && cleanTitle.trim().toLowerCase() !== "active kcal";
+  const rollupToActiveKcal = args.rollupToActiveKcal != null ? args.rollupToActiveKcal === true : inferredRollup;
 
   const record: LocalCategory = {
     id,
@@ -626,6 +632,7 @@ export async function localCreateCategory(args: {
     goalWeekly: needsPeriod ? args.goal ?? null : null,
     goalValue: chartType === "line" ? args.goalValue ?? null : null,
     fieldsSchema: args.fieldsSchema ?? null,
+    rollupToActiveKcal,
     sourceArchivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -654,6 +661,8 @@ export async function localUpdateCategory(args: {
   emoji?: string | null;
   bucketAggregation?: BucketAggregation | null;
   goalDirection?: GoalDirection | null;
+  rollupToActiveKcal?: boolean | null;
+  fieldsSchema?: any | null;
 }): Promise<void> {
   const db = await openDb();
   const now = new Date().toISOString();
@@ -681,6 +690,14 @@ export async function localUpdateCategory(args: {
     goalDirection: args.goalDirection ?? (existing as any).goalDirection ?? null,
     goalWeekly: needsPeriod ? args.goal ?? null : null,
     goalValue: chartType === "line" ? args.goalValue ?? null : null,
+    fieldsSchema: args.fieldsSchema ?? (existing as any).fieldsSchema ?? null,
+    rollupToActiveKcal: (() => {
+      if (args.rollupToActiveKcal != null) return args.rollupToActiveKcal === true;
+      const titleLower = args.title.trim().toLowerCase();
+      const unitLower = ((args.unit && args.unit.trim().length > 0 ? args.unit : null) ?? "").trim().toLowerCase();
+      const inferred = unitLower === "kcal" && titleLower !== "active kcal";
+      return inferred;
+    })(),
     updatedAt: now,
   };
 

@@ -39,6 +39,7 @@ export type CategoryWithStats = {
   goalWeekly: number | null;
   goalValue: number | null;
   fieldsSchema: CategoryFieldsSchema | null;
+  rollupToActiveKcal: boolean;
   todayCount: number;
   thisWeekCount: number;
   thisMonthCount: number;

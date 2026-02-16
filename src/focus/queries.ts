@@ -93,8 +93,14 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       goalWeekly: true,
       goalValue: true,
       fieldsSchema: true,
+      rollupToActiveKcal: true,
     },
     orderBy: [{ title: "asc" }],
+  });
+
+  const userPrefs = await context.entities.User.findUnique({
+    where: { id: userId },
+    select: { activeKcalRollupEnabled: true },
   });
 
   const now = new Date();
@@ -336,6 +342,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
       fieldsSchema: safeFieldsSchema(c.fieldsSchema),
+      rollupToActiveKcal: c.rollupToActiveKcal === true,
       todayCount: windowCount(dayStats, c.id),
       thisWeekCount: windowCount(weekStats, c.id),
       thisMonthCount: windowCount(monthStats, c.id),
@@ -351,6 +358,53 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       recentAvgEventsPerDay30d,
     };
   });
+
+  // Active kcal rollup (optional, backwards compatible).
+  // If user has never logged anything into Active kcal, enable by default.
+  const activeKcal = result.find((c) => (c.slug ?? "").toLowerCase() === "active-kcal") ?? null;
+  const pref = userPrefs?.activeKcalRollupEnabled;
+  const rollupEnabled =
+    pref === true ||
+    (pref == null && !!activeKcal && !lastOccurredAtByCategory.has(activeKcal.id));
+
+  if (rollupEnabled && activeKcal) {
+    const contributors = result
+      .filter(
+        (c) =>
+          c.id !== activeKcal.id &&
+          c.rollupToActiveKcal === true &&
+          (c.unit ?? "").trim().toLowerCase() === "kcal",
+      )
+      .map((c) => c.id);
+
+    const sumWindow = (m: Map<string, WindowStats>, ids: string[]) => {
+      let sum = 0;
+      let count = 0;
+      for (const id of ids) {
+        const row = m.get(id);
+        if (!row) continue;
+        sum += row.sum ?? 0;
+        count += row.count ?? 0;
+      }
+      return { sum, count };
+    };
+
+    const rollupIds = [activeKcal.id, ...contributors];
+    const day = sumWindow(dayStats, rollupIds);
+    const week = sumWindow(weekStats, rollupIds);
+    const month = sumWindow(monthStats, rollupIds);
+    const year = sumWindow(yearStats, rollupIds);
+
+    // Override stats for Active kcal only.
+    (activeKcal as any).todayTotal = day.sum;
+    (activeKcal as any).todayCount = day.count;
+    (activeKcal as any).thisWeekCount = week.count;
+    (activeKcal as any).thisMonthCount = month.count;
+    (activeKcal as any).thisYearCount = year.count;
+    // For day-period categories, thisWeekTotal is used as the period total (Today).
+    (activeKcal as any).thisWeekTotal = day.sum;
+    (activeKcal as any).thisYearTotal = year.sum;
+  }
 
   function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
     const v = (c.goalDirection ?? "").toLowerCase();
@@ -485,13 +539,14 @@ export const getCategorySeries: GetCategorySeries<
   const userId = context.user.id;
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { id: true, chartType: true, bucketAggregation: true },
+    select: { id: true, slug: true, chartType: true, bucketAggregation: true },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
   }
   const chartType = ((category.chartType ?? "bar") as CategoryChartType);
   const aggregation = normalizeAgg((category as any).bucketAggregation, chartType);
+  const isActiveKcal = String(category.slug ?? "").trim().toLowerCase() === "active-kcal";
 
   const rawOffset = Math.min(0, Math.trunc(offset ?? 0));
   const baseNow = new Date();
@@ -521,20 +576,42 @@ export const getCategorySeries: GetCategorySeries<
   let end = cursor;
   for (let i = 0; i < count; i++) end = nextBucketStart(end, period);
 
+  let sourceCategoryIds: string[] = [categoryId];
+  if (isActiveKcal) {
+    const pref = (await context.entities.User.findUnique({
+      where: { id: userId },
+      select: { activeKcalRollupEnabled: true },
+    }))?.activeKcalRollupEnabled;
+
+    const hasManual = await context.entities.Event.findFirst({
+      where: { userId, kind: "SESSION", categoryId },
+      select: { id: true },
+    });
+    const rollupEnabled = pref === true || (pref == null && !hasManual);
+
+    if (rollupEnabled) {
+      const contributors = await context.entities.Category.findMany({
+        where: {
+          userId,
+          sourceArchivedAt: null,
+          rollupToActiveKcal: true,
+          unit: { equals: "kcal", mode: "insensitive" },
+          NOT: { id: categoryId },
+        },
+        select: { id: true },
+      });
+      sourceCategoryIds = [categoryId, ...contributors.map((c: any) => String(c.id))];
+    }
+  }
+
   const events = await context.entities.Event.findMany({
     where: {
       userId,
-      categoryId,
       kind: "SESSION",
-      occurredAt: {
-        gte: start,
-        lt: end,
-      },
+      categoryId: { in: sourceCategoryIds },
+      occurredAt: { gte: start, lt: end },
     },
-    select: {
-      occurredAt: true,
-      amount: true,
-    },
+    select: { occurredAt: true, amount: true },
   });
 
   const buckets: { start: Date; end: Date; total: number; count: number }[] = [];
@@ -673,7 +750,7 @@ export const getCategoryEvents: GetCategoryEvents<
   const userId = context.user.id;
   const ownsCategory = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { id: true },
+    select: { id: true, slug: true },
   });
   if (!ownsCategory) {
     throw new HttpError(404, "Category not found");
@@ -681,12 +758,39 @@ export const getCategoryEvents: GetCategoryEvents<
 
   const limit = Math.max(1, Math.min(200, take ?? 50));
   const beforeDate = before ? new Date(before) : null;
+  const isActiveKcal = String((ownsCategory as any).slug ?? "").trim().toLowerCase() === "active-kcal";
+
+  let sourceCategoryIds: string[] = [categoryId];
+  if (isActiveKcal) {
+    const pref = (await context.entities.User.findUnique({
+      where: { id: userId },
+      select: { activeKcalRollupEnabled: true },
+    }))?.activeKcalRollupEnabled;
+    const hasManual = await context.entities.Event.findFirst({
+      where: { userId, kind: "SESSION", categoryId },
+      select: { id: true },
+    });
+    const rollupEnabled = pref === true || (pref == null && !hasManual);
+    if (rollupEnabled) {
+      const contributors = await context.entities.Category.findMany({
+        where: {
+          userId,
+          sourceArchivedAt: null,
+          rollupToActiveKcal: true,
+          unit: { equals: "kcal", mode: "insensitive" },
+          NOT: { id: categoryId },
+        },
+        select: { id: true },
+      });
+      sourceCategoryIds = [categoryId, ...contributors.map((c: any) => String(c.id))];
+    }
+  }
 
   return context.entities.Event.findMany({
     where: {
       userId,
       kind: "SESSION",
-      categoryId,
+      categoryId: { in: sourceCategoryIds },
       ...(beforeDate
         ? {
             occurredAt: { lt: beforeDate },

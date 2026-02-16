@@ -115,8 +115,9 @@ type WindowStats = { sum: number; avg: number; count: number };
 async function getCategoriesWithStatsForUser(args: {
   userId: string;
   categoryIds: string[];
+  activeKcalRollupEnabled: boolean | null;
 }): Promise<CategoryWithStats[]> {
-  const { userId, categoryIds } = args;
+  const { userId, categoryIds, activeKcalRollupEnabled } = args;
 
   const categories: any[] = await prisma.category.findMany({
     where: { userId, sourceArchivedAt: null, id: { in: categoryIds } },
@@ -137,6 +138,7 @@ async function getCategoriesWithStatsForUser(args: {
       goalWeekly: true,
       goalValue: true,
       fieldsSchema: true,
+      rollupToActiveKcal: true,
     },
     orderBy: [{ title: "asc" }],
   });
@@ -235,7 +237,7 @@ async function getCategoriesWithStatsForUser(args: {
     resolvedSlugById.set(c.id, candidate);
   }
 
-  return categories.map((c) => {
+  const result = categories.map((c) => {
     const chartType = ((c.chartType ?? "bar") as CategoryChartType);
     const agg = normalizeBucketAggregation(chartType, c.bucketAggregation);
     const period = normalizePeriod(c.period);
@@ -259,6 +261,7 @@ async function getCategoriesWithStatsForUser(args: {
       goalWeekly: c.goalWeekly ?? null,
       goalValue: c.goalValue ?? null,
       fieldsSchema: safeFieldsSchema(c.fieldsSchema),
+      rollupToActiveKcal: c.rollupToActiveKcal === true,
       todayCount: windowCount(dayStats, c.id),
       thisWeekCount: windowCount(weekStats, c.id),
       thisMonthCount: windowCount(monthStats, c.id),
@@ -274,6 +277,56 @@ async function getCategoriesWithStatsForUser(args: {
       recentAvgEventsPerDay30d: 0,
     };
   });
+
+  const activeKcal = result.find((c) => (c.slug ?? "").toLowerCase() === "active-kcal") ?? null;
+  if (activeKcal && activeKcalRollupEnabled !== false) {
+    const hasManual =
+      activeKcalRollupEnabled === true
+        ? false
+        : await prisma.event.findFirst({
+            where: { userId, kind: "SESSION", categoryId: activeKcal.id },
+            select: { id: true },
+          });
+    const rollupEnabled = activeKcalRollupEnabled === true || (activeKcalRollupEnabled == null && !hasManual);
+    if (rollupEnabled) {
+      const contributors = result
+        .filter(
+          (c) =>
+            c.id !== activeKcal.id &&
+            c.rollupToActiveKcal === true &&
+            (c.unit ?? "").trim().toLowerCase() === "kcal",
+        )
+        .map((c) => c.id);
+      const rollupIds = [activeKcal.id, ...contributors];
+
+      const sumWindow = (m: Map<string, WindowStats>, ids: string[]) => {
+        let sum = 0;
+        let count = 0;
+        for (const id of ids) {
+          const row = m.get(id);
+          if (!row) continue;
+          sum += row.sum ?? 0;
+          count += row.count ?? 0;
+        }
+        return { sum, count };
+      };
+
+      const day = sumWindow(dayStats, rollupIds);
+      const week = sumWindow(weekStats, rollupIds);
+      const month = sumWindow(monthStats, rollupIds);
+      const year = sumWindow(yearStats, rollupIds);
+
+      (activeKcal as any).todayTotal = day.sum;
+      (activeKcal as any).todayCount = day.count;
+      (activeKcal as any).thisWeekCount = week.count;
+      (activeKcal as any).thisMonthCount = month.count;
+      (activeKcal as any).thisYearCount = year.count;
+      (activeKcal as any).thisWeekTotal = day.sum;
+      (activeKcal as any).thisYearTotal = year.sum;
+    }
+  }
+
+  return result;
 }
 
 export type PublicUserDashboard = {
@@ -290,7 +343,7 @@ export const getPublicUserDashboard: GetPublicUserDashboard<{ username: string }
 
   const user = await prisma.user.findFirst({
     where: { username, publicStatsEnabled: true },
-    select: { id: true, username: true, publicStatsCategoryIds: true },
+    select: { id: true, username: true, publicStatsCategoryIds: true, activeKcalRollupEnabled: true },
   });
   if (!user) {
     throw new HttpError(404);
@@ -301,7 +354,11 @@ export const getPublicUserDashboard: GetPublicUserDashboard<{ username: string }
     return { username: user.username, categories: [] };
   }
 
-  const categories = await getCategoriesWithStatsForUser({ userId: user.id, categoryIds });
+  const categories = await getCategoriesWithStatsForUser({
+    userId: user.id,
+    categoryIds,
+    activeKcalRollupEnabled: user.activeKcalRollupEnabled == null ? null : user.activeKcalRollupEnabled === true,
+  });
   const byId = new Map(categories.map((c) => [c.id, c]));
   const ordered = categoryIds.map((id) => byId.get(id)).filter(Boolean) as CategoryWithStats[];
   return { username: user.username, categories: ordered };
@@ -357,7 +414,7 @@ async function resolvePublicCategory(args: { username: string; categoryId: strin
 
   const category = await prisma.category.findFirst({
     where: { id: categoryId, userId: user.id, sourceArchivedAt: null },
-    select: { id: true, bucketAggregation: true, chartType: true },
+    select: { id: true, slug: true, bucketAggregation: true, chartType: true },
   });
   if (!category) throw new HttpError(404);
 
@@ -374,6 +431,7 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
   const { userId, category } = await resolvePublicCategory({ username: args.username, categoryId: args.categoryId });
   const chartType = ((category.chartType ?? "bar") as CategoryChartType);
   const aggregation = normalizeBucketAggregation(chartType, category.bucketAggregation);
+  const isActiveKcal = String(category.slug ?? "").trim().toLowerCase() === "active-kcal";
 
   const baseNow = new Date();
   let now = baseNow;
@@ -400,20 +458,42 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
   let end = cursor;
   for (let i = 0; i < count; i++) end = nextBucketStart(end, period);
 
+  let sourceCategoryIds: string[] = [category.id];
+  if (isActiveKcal) {
+    const pref = (
+      await prisma.user.findUnique({
+        where: { id: userId },
+        select: { activeKcalRollupEnabled: true },
+      })
+    )?.activeKcalRollupEnabled;
+    const hasManual = await prisma.event.findFirst({
+      where: { userId, kind: "SESSION", categoryId: category.id },
+      select: { id: true },
+    });
+    const rollupEnabled = pref === true || (pref == null && !hasManual);
+    if (rollupEnabled && aggregation === "sum") {
+      const contributors = await prisma.category.findMany({
+        where: {
+          userId,
+          sourceArchivedAt: null,
+          rollupToActiveKcal: true,
+          unit: { equals: "kcal", mode: "insensitive" },
+          NOT: { id: category.id },
+        },
+        select: { id: true },
+      });
+      sourceCategoryIds = [category.id, ...contributors.map((c) => String(c.id))];
+    }
+  }
+
   const events = await prisma.event.findMany({
     where: {
       userId,
-      categoryId: category.id,
+      categoryId: { in: sourceCategoryIds },
       kind: "SESSION",
-      occurredAt: {
-        gte: start,
-        lt: end,
-      },
+      occurredAt: { gte: start, lt: end },
     },
-    select: {
-      occurredAt: true,
-      amount: true,
-    },
+    select: { occurredAt: true, amount: true },
   });
 
   const buckets: { start: Date; end: Date; total: number; count: number }[] = [];

@@ -14,6 +14,7 @@ import {
 	  requestEmailChange,
 	  rotatePublicStatsToken,
 	  sendPasswordResetForCurrentUser,
+	  setActiveKcalRollupMode,
 	  setHomeCategoryLayout,
 	  setNextUpEnabled,
 	  setPublicStatsCategories,
@@ -103,6 +104,7 @@ export function ProfilePage() {
 	  const [nextUpEnabledPref, setNextUpEnabledPref] = useState<boolean | null>(null);
 	  const [fabSidePref, setFabSidePref] = useState<"left" | "right" | null>(null);
 	  const [homeLayoutPref, setHomeLayoutPref] = useState<"list" | "grid" | null>(null);
+	  const [activeKcalRollupModePref, setActiveKcalRollupModePref] = useState<"auto" | "on" | "off" | null>(null);
 	  const [publicStatsEnabledPref, setPublicStatsEnabledPref] = useState<boolean | null>(null);
 	  const [publicStatsCategoryIdsPref, setPublicStatsCategoryIdsPref] = useState<string[] | null>(null);
 
@@ -127,6 +129,12 @@ export function ProfilePage() {
 	    if (!q.data) return;
 	    setHomeLayoutPref(q.data.homeCategoryLayout);
 	  }, [q.data?.homeCategoryLayout]);
+
+	  useEffect(() => {
+	    if (!q.data) return;
+	    const v = q.data.activeKcalRollupEnabled;
+	    setActiveKcalRollupModePref(v == null ? "auto" : v === true ? "on" : "off");
+	  }, [q.data?.activeKcalRollupEnabled]);
 
 	  useEffect(() => {
 	    if (!q.data) return;
@@ -915,6 +923,57 @@ export function ProfilePage() {
 	                    ].join(" ")}
 	                  >
 	                    {layout === "list" ? "List" : "Grid"}
+	                  </button>
+	                );
+	              })}
+	            </div>
+	          </div>
+
+	          <div className="mt-5">
+	            <div className="mb-2 text-sm font-semibold">Active kcal rollup</div>
+	            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+	              When enabled, any kcal entries will also count towards Active kcal. Log Active kcal directly to add corrections.
+	            </div>
+	            <div className="mt-3 grid grid-cols-3 gap-2">
+	              {([
+	                { mode: "auto" as const, label: "Auto" },
+	                { mode: "on" as const, label: "On" },
+	                { mode: "off" as const, label: "Off" },
+	              ] as const).map(({ mode, label }) => {
+	                const active = (activeKcalRollupModePref ?? "auto") === mode;
+	                const isDisabled = busy === "activeKcalRollup" || q.isLoading || !q.data;
+	                return (
+	                  <button
+	                    key={mode}
+	                    type="button"
+	                    disabled={isDisabled}
+	                    onClick={async () => {
+	                      if (!q.data) return;
+	                      setMessage(null);
+	                      setBusy("activeKcalRollup");
+	                      setActiveKcalRollupModePref(mode);
+	                      try {
+	                        await setActiveKcalRollupMode({ mode });
+	                        await q.refetch();
+	                      } catch (e: any) {
+	                        const v = q.data.activeKcalRollupEnabled;
+	                        setActiveKcalRollupModePref(v == null ? "auto" : v === true ? "on" : "off");
+	                        setMessage(e?.message ?? "Failed to update setting.");
+	                      } finally {
+	                        setBusy(null);
+	                      }
+	                    }}
+	                    aria-pressed={active}
+	                    className={[
+	                      "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
+	                      isDisabled
+	                        ? "cursor-not-allowed opacity-70"
+	                        : active
+	                        ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+	                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+	                    ].join(" ")}
+	                  >
+	                    {label}
 	                  </button>
 	                );
 	              })}
