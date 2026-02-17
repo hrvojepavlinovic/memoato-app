@@ -330,8 +330,10 @@ function pickAmountForCategory(args: {
   parsed: ParsedQuickLog;
   c: CategoryWithStats;
   displayTitle: string;
+  intent?: "rank" | "submit";
 }): number | null {
   const { parsed, c, displayTitle } = args;
+  const intent = args.intent ?? "submit";
   if (isNotesCategory(c)) return null;
 
   const key = categoryKey(c, displayTitle);
@@ -348,12 +350,34 @@ function pickAmountForCategory(args: {
 
   // Session-like categories.
   if (key === "padel" || key === "football" || c.categoryType === "DO" || c.categoryType === "DONT") {
-    // If the input is basically "padel 2" (no other structured units, no extra hint), respect that.
     const hintTokens = tokenize(parsed.hint);
     const labelTokens = tokenize(displayTitle);
     const hintIsJustLabel = hintTokens.length > 0 && hintTokens.every((t) => labelTokens.includes(t));
-    if (!hasOtherUnits && unitless.length === 1 && hintIsJustLabel) return unitless[0];
-    return 1;
+
+    if (intent === "submit") {
+      // If the input is basically "padel 2" (no other structured units, no extra hint), respect that.
+      if (!hasOtherUnits && unitless.length === 1 && hintIsJustLabel) return unitless[0];
+      return 1;
+    }
+
+    // Ranking: avoid suggesting session-like categories for unrelated numbers or explicit units.
+    // If the user typed only explicit units (e.g. "780kcal") without a count, we don't have a good amount.
+    if (unitless.length === 0 && hasOtherUnits && !hintIsJustLabel) return null;
+    if (unitless.length === 1) return unitless[0];
+    if (unitless.length > 1) {
+      let best = unitless[0]!;
+      let bestScore = -1;
+      for (const amount of unitless) {
+        const s = amountFitScore({ c, displayTitle, amount, key });
+        if (s > bestScore) {
+          bestScore = s;
+          best = amount;
+        }
+      }
+      return best;
+    }
+
+    return null;
   }
 
   if (unitless.length === 1) return unitless[0];
@@ -545,7 +569,7 @@ function rankCategories(args: {
       const key = categoryKey(c, displayTitle);
 
       const tScore = hint ? textMatchScore({ c, displayTitle, hint }) : 0;
-      const amount = pickAmountForCategory({ parsed, c, displayTitle });
+      const amount = pickAmountForCategory({ parsed, c, displayTitle, intent: "rank" });
       const aScore = amount != null ? amountFitScore({ c, displayTitle, amount, key }) : 0;
       const timeScore = timeFitScore(nowMinute, c.recentAvgMinuteOfDay30d ?? 12 * 60);
       const loggedPenalty = alreadyLoggedPenalty({ c, tScore });
@@ -555,7 +579,6 @@ function rankCategories(args: {
       const unitMatches =
         catUnit != null && (parsed.quantities ?? []).some((q) => q.unit && normalizedUnit(q.unit) === catUnit);
       const unitBoost = unitMatches ? 0.18 : 0;
-      const unitPenalty = hasExplicitUnit && catUnit != null && !unitMatches ? 0.22 : hasExplicitUnit && catUnit == null ? 0.08 : 0;
 
       const fieldsSchemaUnits = new Set(
         (c.fieldsSchema ?? [])
@@ -573,6 +596,16 @@ function rankCategories(args: {
         if (fieldsSchemaUnits.has(u)) schemaHits += 1;
       }
       const schemaBoost = parsedUnits.size > 0 ? clamp01(schemaHits / Math.max(1, parsedUnits.size)) * 0.22 : 0;
+
+      const unitPenalty = hasExplicitUnit
+        ? catUnit != null
+          ? unitMatches
+            ? 0
+            : 0.22
+          : schemaHits > 0
+            ? 0.04
+            : 0.18
+        : 0;
 
       let score = 0;
       if (!hint && !inputHasNumber) {
@@ -721,7 +754,7 @@ export function QuickLogDialog({
   const inferredAmount = React.useMemo(() => {
     if (!selected || !selectedDisplayTitle) return null;
     if (selectedIsNotes) return null;
-    return pickAmountForCategory({ parsed, c: selected, displayTitle: selectedDisplayTitle });
+    return pickAmountForCategory({ parsed, c: selected, displayTitle: selectedDisplayTitle, intent: "submit" });
   }, [parsed, selected, selectedDisplayTitle, selectedIsNotes]);
 
   const auto = React.useMemo(() => {
@@ -846,12 +879,14 @@ export function QuickLogDialog({
     const willShow = typeof next === "boolean" ? next : !showPicker;
     setShowPicker(willShow);
     if (willShow) {
-      // Better mobile UX: hide keyboard so the list has space.
-      inputRef.current?.blur();
-      window.setTimeout(() => {
-        const el = document.getElementById("memoato-quicklog-pick");
-        el?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 0);
+      // Keep the keyboard open on mobile so you can switch categories without losing flow.
+      if (!isMobile) {
+        inputRef.current?.blur();
+        window.setTimeout(() => {
+          const el = document.getElementById("memoato-quicklog-pick");
+          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
+      }
     } else {
       window.setTimeout(() => inputRef.current?.focus(), 0);
     }
@@ -994,7 +1029,7 @@ export function QuickLogDialog({
 
     const displayTitle = selectedDisplayTitle ?? selected.title;
     const isNotes = selectedIsNotes;
-    const amount = pickAmountForCategory({ parsed, c: selected, displayTitle });
+    const amount = pickAmountForCategory({ parsed, c: selected, displayTitle, intent: "submit" });
     const noteText = raw.trim();
 
     if (!isNotes) {

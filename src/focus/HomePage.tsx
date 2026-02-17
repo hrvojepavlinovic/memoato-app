@@ -1113,14 +1113,18 @@ export function HomePage() {
         <div
           className={[
             "fixed top-[calc(50%+130px)] z-40 -translate-y-1/2 sm:hidden",
-            quickLogFabSide === "left" ? "left-4" : "right-4",
+            quickLogFabSide === "left" ? "left-0" : "right-0",
           ].join(" ")}
         >
-          <div className="pointer-events-none rounded-3xl bg-neutral-950/10 p-3 backdrop-blur-lg ring-1 ring-neutral-950/10 dark:bg-neutral-950/35 dark:ring-white/10">
-            <div className="flex flex-col items-center gap-3">
+          <div
+            className={[
+              "pointer-events-none bg-neutral-950/[0.06] py-4 backdrop-blur-lg ring-1 ring-neutral-950/10 dark:bg-neutral-950/30 dark:ring-white/10",
+              quickLogFabSide === "left" ? "rounded-r-3xl pl-4 pr-3" : "rounded-l-3xl pr-4 pl-3",
+            ].join(" ")}
+          >
             <div className="relative">
               <div
-                className="pointer-events-none absolute -inset-10 rounded-full bg-neutral-950/10 opacity-70 blur-2xl dark:bg-white/10"
+                className="pointer-events-none absolute -inset-14 rounded-full bg-neutral-950/10 opacity-50 blur-3xl dark:bg-white/10"
                 aria-hidden="true"
               />
               <button
@@ -1142,7 +1146,6 @@ export function HomePage() {
                   <path d="M5 12h14" />
                 </svg>
               </button>
-            </div>
             </div>
           </div>
         </div>
