@@ -1391,9 +1391,12 @@ export function QuickLogDialog({
                     autoCapitalize={seededNotes ? "sentences" : "none"}
                     autoCorrect={seededNotes ? "on" : "off"}
                     spellCheck={seededNotes}
-                  enterKeyHint="done"
+                    enterKeyHint="done"
                     placeholder={seededNotes ? "Write a note…" : "Type a log or a note"}
-                    className="block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 pr-20 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                    className={[
+                      "block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500",
+                      selectedUnit && !selectedIsNotes ? "pr-12" : "",
+                    ].join(" ")}
                     disabled={saving}
                   />
                   {selectedUnit && !selectedIsNotes ? (
