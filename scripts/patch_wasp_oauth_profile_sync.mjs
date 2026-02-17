@@ -109,7 +109,7 @@ const linkExistingByEmailBlock =
   "      }\n" +
   "    } catch (e) {\n" +
   "      console.error('Failed to link OAuth account by email:', e)\n" +
-  "    }\n+\n" +
+  "    }\n\n" +
   "    const userFields = await validateAndGetUserFields(\n" +
   "      { profile: providerProfile },\n" +
   "      userSignupFields,\n" +
