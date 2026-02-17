@@ -853,59 +853,6 @@ export function HomePage() {
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 pt-6 pb-24 sm:pb-6">
-      <div className="mb-5 hidden grid-cols-2 gap-3 sm:grid">
-        <button
-          type="button"
-          className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-left shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-          onClick={() => {
-            requestQuickNote();
-          }}
-          aria-label="Quick note"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="truncate text-base font-semibold text-neutral-950 dark:text-neutral-100">Note</div>
-              <div className="mt-0.5 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                Write a quick note (press N)
-              </div>
-            </div>
-            <div
-              className={[
-                "flex h-11 w-11 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100",
-                !notesCategoryId ? "opacity-60" : "",
-              ].join(" ")}
-            >
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-            </div>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          className="w-full rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-left shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-          onClick={() => openQuickLog(null)}
-          aria-label="Quick log"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="truncate text-base font-semibold text-neutral-950 dark:text-neutral-100">Log</div>
-              <div className="mt-0.5 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                Add a quick log (press L)
-              </div>
-            </div>
-            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-neutral-950 text-white dark:bg-white dark:text-neutral-950">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M12 5v14" />
-                <path d="M5 12h14" />
-              </svg>
-            </div>
-          </div>
-        </button>
-      </div>
-
       <CoachCard
         categories={orderedCategories}
         displayTitleById={displayTitleById}
@@ -915,11 +862,35 @@ export function HomePage() {
       />
 
       <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">Categories</h2>
-          <p className="text-sm text-neutral-500">
-            {orderMode ? "Reorder categories." : "Tap to add and view history."}
-          </p>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold tracking-tight">Categories</h2>
+            {!orderMode ? (
+              <div className="hidden items-center gap-2 sm:flex">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="h-8 px-2"
+                  onClick={() => setOrderMode(true)}
+                  aria-label="Edit categories"
+                  title="Edit"
+                >
+                  Edit
+                </Button>
+                <ButtonLink
+                  to="/categories/new"
+                  size="xs"
+                  variant="ghost"
+                  className="h-8 px-2"
+                  aria-label="Add category"
+                  title="Add"
+                >
+                  Add
+                </ButtonLink>
+              </div>
+            ) : null}
+          </div>
+          <p className="text-sm text-neutral-500">{orderMode ? "Reorder categories." : "Tap to add and view history."}</p>
         </div>
         <div className="flex items-center gap-2">
           {orderMode ? (
@@ -971,27 +942,9 @@ export function HomePage() {
               </Button>
             </>
           ) : (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-10 px-3"
-                onClick={() => setOrderMode(true)}
-                aria-label="Edit order"
-                title="Edit"
-              >
-                <span>Edit</span>
-              </Button>
-              <ButtonLink
-                to="/categories/new"
-                size="sm"
-                className="h-10 px-3"
-                aria-label="Add category"
-                title="Add"
-              >
-                <span>Add</span>
-              </ButtonLink>
-            </>
+            <Button size="sm" className="hidden h-10 px-4 sm:inline-flex" onClick={() => openQuickLog(null)}>
+              Log
+            </Button>
           )}
         </div>
       </div>
@@ -1187,27 +1140,6 @@ export function HomePage() {
                 >
                   <path d="M12 5v14" />
                   <path d="M5 12h14" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="relative">
-              <div
-                className="pointer-events-none absolute -inset-9 rounded-full bg-neutral-950/10 opacity-70 blur-2xl dark:bg-white/10"
-                aria-hidden="true"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  requestQuickNote();
-                }}
-                className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
-                aria-label="Quick note"
-                title="Note"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
                 </svg>
               </button>
             </div>

@@ -1,5 +1,5 @@
 import React from "react";
-import { createEvent, getCategoryEvents, queryClientInitialized, useQuery } from "wasp/client/operations";
+import { createCategory, createEvent, getCategoryEvents, queryClientInitialized, useQuery } from "wasp/client/operations";
 import { Button } from "../../shared/components/Button";
 import { Dialog } from "../../shared/components/Dialog";
 import { usePrivacy } from "../../privacy/PrivacyProvider";
@@ -8,7 +8,7 @@ import { parseNumberInput } from "../../shared/lib/parseNumberInput";
 import { parseStructuredLogInput } from "../../shared/lib/parseStructuredLogInput";
 import { resolveAccentForTheme } from "../../theme/colors";
 import { useTheme } from "../../theme/ThemeProvider";
-import { localCreateEvent, localGetCategoryEvents } from "../local";
+import { localCreateCategory, localCreateEvent, localGetCategoryEvents } from "../local";
 import type { CategoryWithStats } from "../types";
 
 function formatValue(v: number): string {
@@ -76,6 +76,119 @@ const KEY_ALIASES: Record<string, string[]> = {
   football: ["football", "nogomet", "futsal"],
   kcal: ["kcal", "cal", "calorie", "calories"],
 };
+
+const CREATE_STOPWORDS = new Set([
+  "at",
+  "in",
+  "on",
+  "to",
+  "from",
+  "with",
+  "and",
+  "for",
+  "scored",
+  "score",
+  "goals",
+  "goal",
+]);
+
+function titleCaseWords(s: string): string {
+  const parts = s
+    .trim()
+    .split(/\s+/g)
+    .filter(Boolean)
+    .slice(0, 6);
+  return parts
+    .map((w) => (w.length === 0 ? w : w[0]!.toUpperCase() + w.slice(1)))
+    .join(" ")
+    .trim();
+}
+
+function suggestNewCategoryTitle(parsed: ParsedQuickLog): string | null {
+  const hint = parsed.hint.trim();
+  if (!hint) return null;
+  const tokens = tokenize(hint).filter((t) => !CREATE_STOPWORDS.has(t));
+  if (tokens.length === 0) return null;
+  return titleCaseWords(tokens.slice(0, 3).join(" "));
+}
+
+function pickPrimaryUnitForNewCategory(quantities: ParsedQuickLog["quantities"]): string | null {
+  const units = (quantities ?? []).map((q) => normalizedUnit(q.unit)).filter(Boolean) as string[];
+  if (units.includes("kg")) return "kg";
+  if (units.includes("ml") || units.includes("l")) return "ml";
+  if (units.includes("kcal")) return "kcal";
+  if (units.includes("km")) return "km";
+  if (units.includes("min") || units.includes("h")) return "min";
+  return null;
+}
+
+function pickPrimaryAmountForNewCategory(args: { quantities: ParsedQuickLog["quantities"]; unit: string | null }): number | null {
+  const { quantities, unit } = args;
+  const q = quantities ?? [];
+  if (q.length === 0) return null;
+  if (!unit) {
+    const unitless = q.find((x) => x.unit == null);
+    return unitless?.value ?? q[0]!.value;
+  }
+  if (unit === "ml") {
+    const ml = q.find((x) => normalizedUnit(x.unit) === "ml");
+    if (ml) return ml.value;
+    const l = q.find((x) => normalizedUnit(x.unit) === "l");
+    if (l) return l.value * 1000;
+  }
+  if (unit === "min") {
+    const min = q.find((x) => normalizedUnit(x.unit) === "min")?.value ?? 0;
+    const h = q.find((x) => normalizedUnit(x.unit) === "h")?.value ?? 0;
+    if (min + h * 60 > 0) return min + h * 60;
+  }
+  const match = q.find((x) => normalizedUnit(x.unit) === unit);
+  return match?.value ?? null;
+}
+
+function defaultNewCategoryConfig(parsed: ParsedQuickLog): {
+  unit: string | null;
+  chartType: "bar" | "line";
+  period: "day" | "week";
+  bucketAggregation: "sum" | "last";
+  goalDirection: "at_least" | "at_most";
+  fieldsSchema: any[] | null;
+  rollupToActiveKcal: boolean;
+} {
+  const hintTokens = tokenize(parsed.hint);
+  const unitFromNumbers = pickPrimaryUnitForNewCategory(parsed.quantities);
+  const unit = unitFromNumbers ?? (hintTokens.includes("steps") ? "steps" : null);
+  const chartType: "bar" | "line" = unit === "kg" ? "line" : "bar";
+  const period: "day" | "week" = unit === "ml" ? "day" : "week";
+  const bucketAggregation: "sum" | "last" = chartType === "line" ? "last" : "sum";
+  const goalDirection: "at_least" | "at_most" = unit === "kg" ? "at_most" : "at_least";
+
+  const unitsPresent = new Set((parsed.quantities ?? []).map((q) => normalizedUnit(q.unit)).filter(Boolean) as string[]);
+  const fields: any[] = [];
+  const addField = (key: string, label: string, fieldUnit: string, storeAs?: "duration") => {
+    if (fields.length >= 4) return;
+    fields.push({ key, label, type: "number", unit: fieldUnit, placeholder: null, storeAs: storeAs ?? null });
+  };
+
+  const hasKcal = unitsPresent.has("kcal");
+  const hasKm = unitsPresent.has("km");
+  const hasMin = unitsPresent.has("min") || unitsPresent.has("h");
+  const hasMl = unitsPresent.has("ml") || unitsPresent.has("l");
+
+  if (hasKcal && unit !== "kcal") addField("kcal", "kcal", "kcal");
+  if (hasKm && unit !== "km") addField("km", "km", "km");
+  if (hasMin && unit !== "min") addField("min", "min", "min", "duration");
+  if (hasMl && unit !== "ml") addField("ml", "ml", "ml");
+
+  return {
+    unit,
+    chartType,
+    period,
+    bucketAggregation,
+    goalDirection,
+    fieldsSchema: fields.length > 0 ? fields : null,
+    rollupToActiveKcal: hasKcal,
+  };
+}
 
 type ParsedQuickLog = {
   hint: string;
@@ -420,6 +533,9 @@ function rankCategories(args: {
   const { categories, displayTitleById, themeIsDark, nowMinute, parsed } = args;
   const hint = parsed.hint;
   const inputHasNumber = (parsed.quantities ?? []).length > 0;
+  const parsedUnits = new Set(
+    (parsed.quantities ?? []).map((q) => (q.unit ? normalizedUnit(q.unit) : null)).filter(Boolean) as string[],
+  );
 
   return categories
     .filter((c) => !c.isSystem || isNotesCategory(c))
@@ -441,21 +557,39 @@ function rankCategories(args: {
       const unitBoost = unitMatches ? 0.18 : 0;
       const unitPenalty = hasExplicitUnit && catUnit != null && !unitMatches ? 0.22 : hasExplicitUnit && catUnit == null ? 0.08 : 0;
 
+      const fieldsSchemaUnits = new Set(
+        (c.fieldsSchema ?? [])
+          .map((def: any) => {
+            const u = normalizedUnit(def?.unit);
+            if (u) return u;
+            if (def?.storeAs === "duration") return "min";
+            return null;
+          })
+          .filter(Boolean) as string[],
+      );
+      let schemaHits = 0;
+      for (const u of parsedUnits) {
+        if (catUnit && u === catUnit) continue;
+        if (fieldsSchemaUnits.has(u)) schemaHits += 1;
+      }
+      const schemaBoost = parsedUnits.size > 0 ? clamp01(schemaHits / Math.max(1, parsedUnits.size)) * 0.22 : 0;
+
       let score = 0;
       if (!hint && !inputHasNumber) {
-        score = clamp01(defaultSuggestScore(c, displayTitle, nowMinute) + unitBoost - unitPenalty);
+        score = clamp01(defaultSuggestScore(c, displayTitle, nowMinute) + unitBoost - unitPenalty + schemaBoost);
       } else if (hint && !inputHasNumber) {
         // Text only is usually category selection or Notes.
-        const notesBoost = isNotesCategory(c) ? 0.55 : 0;
-        score = clamp01(tScore * 0.85 + timeScore * 0.15 + notesBoost - loggedPenalty + unitBoost - unitPenalty);
+        const tokens = tokenize(hint);
+        const notesBoost = isNotesCategory(c) ? (tokens.length >= 3 || hint.trim().length >= 14 ? 0.8 : 0.55) : 0;
+        score = clamp01(tScore * 0.85 + timeScore * 0.15 + notesBoost - loggedPenalty + unitBoost - unitPenalty + schemaBoost);
       } else if (!hint && inputHasNumber) {
         // Number only.
         const notesPenalty = isNotesCategory(c) ? 0.45 : 0;
-        score = clamp01(aScore * 0.75 + timeScore * 0.25 - notesPenalty - loggedPenalty + unitBoost - unitPenalty);
+        score = clamp01(aScore * 0.75 + timeScore * 0.25 - notesPenalty - loggedPenalty + unitBoost - unitPenalty + schemaBoost);
       } else {
         // Both number and hint.
         const notesPenalty = isNotesCategory(c) ? 0.7 : 0;
-        score = clamp01(tScore * 0.65 + aScore * 0.25 + timeScore * 0.1 - notesPenalty - loggedPenalty + unitBoost - unitPenalty);
+        score = clamp01(tScore * 0.65 + aScore * 0.25 + timeScore * 0.1 - notesPenalty - loggedPenalty + unitBoost - unitPenalty + schemaBoost);
       }
 
       return { c, displayTitle, accent, score };
@@ -745,6 +879,114 @@ export function QuickLogDialog({
     if (privacy.mode === "local") return;
     const queryClient = await queryClientInitialized;
     await queryClient.invalidateQueries({ queryKey: ["operations/get-categories"] });
+  }
+
+  const createSuggestion = React.useMemo(() => {
+    if (!open) return null;
+    if (seededNotes) return null;
+    const hasAnyQuantity = (parsed.quantities ?? []).length > 0;
+    if (!hasAnyQuantity) return null;
+    const title = suggestNewCategoryTitle(parsed);
+    if (!title) return null;
+    const top = ranked[0];
+    if (!top) return null;
+    if (top.score >= 0.55) return null;
+    return { title };
+  }, [open, parsed, ranked, seededNotes]);
+
+  async function createCategoryAndSubmit(): Promise<void> {
+    if (!createSuggestion) return;
+    if (saving) return;
+
+    const rawText = raw.trim();
+    if (!rawText) return;
+
+    const cfg = defaultNewCategoryConfig(parsed);
+    const title = createSuggestion.title;
+    const unit = cfg.unit;
+    const amount = pickPrimaryAmountForNewCategory({ quantities: parsed.quantities, unit });
+    if (amount == null || amount <= 0) {
+      window.alert("Add a number first.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let categoryId: string | null = null;
+
+      if (privacy.mode === "local") {
+        if (!privacy.userId) return;
+        const created = await localCreateCategory({
+          userId: privacy.userId,
+          title,
+          categoryType: "NUMBER",
+          chartType: cfg.chartType,
+          period: cfg.chartType === "bar" ? cfg.period : undefined,
+          unit: unit ?? null,
+          accentHex: "#0A0A0A",
+          emoji: null,
+          bucketAggregation: cfg.bucketAggregation,
+          goalDirection: cfg.goalDirection,
+          fieldsSchema: cfg.fieldsSchema,
+          rollupToActiveKcal: cfg.rollupToActiveKcal,
+        });
+        categoryId = created.id;
+      } else {
+        let titleToStore = title;
+        if (privacy.mode === "encrypted") {
+          if (!privacy.key || !privacy.cryptoParams) {
+            window.alert("Unlock encryption from Profile → Privacy before creating categories.");
+            return;
+          }
+          titleToStore = await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, title);
+        }
+        const created = await createCategory({
+          title: titleToStore,
+          categoryType: "NUMBER",
+          chartType: cfg.chartType,
+          period: cfg.chartType === "bar" ? cfg.period : undefined,
+          unit: unit ?? undefined,
+          bucketAggregation: cfg.bucketAggregation,
+          goalDirection: cfg.goalDirection,
+          fieldsSchema: cfg.fieldsSchema ?? undefined,
+          rollupToActiveKcal: cfg.rollupToActiveKcal,
+          accentHex: "#0A0A0A",
+        } as any);
+        categoryId = (created as any).id ?? null;
+      }
+
+      if (!categoryId) return;
+
+      const selectedForAuto = (selected ? { ...selected } : ({ unit: unit ?? null } as any)) as any;
+      if (unit != null) selectedForAuto.unit = unit;
+      const auto = buildAutoFields({ parsed, selected: selectedForAuto, amount });
+      const fieldsToSend: Record<string, number | string> = { ...(auto.fields ?? {}) };
+      const durationToSend: number | null = auto.durationMinutes ?? null;
+      if (privacy.mode === "local") {
+        if (!privacy.userId) return;
+        await localCreateEvent({
+          userId: privacy.userId,
+          categoryId,
+          amount,
+          rawText,
+          ...(durationToSend != null ? { duration: durationToSend } : {}),
+          ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
+        });
+      } else {
+        await createEvent({
+          categoryId,
+          amount,
+          ...(privacy.mode === "encrypted" ? {} : { rawText }),
+          ...(durationToSend != null ? { duration: durationToSend } : {}),
+          ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
+        } as any);
+      }
+
+      await invalidateHomeStats();
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function submit(): Promise<void> {
@@ -1149,8 +1391,8 @@ export function QuickLogDialog({
                     autoCapitalize={seededNotes ? "sentences" : "none"}
                     autoCorrect={seededNotes ? "on" : "off"}
                     spellCheck={seededNotes}
-                    enterKeyHint="done"
-                    placeholder={seededNotes ? "Write a note…" : "Type a log, e.g. 300 ml water"}
+                  enterKeyHint="done"
+                    placeholder={seededNotes ? "Write a note…" : "Type a log or a note"}
                     className="block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 pr-20 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                     disabled={saving}
                   />
@@ -1174,6 +1416,18 @@ export function QuickLogDialog({
               {!seededNotes && auto.capturedLabel ? (
                 <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
                   {auto.capturedLabel}
+                </div>
+              ) : null}
+              {!seededNotes && createSuggestion ? (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={createCategoryAndSubmit}
+                    className="rounded-lg px-2 py-1 text-xs font-semibold text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
+                    disabled={saving}
+                  >
+                    Create category: {createSuggestion.title}
+                  </button>
                 </div>
               ) : null}
             </div>

@@ -351,6 +351,7 @@ export function CategoryPage() {
         categoryId: category.id,
         amount: n ?? 1,
         occurredOn,
+        rawText: isNotes ? note : amount.trim() || String(n ?? 1),
         ...(isNotes ? { note } : {}),
       });
       setAmount("");
