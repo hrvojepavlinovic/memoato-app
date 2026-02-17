@@ -393,7 +393,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       .filter(
         (c) =>
           c.id !== activeKcal.id &&
-          c.rollupToActiveKcal === true &&
+          c.rollupToActiveKcal === true,
       )
       .map((c) => c.id);
 
