@@ -144,7 +144,7 @@ function addPublicStatsRoutes(app: any): void {
     try {
       const user = await prisma.user.findFirst({
         where: { publicStatsEnabled: true, publicStatsToken: token },
-        select: { id: true, publicStatsCategoryIds: true, activeKcalRollupEnabled: true },
+        select: { id: true, username: true, publicStatsCategoryIds: true, activeKcalRollupEnabled: true },
       });
       if (!user) {
         res.status(404).end(JSON.stringify({ error: "not_found" }));
@@ -288,6 +288,9 @@ function addPublicStatsRoutes(app: any): void {
             title: c.title,
             unit: c.unit ?? null,
             aggregation,
+            url: `https://app.memoato.com/u/${encodeURIComponent(user.username)}/c/${encodeURIComponent(
+              typeof c.slug === "string" && c.slug.trim() ? c.slug.trim() : String(c.id),
+            )}`,
             today: todayVal ?? 0,
             week: weekVal ?? 0,
             month: monthVal ?? 0,
@@ -301,6 +304,8 @@ function addPublicStatsRoutes(app: any): void {
           generatedAt: new Date().toISOString(),
           aggregation: "auto",
           calendar,
+          username: user.username,
+          dashboardUrl: `https://app.memoato.com/u/${encodeURIComponent(user.username)}`,
           categories: outCategories,
         }),
       );
