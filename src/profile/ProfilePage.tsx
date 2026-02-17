@@ -511,16 +511,17 @@ export function ProfilePage() {
     }
 
     setMigrationProgress("Creating entries…");
-    for (const localCategoryId of Object.keys(localEventsByCategory)) {
-      const mapped = idMap.get(localCategoryId);
-      if (!mapped) continue;
-      const events = localEventsByCategory[localCategoryId] ?? [];
-      for (const ev of events) {
-        const created = await createEvent({
-          categoryId: mapped.id,
-          amount: ev.amount ?? 0,
-          occurredOn: toIsoDate(new Date(ev.occurredOn as any)),
-        });
+      for (const localCategoryId of Object.keys(localEventsByCategory)) {
+        const mapped = idMap.get(localCategoryId);
+        if (!mapped) continue;
+        const events = localEventsByCategory[localCategoryId] ?? [];
+        for (const ev of events) {
+          const created = await createEvent({
+            categoryId: mapped.id,
+            amount: ev.amount ?? 0,
+            occurredOn: toIsoDate(new Date(ev.occurredOn as any)),
+            rawText: ev.rawText ?? null,
+          });
         // Preserve precise time + note with a follow-up update.
         const data = ev.data && typeof ev.data === "object" && !Array.isArray(ev.data) ? (ev.data as any) : null;
         const note = data && typeof data.note === "string" ? data.note.trim() : "";

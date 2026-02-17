@@ -751,6 +751,7 @@ export async function localCreateEvent(args: {
   fields?: Record<string, number | string> | null;
   note?: string | null;
   noteEnc?: any | null;
+  rawText?: string | null;
 }): Promise<void> {
   const db = await openDb();
   const nowIso = new Date().toISOString();
@@ -792,7 +793,7 @@ export async function localCreateEvent(args: {
     categoryId: args.categoryId,
     amount: args.amount,
     duration: cleanDuration,
-    rawText: null,
+    rawText: typeof args.rawText === "string" && args.rawText.trim() ? args.rawText.trim() : null,
     occurredAt: occurredAt.toISOString(),
     occurredOn: toIsoDate(occurredOn),
     data: Object.keys(nextData).length > 0 ? (nextData as any) : null,

@@ -145,11 +145,72 @@ function normalizedUnit(u: unknown): string | null {
   const n = normalizeText(u);
   if (!n || n === "x") return null;
   if (n === "kgs" || n === "kilogram" || n === "kilograms") return "kg";
+  if (n === "milliliter" || n === "milliliters" || n === "millilitre" || n === "millilitres") return "ml";
   if (n === "litre" || n === "litres" || n === "liter" || n === "liters") return "l";
   if (n === "mins" || n === "minute" || n === "minutes" || n === "m") return "min";
   if (n === "hr" || n === "hrs" || n === "hour" || n === "hours") return "h";
   if (n === "cal" || n === "cals" || n === "calorie" || n === "calories") return "kcal";
   return n;
+}
+
+function buildAutoFields(args: {
+  parsed: ParsedQuickLog;
+  selected: CategoryWithStats;
+  amount: number | null;
+}): { fields: Record<string, number>; durationMinutes: number | null; capturedLabel: string | null } {
+  const { parsed, selected, amount } = args;
+  if (!parsed.quantities || parsed.quantities.length === 0) {
+    return { fields: {}, durationMinutes: null, capturedLabel: null };
+  }
+
+  const primaryUnit = normalizedUnit(selected.unit);
+  const out: Record<string, number> = {};
+
+  const kcalQty = parsed.quantities.find((q) => q.unit && normalizedUnit(q.unit) === "kcal") ?? null;
+  const kmQty = parsed.quantities.find((q) => q.unit && normalizedUnit(q.unit) === "km") ?? null;
+  const mlQty = parsed.quantities.find((q) => q.unit && normalizedUnit(q.unit) === "ml") ?? null;
+  const lQty = parsed.quantities.find((q) => q.unit && normalizedUnit(q.unit) === "l") ?? null;
+  const minQty = parsed.quantities.find((q) => q.unit && normalizedUnit(q.unit) === "min") ?? null;
+  const hQty = parsed.quantities.find((q) => q.unit && normalizedUnit(q.unit) === "h") ?? null;
+
+  const durationMinutes =
+    (minQty?.value != null ? minQty.value : 0) + (hQty?.value != null ? hQty.value * 60 : 0) > 0
+      ? (minQty?.value ?? 0) + (hQty?.value ?? 0) * 60
+      : null;
+
+  const put = (k: string, v: number | null) => {
+    if (v == null) return;
+    if (!Number.isFinite(v)) return;
+    out[k] = v;
+  };
+
+  // Always capture kcal as a field when it is present and the primary unit is not kcal.
+  if (kcalQty && primaryUnit !== "kcal") put("kcal", kcalQty.value);
+  if (kmQty && primaryUnit !== "km") put("km", kmQty.value);
+
+  // Normalize liters to ml for storage.
+  if (mlQty && primaryUnit !== "ml") put("ml", mlQty.value);
+  if (!mlQty && lQty && primaryUnit !== "l") put("ml", lQty.value * 1000);
+
+  // Capture duration minutes if it exists and is not the primary unit.
+  if (durationMinutes != null && primaryUnit !== "min" && primaryUnit !== "h") put("min", durationMinutes);
+
+  const capturedParts: string[] = [];
+  if (kcalQty) capturedParts.push(`${formatValue(kcalQty.value)} kcal`);
+  if (durationMinutes != null) capturedParts.push(`${formatValue(durationMinutes)} min`);
+  if (kmQty) capturedParts.push(`${formatValue(kmQty.value)} km`);
+  if (mlQty) capturedParts.push(`${formatValue(mlQty.value)} ml`);
+  if (!mlQty && lQty) capturedParts.push(`${formatValue(lQty.value)} l`);
+
+  const unitHint = primaryUnit ? ` (${primaryUnit})` : "";
+  const label =
+    capturedParts.length > 0
+      ? `Captured: ${capturedParts.join(", ")}${unitHint}`
+      : amount != null
+        ? `Captured: ${formatValue(amount)}${unitHint}`
+        : null;
+
+  return { fields: out, durationMinutes, capturedLabel: label };
 }
 
 function pickAmountForCategory(args: {
@@ -523,6 +584,18 @@ export function QuickLogDialog({
     return { last, avg5 };
   }, [open, privacy.mode, recentLocal, recentRemoteQuery.data, selected?.id, selectedIsNotes]);
 
+  const inferredAmount = React.useMemo(() => {
+    if (!selected || !selectedDisplayTitle) return null;
+    if (selectedIsNotes) return null;
+    return pickAmountForCategory({ parsed, c: selected, displayTitle: selectedDisplayTitle });
+  }, [parsed, selected, selectedDisplayTitle, selectedIsNotes]);
+
+  const auto = React.useMemo(() => {
+    if (!selected || !selectedDisplayTitle) return { fields: {}, durationMinutes: null as number | null, capturedLabel: null as string | null };
+    if (selectedIsNotes) return { fields: {}, durationMinutes: null as number | null, capturedLabel: null as string | null };
+    return buildAutoFields({ parsed, selected, amount: inferredAmount });
+  }, [inferredAmount, parsed, selected, selectedDisplayTitle, selectedIsNotes]);
+
   React.useEffect(() => {
     if (!open) return;
     setRaw("");
@@ -696,8 +769,8 @@ export function QuickLogDialog({
 
     setSaving(true);
     try {
-      const fieldsToSend: Record<string, number | string> = {};
-      let durationToSend: number | null = null;
+      const fieldsToSend: Record<string, number | string> = { ...(auto.fields ?? {}) };
+      let durationToSend: number | null = auto.durationMinutes ?? null;
       if (!isNotes && selectedFieldsSchema) {
         for (const def of selectedFieldsSchema) {
           const key = def.key;
@@ -720,6 +793,7 @@ export function QuickLogDialog({
           userId: privacy.userId,
           categoryId: selected.id,
           amount: amount ?? 1,
+          rawText: noteText,
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
           ...(isNotes ? { note: noteText } : {}),
@@ -730,11 +804,12 @@ export function QuickLogDialog({
           return;
         }
         const noteEnc = await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, noteText);
-        await createEvent({ categoryId: selected.id, amount: 1, noteEnc } as any);
+        await createEvent({ categoryId: selected.id, amount: 1, noteEnc, rawText: null } as any);
       } else {
         await createEvent({
           categoryId: selected.id,
           amount: amount ?? 1,
+          rawText: privacy.mode === "encrypted" ? undefined : noteText,
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
           ...(isNotes ? { note: noteText } : {}),
@@ -1070,12 +1145,12 @@ export function QuickLogDialog({
                       if (saving) return;
                       submit();
                     }}
-                    inputMode={seededNotes ? "text" : "decimal"}
+                    inputMode="text"
                     autoCapitalize={seededNotes ? "sentences" : "none"}
                     autoCorrect={seededNotes ? "on" : "off"}
                     spellCheck={seededNotes}
                     enterKeyHint="done"
-                    placeholder={seededNotes ? "Write a note…" : "e.g. 600"}
+                    placeholder={seededNotes ? "Write a note…" : "Type a log, e.g. 300 ml water"}
                     className="block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 pr-20 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                     disabled={saving}
                   />
@@ -1096,6 +1171,11 @@ export function QuickLogDialog({
                   Add
                 </Button>
               </div>
+              {!seededNotes && auto.capturedLabel ? (
+                <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                  {auto.capturedLabel}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

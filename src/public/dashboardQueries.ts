@@ -58,6 +58,27 @@ function startOfYear(d: Date): Date {
   return x;
 }
 
+function getNumberField(data: unknown, key: string): number | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const fields = (data as any).fields;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return null;
+  const v = (fields as any)[key];
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  return null;
+}
+
+function normalizedUnit(u: unknown): string | null {
+  if (typeof u !== "string") return null;
+  const s = u.trim().toLowerCase();
+  if (!s || s === "x") return null;
+  if (s === "cal" || s === "cals" || s === "calorie" || s === "calories") return "kcal";
+  if (s === "kilogram" || s === "kilograms" || s === "kgs") return "kg";
+  if (s === "liter" || s === "liters" || s === "litre" || s === "litres") return "l";
+  if (s === "minute" || s === "minutes" || s === "mins") return "min";
+  if (s === "hour" || s === "hours" || s === "hrs" || s === "hr") return "h";
+  return s;
+}
+
 function parseCategoryIds(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   const out: string[] = [];
@@ -293,36 +314,65 @@ async function getCategoriesWithStatsForUser(args: {
         .filter(
           (c) =>
             c.id !== activeKcal.id &&
-            c.rollupToActiveKcal === true &&
-            (c.unit ?? "").trim().toLowerCase() === "kcal",
+            c.rollupToActiveKcal === true,
         )
         .map((c) => c.id);
       const rollupIds = [activeKcal.id, ...contributors];
 
-      const sumWindow = (m: Map<string, WindowStats>, ids: string[]) => {
-        let sum = 0;
-        let count = 0;
-        for (const id of ids) {
-          const row = m.get(id);
-          if (!row) continue;
-          sum += row.sum ?? 0;
-          count += row.count ?? 0;
-        }
-        return { sum, count };
+      const rollupMetaById = new Map(
+        result.map((c) => [c.id, { unit: normalizedUnit(c.unit), isActive: c.id === activeKcal.id }]),
+      );
+
+      const rollupEvents = await prisma.event.findMany({
+        where: {
+          userId,
+          kind: "SESSION",
+          categoryId: { in: rollupIds },
+          occurredAt: { gte: yearStart, lt: dayEnd },
+        },
+        select: { categoryId: true, occurredAt: true, amount: true, data: true },
+        take: 20000,
+      });
+
+      const buckets = {
+        day: { sum: 0, count: 0 },
+        week: { sum: 0, count: 0 },
+        month: { sum: 0, count: 0 },
+        year: { sum: 0, count: 0 },
       };
 
-      const day = sumWindow(dayStats, rollupIds);
-      const week = sumWindow(weekStats, rollupIds);
-      const month = sumWindow(monthStats, rollupIds);
-      const year = sumWindow(yearStats, rollupIds);
+      for (const ev of rollupEvents) {
+        const meta = rollupMetaById.get(String(ev.categoryId ?? ""));
+        if (!meta) continue;
+        const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+        const kcal = meta.isActive ? amount : meta.unit === "kcal" ? amount : getNumberField(ev.data, "kcal") ?? 0;
+        if (!(kcal > 0)) continue;
+        const t = (ev.occurredAt instanceof Date ? ev.occurredAt : new Date(ev.occurredAt as any)).getTime();
+        if (t >= dayStart.getTime() && t < dayEnd.getTime()) {
+          buckets.day.sum += kcal;
+          buckets.day.count += 1;
+        }
+        if (t >= weekStart.getTime() && t < weekEnd.getTime()) {
+          buckets.week.sum += kcal;
+          buckets.week.count += 1;
+        }
+        if (t >= monthStart.getTime() && t < monthEnd.getTime()) {
+          buckets.month.sum += kcal;
+          buckets.month.count += 1;
+        }
+        if (t >= yearStart.getTime() && t < yearEnd.getTime()) {
+          buckets.year.sum += kcal;
+          buckets.year.count += 1;
+        }
+      }
 
-      (activeKcal as any).todayTotal = day.sum;
-      (activeKcal as any).todayCount = day.count;
-      (activeKcal as any).thisWeekCount = week.count;
-      (activeKcal as any).thisMonthCount = month.count;
-      (activeKcal as any).thisYearCount = year.count;
-      (activeKcal as any).thisWeekTotal = day.sum;
-      (activeKcal as any).thisYearTotal = year.sum;
+      (activeKcal as any).todayTotal = buckets.day.sum;
+      (activeKcal as any).todayCount = buckets.day.count;
+      (activeKcal as any).thisWeekCount = buckets.week.count;
+      (activeKcal as any).thisMonthCount = buckets.month.count;
+      (activeKcal as any).thisYearCount = buckets.year.count;
+      (activeKcal as any).thisWeekTotal = buckets.day.sum;
+      (activeKcal as any).thisYearTotal = buckets.year.sum;
     }
   }
 
@@ -459,6 +509,7 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
   for (let i = 0; i < count; i++) end = nextBucketStart(end, period);
 
   let sourceCategoryIds: string[] = [category.id];
+  let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
   if (isActiveKcal) {
     const pref = (
       await prisma.user.findUnique({
@@ -477,12 +528,16 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
           userId,
           sourceArchivedAt: null,
           rollupToActiveKcal: true,
-          unit: { equals: "kcal", mode: "insensitive" },
           NOT: { id: category.id },
         },
-        select: { id: true },
+        select: { id: true, unit: true },
       });
       sourceCategoryIds = [category.id, ...contributors.map((c) => String(c.id))];
+      rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
+      rollupMetaById.set(category.id, { unit: "kcal", isActive: true });
+      for (const c of contributors as any[]) {
+        rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+      }
     }
   }
 
@@ -493,7 +548,7 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
       kind: "SESSION",
       occurredAt: { gte: start, lt: end },
     },
-    select: { occurredAt: true, amount: true },
+    select: { occurredAt: true, amount: true, categoryId: true, data: true },
   });
 
   const buckets: { start: Date; end: Date; total: number; count: number }[] = [];
@@ -507,10 +562,21 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
   for (const ev of events) {
     const t = (ev.occurredAt instanceof Date ? ev.occurredAt : new Date(ev.occurredAt as any)).getTime();
     const amount = typeof ev.amount === "number" ? ev.amount : 0;
+    const meta = rollupMetaById?.get(String(ev.categoryId ?? "")) ?? null;
+    const contribution =
+      rollupMetaById && meta
+        ? meta.isActive
+          ? amount
+          : meta.unit === "kcal"
+            ? amount
+            : getNumberField(ev.data, "kcal") ?? 0
+        : amount;
     for (const b of buckets) {
       if (t >= b.start.getTime() && t < b.end.getTime()) {
-        b.total += amount;
-        b.count += 1;
+        if (contribution > 0) {
+          b.total += contribution;
+          b.count += 1;
+        }
         break;
       }
     }

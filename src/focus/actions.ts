@@ -715,6 +715,7 @@ type CreateEventArgs = {
   fields?: Record<string, number | string> | null;
   note?: string | null;
   noteEnc?: any | null;
+  rawText?: string | null;
 };
 
 function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Date } {
@@ -742,7 +743,7 @@ function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Dat
 }
 
 export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
-  { categoryId, amount, occurredOn, duration, fields, note, noteEnc },
+  { categoryId, amount, occurredOn, duration, fields, note, noteEnc, rawText },
   context,
 ) => {
   if (!context.user) {
@@ -789,6 +790,9 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
     const clean = note.trim();
     nextData.note = clean.length > 0 ? clean : null;
   }
+
+  const cleanRawText = typeof rawText === "string" ? rawText.trim() : "";
+  const fallbackRawText = `${category.title} ${amount}${unit}`;
   return context.entities.Event.create({
     data: {
       userId,
@@ -797,7 +801,7 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
       categoryId,
       amount,
       duration: cleanDuration ?? undefined,
-      rawText: `${category.title} ${amount}${unit}`,
+      rawText: cleanRawText.length > 0 ? cleanRawText : fallbackRawText,
       occurredAt: occurred.occurredAt,
       occurredOn: occurred.occurredOn,
       data: Object.keys(nextData).length > 0 ? (nextData as any) : undefined,
@@ -839,7 +843,7 @@ export const updateEvent: UpdateEvent<UpdateEventArgs, Event> = async (
 
   const existing = await context.entities.Event.findFirst({
     where: { id: eventId, userId, kind: "SESSION" },
-    select: { id: true, data: true, categoryId: true, category: { select: { title: true, unit: true } } },
+    select: { id: true, data: true, rawText: true, categoryId: true, category: { select: { title: true, unit: true } } },
   });
   if (!existing) {
     throw new HttpError(404, "Event not found");
@@ -851,6 +855,7 @@ export const updateEvent: UpdateEvent<UpdateEventArgs, Event> = async (
       ? ` ${existing.category.unit}`
       : "";
   const title = existing.category?.title ?? "Entry";
+  const fallbackRawText = `${title} ${amount}${unit}`;
 
   const baseData =
     existing.data && typeof existing.data === "object" && !Array.isArray(existing.data)
@@ -882,7 +887,7 @@ export const updateEvent: UpdateEvent<UpdateEventArgs, Event> = async (
     where: { id: existing.id },
     data: {
       amount,
-      rawText: `${title} ${amount}${unit}`,
+      rawText: existing.rawText ?? fallbackRawText,
       occurredAt: occurred.occurredAt,
       occurredOn: occurred.occurredOn,
       data: nextData as any,

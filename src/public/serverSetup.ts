@@ -38,6 +38,27 @@ function startOfYear(d: Date): Date {
   return out;
 }
 
+function getNumberField(data: unknown, key: string): number | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const fields = (data as any).fields;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return null;
+  const v = (fields as any)[key];
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  return null;
+}
+
+function normalizedUnit(u: unknown): string | null {
+  if (typeof u !== "string") return null;
+  const s = u.trim().toLowerCase();
+  if (!s || s === "x") return null;
+  if (s === "cal" || s === "cals" || s === "calorie" || s === "calories") return "kcal";
+  if (s === "kilogram" || s === "kilograms" || s === "kgs") return "kg";
+  if (s === "liter" || s === "liters" || s === "litre" || s === "litres") return "l";
+  if (s === "minute" || s === "minutes" || s === "mins") return "min";
+  if (s === "hour" || s === "hours" || s === "hrs" || s === "hr") return "h";
+  return s;
+}
+
 async function getLastAmountInRange(args: {
   userId: string;
   categoryId: string;
@@ -172,6 +193,67 @@ function addPublicStatsRoutes(app: any): void {
         year: { from: toIsoDate(yearStart), to: toIsoDate(today) },
       };
 
+      // If Active kcal rollup is enabled, compute sums including kcal fields in a single pass.
+      const activeKcal = ordered.find((c) => String(c.slug ?? "").trim().toLowerCase() === "active-kcal") ?? null;
+      const wantsRollup = user.activeKcalRollupEnabled === true;
+      const forbidsRollup = user.activeKcalRollupEnabled === false;
+      const rollupEnabled =
+        !!activeKcal && !forbidsRollup
+          ? wantsRollup ||
+            (user.activeKcalRollupEnabled == null &&
+              !(await prisma.event.findFirst({
+                where: { userId: user.id, categoryId: activeKcal.id, kind: "SESSION" },
+                select: { id: true },
+              })))
+          : false;
+
+      const activeKcalSums: { today: number; week: number; month: number; year: number } | null = rollupEnabled
+        ? (() => ({ today: 0, week: 0, month: 0, year: 0 }))()
+        : null;
+
+      if (rollupEnabled && activeKcalSums && activeKcal) {
+        const contributorCats = await prisma.category.findMany({
+          where: {
+            userId: user.id,
+            sourceArchivedAt: null,
+            rollupToActiveKcal: true,
+            NOT: { id: activeKcal.id },
+          },
+          select: { id: true, unit: true },
+        });
+        const rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
+        rollupMetaById.set(activeKcal.id, { unit: "kcal", isActive: true });
+        for (const c of contributorCats) {
+          rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+        }
+
+        const rollupIds = [activeKcal.id, ...contributorCats.map((c) => String(c.id))];
+        const events = await prisma.event.findMany({
+          where: {
+            userId: user.id,
+            kind: "SESSION",
+            categoryId: { in: rollupIds },
+            occurredOn: { gte: yearStart, lte: today },
+          },
+          select: { categoryId: true, amount: true, data: true, occurredOn: true },
+          take: 20000,
+        });
+
+        for (const ev of events) {
+          const meta = rollupMetaById.get(String(ev.categoryId ?? ""));
+          if (!meta) continue;
+          const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+          const kcal = meta.isActive ? amount : meta.unit === "kcal" ? amount : getNumberField(ev.data, "kcal") ?? 0;
+          if (!(kcal > 0)) continue;
+          const on = ev.occurredOn instanceof Date ? ev.occurredOn : new Date(ev.occurredOn as any);
+          const t = on.getTime();
+          if (t >= today.getTime()) activeKcalSums.today += kcal;
+          if (t >= weekStart.getTime()) activeKcalSums.week += kcal;
+          if (t >= monthStart.getTime()) activeKcalSums.month += kcal;
+          if (t >= yearStart.getTime()) activeKcalSums.year += kcal;
+        }
+      }
+
       const outCategories = await Promise.all(
         ordered.map(async (c) => {
           const aggregation =
@@ -180,34 +262,9 @@ function addPublicStatsRoutes(app: any): void {
               : "sum";
 
           const isActiveKcal = String(c.slug ?? "").trim().toLowerCase() === "active-kcal";
-          const wantsRollup = user.activeKcalRollupEnabled === true;
-          const forbidsRollup = user.activeKcalRollupEnabled === false;
-          const rollupEnabled =
-            isActiveKcal && !forbidsRollup
-              ? wantsRollup ||
-                (user.activeKcalRollupEnabled == null &&
-                  !(await prisma.event.findFirst({
-                    where: { userId: user.id, categoryId: c.id, kind: "SESSION" },
-                    select: { id: true },
-                  })))
-              : false;
+          const rollupEnabledForThis = isActiveKcal && rollupEnabled;
 
-          const contributorIds =
-            rollupEnabled && aggregation === "sum"
-              ? (
-                  await prisma.category.findMany({
-                    where: {
-                      userId: user.id,
-                      sourceArchivedAt: null,
-                      rollupToActiveKcal: true,
-                      unit: { equals: "kcal", mode: "insensitive" },
-                      NOT: { id: c.id },
-                    },
-                    select: { id: true },
-                  })
-                ).map((x) => String(x.id))
-              : [];
-          const idsForSum = rollupEnabled && aggregation === "sum" ? [c.id, ...contributorIds] : [c.id];
+          const idsForSum = [c.id];
 
           const [todayVal, weekVal, monthVal, yearVal] =
             aggregation === "last"
@@ -217,12 +274,14 @@ function addPublicStatsRoutes(app: any): void {
                   getLastAmountInRange({ userId: user.id, categoryId: c.id, from: monthStart, to: today }),
                   getLastAmountInRange({ userId: user.id, categoryId: c.id, from: yearStart, to: today }),
                 ])
-              : await Promise.all([
-                  getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: today, to: today }),
-                  getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: weekStart, to: today }),
-                  getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: monthStart, to: today }),
-                  getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: yearStart, to: today }),
-                ]);
+              : rollupEnabledForThis && aggregation === "sum" && activeKcalSums
+                ? [activeKcalSums.today, activeKcalSums.week, activeKcalSums.month, activeKcalSums.year]
+                : await Promise.all([
+                    getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: today, to: today }),
+                    getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: weekStart, to: today }),
+                    getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: monthStart, to: today }),
+                    getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: yearStart, to: today }),
+                  ]);
 
           return {
             slug: typeof c.slug === "string" && c.slug.trim() ? c.slug : null,

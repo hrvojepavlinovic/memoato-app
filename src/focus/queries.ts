@@ -62,6 +62,27 @@ function startOfYear(d: Date): Date {
   return x;
 }
 
+function getNumberField(data: unknown, key: string): number | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const fields = (data as any).fields;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return null;
+  const v = (fields as any)[key];
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  return null;
+}
+
+function normalizedUnit(u: unknown): string | null {
+  if (typeof u !== "string") return null;
+  const s = u.trim().toLowerCase();
+  if (!s || s === "x") return null;
+  if (s === "cal" || s === "cals" || s === "calorie" || s === "calories") return "kcal";
+  if (s === "kilogram" || s === "kilograms" || s === "kgs") return "kg";
+  if (s === "liter" || s === "liters" || s === "litre" || s === "litres") return "l";
+  if (s === "minute" || s === "minutes" || s === "mins") return "min";
+  if (s === "hour" || s === "hours" || s === "hrs" || s === "hr") return "h";
+  return s;
+}
+
 export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
   _args,
   context,
@@ -373,37 +394,76 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
         (c) =>
           c.id !== activeKcal.id &&
           c.rollupToActiveKcal === true &&
-          (c.unit ?? "").trim().toLowerCase() === "kcal",
       )
       .map((c) => c.id);
 
-    const sumWindow = (m: Map<string, WindowStats>, ids: string[]) => {
-      let sum = 0;
-      let count = 0;
-      for (const id of ids) {
-        const row = m.get(id);
-        if (!row) continue;
-        sum += row.sum ?? 0;
-        count += row.count ?? 0;
-      }
-      return { sum, count };
+    const rollupIds = [activeKcal.id, ...contributors];
+    const rollupMetaById = new Map(
+      result.map((c) => [c.id, { unit: normalizedUnit(c.unit), isActive: c.id === activeKcal.id }]),
+    );
+
+    // Fetch only once for the whole year window and compute day/week/month/year in memory.
+    const rollupEvents = await context.entities.Event.findMany({
+      where: {
+        userId,
+        kind: "SESSION",
+        categoryId: { in: rollupIds },
+        occurredAt: { gte: yearStart, lt: dayEnd },
+      },
+      select: { categoryId: true, occurredAt: true, amount: true, data: true },
+      take: 20000,
+    });
+
+    const buckets = {
+      day: { sum: 0, count: 0 },
+      week: { sum: 0, count: 0 },
+      month: { sum: 0, count: 0 },
+      year: { sum: 0, count: 0 },
     };
 
-    const rollupIds = [activeKcal.id, ...contributors];
-    const day = sumWindow(dayStats, rollupIds);
-    const week = sumWindow(weekStats, rollupIds);
-    const month = sumWindow(monthStats, rollupIds);
-    const year = sumWindow(yearStats, rollupIds);
+    for (const ev of rollupEvents) {
+      if (!ev.categoryId) continue;
+      const cat = rollupMetaById.get(ev.categoryId);
+      if (!cat) continue;
+      const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+      let kcal = 0;
+      if (cat.isActive) {
+        kcal = amount;
+      } else if (cat.unit === "kcal") {
+        kcal = amount;
+      } else {
+        kcal = getNumberField(ev.data as any, "kcal") ?? 0;
+      }
+      if (!(kcal > 0)) continue;
+
+      const t = ev.occurredAt.getTime();
+      if (t >= dayStart.getTime() && t < dayEnd.getTime()) {
+        buckets.day.sum += kcal;
+        buckets.day.count += 1;
+      }
+      if (t >= weekStart.getTime() && t < weekEnd.getTime()) {
+        buckets.week.sum += kcal;
+        buckets.week.count += 1;
+      }
+      if (t >= monthStart.getTime() && t < monthEnd.getTime()) {
+        buckets.month.sum += kcal;
+        buckets.month.count += 1;
+      }
+      if (t >= yearStart.getTime() && t < yearEnd.getTime()) {
+        buckets.year.sum += kcal;
+        buckets.year.count += 1;
+      }
+    }
 
     // Override stats for Active kcal only.
-    (activeKcal as any).todayTotal = day.sum;
-    (activeKcal as any).todayCount = day.count;
-    (activeKcal as any).thisWeekCount = week.count;
-    (activeKcal as any).thisMonthCount = month.count;
-    (activeKcal as any).thisYearCount = year.count;
+    (activeKcal as any).todayTotal = buckets.day.sum;
+    (activeKcal as any).todayCount = buckets.day.count;
+    (activeKcal as any).thisWeekCount = buckets.week.count;
+    (activeKcal as any).thisMonthCount = buckets.month.count;
+    (activeKcal as any).thisYearCount = buckets.year.count;
     // For day-period categories, thisWeekTotal is used as the period total (Today).
-    (activeKcal as any).thisWeekTotal = day.sum;
-    (activeKcal as any).thisYearTotal = year.sum;
+    (activeKcal as any).thisWeekTotal = buckets.day.sum;
+    (activeKcal as any).thisYearTotal = buckets.year.sum;
   }
 
   function normalizeGoalDirection(c: CategoryWithStats): GoalDirection {
@@ -577,6 +637,7 @@ export const getCategorySeries: GetCategorySeries<
   for (let i = 0; i < count; i++) end = nextBucketStart(end, period);
 
   let sourceCategoryIds: string[] = [categoryId];
+  let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
   if (isActiveKcal) {
     const pref = (await context.entities.User.findUnique({
       where: { id: userId },
@@ -595,12 +656,16 @@ export const getCategorySeries: GetCategorySeries<
           userId,
           sourceArchivedAt: null,
           rollupToActiveKcal: true,
-          unit: { equals: "kcal", mode: "insensitive" },
           NOT: { id: categoryId },
         },
-        select: { id: true },
+        select: { id: true, unit: true },
       });
       sourceCategoryIds = [categoryId, ...contributors.map((c: any) => String(c.id))];
+      rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
+      rollupMetaById.set(categoryId, { unit: "kcal", isActive: true });
+      for (const c of contributors as any[]) {
+        rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+      }
     }
   }
 
@@ -611,7 +676,7 @@ export const getCategorySeries: GetCategorySeries<
       categoryId: { in: sourceCategoryIds },
       occurredAt: { gte: start, lt: end },
     },
-    select: { occurredAt: true, amount: true },
+    select: { occurredAt: true, amount: true, categoryId: true, data: true },
   });
 
   const buckets: { start: Date; end: Date; total: number; count: number }[] = [];
@@ -625,10 +690,22 @@ export const getCategorySeries: GetCategorySeries<
   for (const ev of events) {
     const t = ev.occurredAt.getTime();
     const amount = ev.amount ?? 0;
+    const maybeMeta = rollupMetaById?.get(String(ev.categoryId ?? "")) ?? null;
+    const contribution =
+      rollupMetaById && maybeMeta
+        ? maybeMeta.isActive
+          ? amount
+          : maybeMeta.unit === "kcal"
+            ? amount
+            : getNumberField(ev.data as any, "kcal") ?? 0
+        : amount;
     for (const b of buckets) {
       if (t >= b.start.getTime() && t < b.end.getTime()) {
-        b.total += amount;
-        b.count += 1;
+        const inc = contribution;
+        if (inc > 0) {
+          b.total += inc;
+          b.count += 1;
+        }
         break;
       }
     }
@@ -761,6 +838,7 @@ export const getCategoryEvents: GetCategoryEvents<
   const isActiveKcal = String((ownsCategory as any).slug ?? "").trim().toLowerCase() === "active-kcal";
 
   let sourceCategoryIds: string[] = [categoryId];
+  let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
   if (isActiveKcal) {
     const pref = (await context.entities.User.findUnique({
       where: { id: userId },
@@ -777,16 +855,20 @@ export const getCategoryEvents: GetCategoryEvents<
           userId,
           sourceArchivedAt: null,
           rollupToActiveKcal: true,
-          unit: { equals: "kcal", mode: "insensitive" },
           NOT: { id: categoryId },
         },
-        select: { id: true },
+        select: { id: true, unit: true },
       });
       sourceCategoryIds = [categoryId, ...contributors.map((c: any) => String(c.id))];
+      rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
+      rollupMetaById.set(categoryId, { unit: "kcal", isActive: true });
+      for (const c of contributors as any[]) {
+        rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+      }
     }
   }
 
-  return context.entities.Event.findMany({
+  const rows = await context.entities.Event.findMany({
     where: {
       userId,
       kind: "SESSION",
@@ -800,6 +882,7 @@ export const getCategoryEvents: GetCategoryEvents<
     select: {
       id: true,
       amount: true,
+      categoryId: true,
       occurredAt: true,
       occurredOn: true,
       rawText: true,
@@ -808,4 +891,17 @@ export const getCategoryEvents: GetCategoryEvents<
     orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
     take: limit,
   });
+
+  if (!rollupMetaById) return rows as any;
+
+  const mapped: CategoryEventItem[] = [];
+  for (const ev of rows as any[]) {
+    const meta = rollupMetaById.get(String(ev.categoryId ?? ""));
+    if (!meta) continue;
+    const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+    const contribution = meta.isActive ? amount : meta.unit === "kcal" ? amount : getNumberField(ev.data, "kcal") ?? 0;
+    if (!(contribution > 0)) continue;
+    mapped.push({ ...ev, amount: contribution });
+  }
+  return mapped;
 };

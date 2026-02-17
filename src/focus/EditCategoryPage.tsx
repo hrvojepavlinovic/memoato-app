@@ -568,12 +568,12 @@ export function EditCategoryPage() {
             </div>
           </div>
 
-          {unit.trim().toLowerCase() === "kcal" && (category.slug ?? "").toLowerCase() !== "active-kcal" ? (
+          {(category.slug ?? "").toLowerCase() !== "active-kcal" && (category.slug ?? "").toLowerCase() !== "notes" ? (
             <label className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
               <div>
                 <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Counts toward Active kcal</div>
                 <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                  When enabled, entries in this category are included in Active kcal totals.
+                  When enabled, entries in this category can contribute to Active kcal, either via a kcal unit or a captured kcal field.
                 </div>
               </div>
               <input

@@ -76,6 +76,7 @@ export function QuickAddDialog({
           userId: privacy.userId,
           categoryId: category.id,
           amount: n ?? 1,
+          rawText: isNotes ? note : amount.trim() || null,
           ...(isNotes ? { note } : {}),
         });
       } else if (isNotes && privacy.mode === "encrypted") {
@@ -84,9 +85,14 @@ export function QuickAddDialog({
           return;
         }
         const noteEnc = await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, note.trim());
-        await createEvent({ categoryId: category.id, amount: 1, noteEnc } as any);
+        await createEvent({ categoryId: category.id, amount: 1, noteEnc, rawText: null } as any);
       } else {
-        await createEvent({ categoryId: category.id, amount: n ?? 1, ...(isNotes ? { note } : {}) } as any);
+        await createEvent({
+          categoryId: category.id,
+          amount: n ?? 1,
+          ...(isNotes ? { note } : {}),
+          ...(privacy.mode === "encrypted" ? {} : { rawText: isNotes ? note : amount.trim() || null }),
+        } as any);
       }
 
       await invalidateHomeStats();

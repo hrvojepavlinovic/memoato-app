@@ -363,12 +363,18 @@ export function CategoryPage() {
         return;
       }
       const noteEnc = await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, note.trim());
-      await createEvent({ categoryId: category.id, amount: 1, occurredOn, noteEnc } as any);
+      await createEvent({ categoryId: category.id, amount: 1, occurredOn, noteEnc, rawText: null } as any);
       setAmount("");
       setNote("");
       return;
     }
-    await createEvent({ categoryId: category.id, amount: n ?? 1, occurredOn, ...(isNotes ? { note } : {}) } as any);
+    await createEvent({
+      categoryId: category.id,
+      amount: n ?? 1,
+      occurredOn,
+      ...(isNotes ? { note } : {}),
+      ...(privacy.mode === "encrypted" ? {} : { rawText: isNotes ? note : amount.trim() || String(n ?? 1) }),
+    } as any);
     setAmount("");
     setNote("");
   }
