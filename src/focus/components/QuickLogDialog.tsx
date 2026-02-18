@@ -748,6 +748,8 @@ export function QuickLogDialog({
   const [showPicker, setShowPicker] = React.useState(false);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [detailValues, setDetailValues] = React.useState<Record<string, string>>({});
+  const [sideNoteOpen, setSideNoteOpen] = React.useState(false);
+  const [sideNoteValue, setSideNoteValue] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
   const isMobile = useIsMobileSm();
   const [mobileViewport, setMobileViewport] = React.useState<{ height: number; top: number }>({ height: 0, top: 0 });
@@ -847,11 +849,24 @@ export function QuickLogDialog({
     setShowPicker(false);
     setDetailsOpen(false);
     setDetailValues({});
+    setSideNoteOpen(false);
+    setSideNoteValue("");
     setSelectionMode(seedCategoryId || forceNotes ? "seed" : "auto");
     setSelectedCategoryId(seedCategoryId);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(t);
   }, [open, forceNotes, seedCategoryId]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    if (seededNotes) return;
+    if (selectedIsNotes) return;
+    const ann = (parsed.annotation ?? "").trim();
+    if (!ann) return;
+    if (sideNoteValue.trim()) return;
+    setSideNoteOpen(true);
+    setSideNoteValue(ann);
+  }, [open, parsed.annotation, seededNotes, selectedIsNotes, sideNoteValue]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -1012,7 +1027,7 @@ export function QuickLogDialog({
 
     const rawText = raw.trim();
     if (!rawText) return;
-    const sideNote = (parsed.annotation ?? "").trim() || null;
+    const sideNote = (sideNoteValue.trim() || (parsed.annotation ?? "").trim() || "").trim() || null;
 
     const cfg = defaultNewCategoryConfig(parsed);
     const title = createSuggestion.title;
@@ -1087,14 +1102,15 @@ export function QuickLogDialog({
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
         });
       } else {
+        const noteEncToSend =
+          sideNote && privacy.mode === "encrypted" && privacy.key && privacy.cryptoParams
+            ? await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, sideNote)
+            : null;
         await createEvent({
           categoryId,
           amount,
-          ...(privacy.mode === "encrypted"
-            ? sideNote && privacy.key && privacy.cryptoParams
-              ? { noteEnc: await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, sideNote) }
-              : {}
-            : { rawText, ...(sideNote ? { note: sideNote } : {}) }),
+          ...(privacy.mode === "encrypted" ? {} : { rawText, ...(sideNote ? { note: sideNote } : {}) }),
+          ...(noteEncToSend ? { noteEnc: noteEncToSend } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
         } as any);
@@ -1111,7 +1127,7 @@ export function QuickLogDialog({
     if (!selected) return;
 
     const noteText = raw.trim();
-    const sideNote = (parsed.annotation ?? "").trim() || null;
+    const sideNote = (sideNoteValue.trim() || (parsed.annotation ?? "").trim() || "").trim() || null;
     const shouldForceNotes =
       !selectedIsNotes &&
       !seededNotes &&
@@ -1519,6 +1535,48 @@ export function QuickLogDialog({
                           ) : null}
                         </div>
                       ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              {!seededNotes && selected && !selectedIsNotes ? (
+                <div className="mb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSideNoteOpen((v) => {
+                        const next = !v;
+                        window.setTimeout(() => {
+                          if (!next) inputRef.current?.focus();
+                        }, 0);
+                        return next;
+                      });
+                    }}
+                    className={
+                      "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold " +
+                      (sideNoteOpen || sideNoteValue.trim()
+                        ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
+                        : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
+                    }
+                    disabled={saving}
+                    aria-pressed={sideNoteOpen || !!sideNoteValue.trim()}
+                  >
+                    <span aria-hidden="true">📝</span>
+                    <span>Add note</span>
+                  </button>
+                  {sideNoteOpen ? (
+                    <div className="mt-2">
+                      <input
+                        value={sideNoteValue}
+                        onChange={(e) => setSideNoteValue(e.target.value)}
+                        inputMode="text"
+                        autoCapitalize="sentences"
+                        autoCorrect="on"
+                        spellCheck
+                        placeholder="Optional note…"
+                        className="block h-11 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                        disabled={saving}
+                      />
                     </div>
                   ) : null}
                 </div>
