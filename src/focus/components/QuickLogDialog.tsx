@@ -254,37 +254,8 @@ function extractTrailingAnnotation(raw: string): { rawForParsing: string; annota
   return { rawForParsing: before, annotation: inside };
 }
 
-function extractDelimitedAnnotation(raw: string): { rawForParsing: string; annotation: string | null } {
-  const s = raw.trim();
-  if (!s) return { rawForParsing: raw, annotation: null };
-
-  // Comma, but avoid breaking decimal comma. Require comma + whitespace + a letter.
-  const mComma = /^(.*),\s+([\p{L}].*)$/u.exec(s);
-  if (mComma) {
-    const before = (mComma[1] ?? "").trim();
-    const after = (mComma[2] ?? "").trim();
-    if (before && after && parseStructuredLogInput(before).quantities.length > 0) {
-      return { rawForParsing: before, annotation: after };
-    }
-  }
-
-  // Slash with spaces to avoid conflicts with URLs and units.
-  const mSlash = /^(.*)\s\/\s+([\p{L}].*)$/u.exec(s);
-  if (mSlash) {
-    const before = (mSlash[1] ?? "").trim();
-    const after = (mSlash[2] ?? "").trim();
-    if (before && after && parseStructuredLogInput(before).quantities.length > 0) {
-      return { rawForParsing: before, annotation: after };
-    }
-  }
-
-  return { rawForParsing: raw, annotation: null };
-}
-
 function parseQuickLogInput(raw: string): ParsedQuickLog {
-  const trailing = extractTrailingAnnotation(raw);
-  const chosen = trailing.annotation ? trailing : extractDelimitedAnnotation(raw);
-  const { rawForParsing, annotation } = chosen;
+  const { rawForParsing, annotation } = extractTrailingAnnotation(raw);
   const parsed = parseStructuredLogInput(rawForParsing);
   return {
     raw,
@@ -777,6 +748,7 @@ export function QuickLogDialog({
   const [showPicker, setShowPicker] = React.useState(false);
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [detailValues, setDetailValues] = React.useState<Record<string, string>>({});
+  const [noteValue, setNoteValue] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
   const isMobile = useIsMobileSm();
   const [mobileViewport, setMobileViewport] = React.useState<{ height: number; top: number }>({ height: 0, top: 0 });
@@ -876,6 +848,7 @@ export function QuickLogDialog({
     setShowPicker(false);
     setDetailsOpen(false);
     setDetailValues({});
+    setNoteValue("");
     setSelectionMode(seedCategoryId || forceNotes ? "seed" : "auto");
     setSelectedCategoryId(seedCategoryId);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
@@ -1041,7 +1014,7 @@ export function QuickLogDialog({
 
     const rawText = raw.trim();
     if (!rawText) return;
-    const sideNote = (parsed.annotation ?? "").trim() || null;
+    const sideNote = noteValue.trim() || null;
 
     const cfg = defaultNewCategoryConfig(parsed);
     const title = createSuggestion.title;
@@ -1141,7 +1114,7 @@ export function QuickLogDialog({
     if (!selected) return;
 
     const noteText = raw.trim();
-    const sideNote = (parsed.annotation ?? "").trim() || null;
+    const sideNote = noteValue.trim() || null;
     const shouldForceNotes =
       !selectedIsNotes &&
       !seededNotes &&
@@ -1559,7 +1532,18 @@ export function QuickLogDialog({
                     ref={inputRef}
                     value={raw}
                     onChange={(e) => {
-                      setRaw(e.target.value);
+                      const nextRaw = e.target.value;
+                      const extracted = extractTrailingAnnotation(nextRaw);
+                      if (extracted.annotation) {
+                        setRaw(extracted.rawForParsing);
+                        setNoteValue((prev) => {
+                          if (!prev.trim()) return extracted.annotation ?? "";
+                          if (prev.trim() === (extracted.annotation ?? "").trim()) return prev;
+                          return `${prev.trim()}\n${(extracted.annotation ?? "").trim()}`.trim();
+                        });
+                      } else {
+                        setRaw(nextRaw);
+                      }
                       if (selectionMode === "seed" && !seededNotes) setSelectionMode("auto");
                     }}
                     onKeyDown={(e) => {
@@ -1568,7 +1552,7 @@ export function QuickLogDialog({
                       if (saving) return;
                       submit();
                     }}
-                    inputMode={!seededNotes && !/[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]/.test(raw) ? "decimal" : "text"}
+                    inputMode="text"
                     autoCapitalize={seededNotes ? "sentences" : "none"}
                     autoCorrect={seededNotes ? "on" : "off"}
                     spellCheck={seededNotes}
@@ -1597,6 +1581,21 @@ export function QuickLogDialog({
                   Add
                 </Button>
               </div>
+              {!seededNotes && selected && !selectedIsNotes ? (
+                <div className="mt-2">
+                  <input
+                    value={noteValue}
+                    onChange={(e) => setNoteValue(e.target.value)}
+                    inputMode="text"
+                    autoCapitalize="sentences"
+                    autoCorrect="on"
+                    spellCheck
+                    placeholder="Note (optional)…"
+                    className="block h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                    disabled={saving}
+                  />
+                </div>
+              ) : null}
               {!seededNotes && selected && !selectedIsNotes && inferredAmount != null ? (
                 <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
                   Logging: {formatValue(inferredAmount)} {selectedDisplayTitle ?? selected.title}
@@ -1606,13 +1605,6 @@ export function QuickLogDialog({
                 <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
                   {auto.capturedLabel}
                 </div>
-              ) : null}
-              {!seededNotes && !selectedIsNotes && parsed.annotation ? (
-                <div className="mt-1 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                  Note: {parsed.annotation}
-                </div>
-              ) : !seededNotes && !selectedIsNotes ? (
-                <div className="mt-1 text-xs font-medium text-neutral-400 dark:text-neutral-500">Tip: add a note after a comma.</div>
               ) : null}
               {!seededNotes && createSuggestion ? (
                 <div className="mt-2">
