@@ -70,7 +70,7 @@ function noteIntentScore(parsed: ParsedQuickLog): number {
     "bruis",
   ];
   if (signals.some((s) => n.includes(s))) score += 0.15;
-  if (/[.,!?]/.test(parsed.raw)) score += 0.08;
+  if (/[.,!?]/.test(parsed.rawForParsing)) score += 0.08;
 
   return clamp01(Math.min(0.95, score));
 }
@@ -231,14 +231,36 @@ function defaultNewCategoryConfig(parsed: ParsedQuickLog): {
 type ParsedQuickLog = {
   hint: string;
   raw: string;
+  rawForParsing: string;
+  annotation: string | null;
   quantities: { value: number; unit: string | null }[];
   hasExplicitUnit: boolean;
 };
 
+function extractTrailingAnnotation(raw: string): { rawForParsing: string; annotation: string | null } {
+  const s = raw.trim();
+  if (!s) return { rawForParsing: raw, annotation: null };
+
+  const m = /^(.*)\(([^()]*)\)\s*$/.exec(s);
+  if (!m) return { rawForParsing: raw, annotation: null };
+
+  const before = (m[1] ?? "").trim();
+  const inside = (m[2] ?? "").trim();
+  if (!before || !inside) return { rawForParsing: raw, annotation: null };
+
+  const hasNumberBefore = parseStructuredLogInput(before).quantities.length > 0;
+  if (!hasNumberBefore) return { rawForParsing: raw, annotation: null };
+
+  return { rawForParsing: before, annotation: inside };
+}
+
 function parseQuickLogInput(raw: string): ParsedQuickLog {
-  const parsed = parseStructuredLogInput(raw);
+  const { rawForParsing, annotation } = extractTrailingAnnotation(raw);
+  const parsed = parseStructuredLogInput(rawForParsing);
   return {
     raw,
+    rawForParsing,
+    annotation,
     hint: parsed.hint,
     quantities: parsed.quantities.map((q) => ({ value: q.value, unit: q.unit })),
     hasExplicitUnit: parsed.hasExplicitUnit,
@@ -990,6 +1012,7 @@ export function QuickLogDialog({
 
     const rawText = raw.trim();
     if (!rawText) return;
+    const sideNote = (parsed.annotation ?? "").trim() || null;
 
     const cfg = defaultNewCategoryConfig(parsed);
     const title = createSuggestion.title;
@@ -1059,6 +1082,7 @@ export function QuickLogDialog({
           categoryId,
           amount,
           rawText,
+          ...(sideNote ? { note: sideNote } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
         });
@@ -1066,7 +1090,11 @@ export function QuickLogDialog({
         await createEvent({
           categoryId,
           amount,
-          ...(privacy.mode === "encrypted" ? {} : { rawText }),
+          ...(privacy.mode === "encrypted"
+            ? sideNote && privacy.key && privacy.cryptoParams
+              ? { noteEnc: await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, sideNote) }
+              : {}
+            : { rawText, ...(sideNote ? { note: sideNote } : {}) }),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
         } as any);
@@ -1083,6 +1111,7 @@ export function QuickLogDialog({
     if (!selected) return;
 
     const noteText = raw.trim();
+    const sideNote = (parsed.annotation ?? "").trim() || null;
     const shouldForceNotes =
       !selectedIsNotes &&
       !seededNotes &&
@@ -1144,7 +1173,7 @@ export function QuickLogDialog({
           rawText: noteText,
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
-          ...(isNotes ? { note: noteText } : {}),
+          ...(isNotes ? { note: noteText } : sideNote ? { note: sideNote } : {}),
         });
       } else if (isNotes && privacy.mode === "encrypted") {
         if (!privacy.key || !privacy.cryptoParams) {
@@ -1153,6 +1182,22 @@ export function QuickLogDialog({
         }
         const noteEnc = await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, noteText);
         await createEvent({ categoryId: submitCategory.id, amount: 1, noteEnc, rawText: null } as any);
+      } else if (!isNotes && privacy.mode === "encrypted") {
+        if (sideNote && (!privacy.key || !privacy.cryptoParams)) {
+          window.alert("Unlock encryption from Profile → Privacy first.");
+          return;
+        }
+        const noteEncToSend =
+          sideNote && privacy.key && privacy.cryptoParams
+            ? await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, sideNote)
+            : null;
+        await createEvent({
+          categoryId: submitCategory.id,
+          amount: amount ?? 1,
+          ...(durationToSend != null ? { duration: durationToSend } : {}),
+          ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
+          ...(noteEncToSend ? { noteEnc: noteEncToSend } : {}),
+        } as any);
       } else {
         await createEvent({
           categoryId: submitCategory.id,
@@ -1160,7 +1205,7 @@ export function QuickLogDialog({
           rawText: privacy.mode === "encrypted" ? undefined : noteText,
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
-          ...(isNotes ? { note: noteText } : {}),
+          ...(isNotes ? { note: noteText } : sideNote ? { note: sideNote } : {}),
         } as any);
       }
 
