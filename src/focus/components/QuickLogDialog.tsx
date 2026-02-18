@@ -37,6 +37,44 @@ function tokenize(s: string): string[] {
   return n.split(" ").filter(Boolean);
 }
 
+function noteIntentScore(parsed: ParsedQuickLog): number {
+  const hint = parsed.hint.trim();
+  if (!hint) return 0;
+  const tokens = tokenize(hint);
+  if (tokens.length < 4) return 0;
+
+  const len = hint.length;
+  let score = 0;
+  if (len >= 90) score = 0.95;
+  else if (len >= 60) score = 0.85;
+  else if (len >= 35) score = 0.7;
+  else if (len >= 24) score = 0.55;
+  else score = 0;
+
+  const n = normalizeText(hint);
+  const signals = [
+    "boli",
+    "bol",
+    "udarac",
+    "pomodr",
+    "nokat",
+    "prst",
+    "palac",
+    "lakat",
+    "ne mogu",
+    "cant",
+    "can't",
+    "pain",
+    "hurt",
+    "injur",
+    "bruis",
+  ];
+  if (signals.some((s) => n.includes(s))) score += 0.15;
+  if (/[.,!?]/.test(parsed.raw)) score += 0.08;
+
+  return clamp01(Math.min(0.95, score));
+}
+
 function isNotesCategory(c: CategoryWithStats): boolean {
   return (c.slug ?? "").trim().toLowerCase() === "notes";
 }
@@ -557,6 +595,7 @@ function rankCategories(args: {
   const { categories, displayTitleById, themeIsDark, nowMinute, parsed } = args;
   const hint = parsed.hint;
   const inputHasNumber = (parsed.quantities ?? []).length > 0;
+  const noteIntent = noteIntentScore(parsed);
   const parsedUnits = new Set(
     (parsed.quantities ?? []).map((q) => (q.unit ? normalizedUnit(q.unit) : null)).filter(Boolean) as string[],
   );
@@ -613,7 +652,9 @@ function rankCategories(args: {
       } else if (hint && !inputHasNumber) {
         // Text only is usually category selection or Notes.
         const tokens = tokenize(hint);
-        const notesBoost = isNotesCategory(c) ? (tokens.length >= 3 || hint.trim().length >= 14 ? 0.8 : 0.55) : 0;
+        const notesBoost = isNotesCategory(c)
+          ? Math.max(tokens.length >= 3 || hint.trim().length >= 14 ? 0.8 : 0.55, noteIntent * 0.85)
+          : 0;
         score = clamp01(tScore * 0.85 + timeScore * 0.15 + notesBoost - loggedPenalty + unitBoost - unitPenalty + schemaBoost);
       } else if (!hint && inputHasNumber) {
         // Number only.
@@ -621,8 +662,21 @@ function rankCategories(args: {
         score = clamp01(aScore * 0.75 + timeScore * 0.25 - notesPenalty - loggedPenalty + unitBoost - unitPenalty + schemaBoost);
       } else {
         // Both number and hint.
-        const notesPenalty = isNotesCategory(c) ? 0.7 : 0;
-        score = clamp01(tScore * 0.65 + aScore * 0.25 + timeScore * 0.1 - notesPenalty - loggedPenalty + unitBoost - unitPenalty + schemaBoost);
+        const notesBoost = isNotesCategory(c) ? noteIntent * 0.85 : 0;
+        const notesPenalty = isNotesCategory(c) ? (noteIntent >= 0.45 ? 0.05 : 0.7) : 0;
+        const notePenaltyNonNotes = !isNotesCategory(c) ? noteIntent * 0.35 : 0;
+        score = clamp01(
+          tScore * 0.65 +
+            aScore * 0.25 +
+            timeScore * 0.1 +
+            notesBoost -
+            notesPenalty -
+            notePenaltyNonNotes -
+            loggedPenalty +
+            unitBoost -
+            unitPenalty +
+            schemaBoost,
+        );
       }
 
       return { c, displayTitle, accent, score };
@@ -679,6 +733,7 @@ export function QuickLogDialog({
   const now = new Date();
   const nowMinute = now.getHours() * 60 + now.getMinutes();
   const parsed = React.useMemo(() => parseQuickLogInput(raw), [raw]);
+  const noteIntent = React.useMemo(() => noteIntentScore(parsed), [parsed]);
   const ranked = React.useMemo(
     () =>
       rankCategories({
@@ -1027,14 +1082,30 @@ export function QuickLogDialog({
   async function submit(): Promise<void> {
     if (!selected) return;
 
-    const displayTitle = selectedDisplayTitle ?? selected.title;
-    const isNotes = selectedIsNotes;
-    const amount = pickAmountForCategory({ parsed, c: selected, displayTitle, intent: "submit" });
     const noteText = raw.trim();
+    const shouldForceNotes =
+      !selectedIsNotes &&
+      !seededNotes &&
+      selectionMode !== "manual" &&
+      noteIntent >= 0.75 &&
+      noteText.length >= 24 &&
+      !!notesCategoryIdFromCats;
+
+    const submitCategory =
+      shouldForceNotes && notesCategoryIdFromCats
+        ? categories.find((c) => c.id === notesCategoryIdFromCats) ?? null
+        : selected;
+    if (!submitCategory) return;
+
+    const submitDisplayTitle = displayTitleById[submitCategory.id] ?? submitCategory.title;
+    const isNotes = shouldForceNotes || (submitCategory.slug ?? "").toLowerCase() === "notes";
+    const amount = isNotes
+      ? null
+      : pickAmountForCategory({ parsed, c: submitCategory, displayTitle: submitDisplayTitle, intent: "submit" });
 
     if (!isNotes) {
       if (amount == null || amount <= 0) {
-        window.alert(`Enter a number for ${displayTitle}.`);
+        window.alert(`Enter a number for ${submitDisplayTitle}.`);
         return;
       }
     } else {
@@ -1068,7 +1139,7 @@ export function QuickLogDialog({
         if (!privacy.userId) return;
         await localCreateEvent({
           userId: privacy.userId,
-          categoryId: selected.id,
+          categoryId: submitCategory.id,
           amount: amount ?? 1,
           rawText: noteText,
           ...(durationToSend != null ? { duration: durationToSend } : {}),
@@ -1081,10 +1152,10 @@ export function QuickLogDialog({
           return;
         }
         const noteEnc = await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, noteText);
-        await createEvent({ categoryId: selected.id, amount: 1, noteEnc, rawText: null } as any);
+        await createEvent({ categoryId: submitCategory.id, amount: 1, noteEnc, rawText: null } as any);
       } else {
         await createEvent({
-          categoryId: selected.id,
+          categoryId: submitCategory.id,
           amount: amount ?? 1,
           rawText: privacy.mode === "encrypted" ? undefined : noteText,
           ...(durationToSend != null ? { duration: durationToSend } : {}),
