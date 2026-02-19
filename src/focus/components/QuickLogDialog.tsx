@@ -805,6 +805,7 @@ export function QuickLogDialog({
 
   const previewIsNotes = previewCategory ? isNotesCategory(previewCategory) : false;
   const previewTitle = previewCategory ? displayTitleById[previewCategory.id] ?? previewCategory.title : null;
+  const previewUnit = previewCategory ? unitLabel(previewCategory.unit) : null;
 
   const recentRemoteQuery = useQuery(
     getCategoryEvents,
@@ -1605,24 +1606,30 @@ export function QuickLogDialog({
                   Add
                 </Button>
               </div>
-              {!seededNotes && previewCategory && !previewIsNotes ? (
-                <div className="mt-2">
-                  <input
-                    value={noteValue}
-                    onChange={(e) => setNoteValue(e.target.value)}
-                    inputMode="text"
-                    autoCapitalize="sentences"
-                    autoCorrect="on"
-                    spellCheck
-                    placeholder="Note (optional)…"
-                    className="block h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-                    disabled={saving}
-                  />
+              {!seededNotes ? (
+                <div className="mt-2 min-h-[44px]">
+                  {previewCategory && !previewIsNotes ? (
+                    <input
+                      value={noteValue}
+                      onChange={(e) => setNoteValue(e.target.value)}
+                      inputMode="text"
+                      autoCapitalize="sentences"
+                      autoCorrect="on"
+                      spellCheck
+                      placeholder="Note (optional)…"
+                      className="block h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                      disabled={saving}
+                    />
+                  ) : (
+                    <div className="h-11 w-full rounded-xl bg-white dark:bg-neutral-950" aria-hidden="true" />
+                  )}
                 </div>
               ) : null}
               {!seededNotes && previewCategory && !previewIsNotes && (previewAmount != null || !!auto.capturedLabel) ? (
                 <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                  {previewAmount != null ? `Logging: ${formatValue(previewAmount)} ${previewTitle ?? previewCategory.title}` : `Logging: ${previewTitle ?? previewCategory.title}`}
+                  {previewAmount != null
+                    ? `Logging: ${formatValue(previewAmount)} ${previewTitle ?? previewCategory.title}${previewUnit ? ` ${previewUnit}` : ""}`
+                    : `Logging: ${previewTitle ?? previewCategory.title}${previewUnit ? ` (${previewUnit})` : ""}`}
                   {auto.capturedLabel ? ` · ${auto.capturedLabel.replace(/^Captured:\\s*/i, "")}` : ""}
                 </div>
               ) : null}
