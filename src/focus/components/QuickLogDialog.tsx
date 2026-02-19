@@ -375,15 +375,12 @@ function buildAutoFields(args: {
   if (mlQty) capturedParts.push(`${formatValue(mlQty.value)} ml`);
   if (!mlQty && lQty) capturedParts.push(`${formatValue(lQty.value)} l`);
 
-  const unitHint = primaryUnit ? ` (${primaryUnit})` : "";
-  const label =
-    capturedParts.length > 0
-      ? `Captured: ${capturedParts.join(", ")}${unitHint}`
-      : amount != null
-        ? `Captured: ${formatValue(amount)}${unitHint}`
-        : null;
+  if (capturedParts.length === 0) {
+    return { fields: out, durationMinutes, capturedLabel: null };
+  }
 
-  return { fields: out, durationMinutes, capturedLabel: label };
+  const unitHint = primaryUnit ? ` (${primaryUnit})` : "";
+  return { fields: out, durationMinutes, capturedLabel: `Captured: ${capturedParts.join(", ")}${unitHint}` };
 }
 
 function pickAmountForCategory(args: {
@@ -789,6 +786,25 @@ export function QuickLogDialog({
     return notes?.id ?? null;
   }, [categories]);
   const seededNotes = forceNotes || (!!seedCategoryId && selectionMode === "seed" && selectedIsNotes);
+  const shouldForceNotesPreview =
+    !selectedIsNotes &&
+    !seededNotes &&
+    selectionMode !== "manual" &&
+    noteIntent >= 0.75 &&
+    raw.trim().length >= 24 &&
+    !!notesCategoryIdFromCats;
+
+  const previewCategory = React.useMemo(() => {
+    if (seededNotes) return categories.find((c) => c.id === notesCategoryIdFromCats) ?? null;
+    if (!selected) return null;
+    if (shouldForceNotesPreview && notesCategoryIdFromCats) {
+      return categories.find((c) => c.id === notesCategoryIdFromCats) ?? selected;
+    }
+    return selected;
+  }, [categories, notesCategoryIdFromCats, seededNotes, selected, shouldForceNotesPreview]);
+
+  const previewIsNotes = previewCategory ? isNotesCategory(previewCategory) : false;
+  const previewTitle = previewCategory ? displayTitleById[previewCategory.id] ?? previewCategory.title : null;
 
   const recentRemoteQuery = useQuery(
     getCategoryEvents,
@@ -835,11 +851,19 @@ export function QuickLogDialog({
     return pickAmountForCategory({ parsed, c: selected, displayTitle: selectedDisplayTitle, intent: "submit" });
   }, [parsed, selected, selectedDisplayTitle, selectedIsNotes]);
 
+  const previewAmount = React.useMemo(() => {
+    if (!previewCategory || !previewTitle) return null;
+    if (previewIsNotes) return null;
+    return pickAmountForCategory({ parsed, c: previewCategory, displayTitle: previewTitle, intent: "submit" });
+  }, [parsed, previewCategory, previewIsNotes, previewTitle]);
+
   const auto = React.useMemo(() => {
-    if (!selected || !selectedDisplayTitle) return { fields: {}, durationMinutes: null as number | null, capturedLabel: null as string | null };
-    if (selectedIsNotes) return { fields: {}, durationMinutes: null as number | null, capturedLabel: null as string | null };
-    return buildAutoFields({ parsed, selected, amount: inferredAmount });
-  }, [inferredAmount, parsed, selected, selectedDisplayTitle, selectedIsNotes]);
+    if (!previewCategory || !previewTitle) {
+      return { fields: {}, durationMinutes: null as number | null, capturedLabel: null as string | null };
+    }
+    if (previewIsNotes) return { fields: {}, durationMinutes: null as number | null, capturedLabel: null as string | null };
+    return buildAutoFields({ parsed, selected: previewCategory, amount: previewAmount });
+  }, [parsed, previewAmount, previewCategory, previewIsNotes, previewTitle]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -1581,7 +1605,7 @@ export function QuickLogDialog({
                   Add
                 </Button>
               </div>
-              {!seededNotes && selected && !selectedIsNotes ? (
+              {!seededNotes && previewCategory && !previewIsNotes ? (
                 <div className="mt-2">
                   <input
                     value={noteValue}
@@ -1596,14 +1620,10 @@ export function QuickLogDialog({
                   />
                 </div>
               ) : null}
-              {!seededNotes && selected && !selectedIsNotes && inferredAmount != null ? (
+              {!seededNotes && previewCategory && !previewIsNotes && (previewAmount != null || !!auto.capturedLabel) ? (
                 <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                  Logging: {formatValue(inferredAmount)} {selectedDisplayTitle ?? selected.title}
-                </div>
-              ) : null}
-              {!seededNotes && auto.capturedLabel ? (
-                <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                  {auto.capturedLabel}
+                  {previewAmount != null ? `Logging: ${formatValue(previewAmount)} ${previewTitle ?? previewCategory.title}` : `Logging: ${previewTitle ?? previewCategory.title}`}
+                  {auto.capturedLabel ? ` · ${auto.capturedLabel.replace(/^Captured:\\s*/i, "")}` : ""}
                 </div>
               ) : null}
               {!seededNotes && createSuggestion ? (
