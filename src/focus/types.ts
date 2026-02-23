@@ -40,6 +40,10 @@ export type CategoryWithStats = {
   goalValue: number | null;
   fieldsSchema: CategoryFieldsSchema | null;
   rollupToActiveKcal: boolean;
+  scheduleEnabled: boolean;
+  scheduleType: "daily" | "weekly" | null;
+  scheduleDays: number[] | null;
+  scheduleTime: string | null;
   todayCount: number;
   thisWeekCount: number;
   thisMonthCount: number;

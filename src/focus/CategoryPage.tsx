@@ -258,6 +258,7 @@ export function CategoryPage() {
   const [offset, setOffset] = useState<number>(0);
   const [amount, setAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
+  const [scheduledStatus, setScheduledStatus] = useState<"went" | "missed" | "cancelled">("went");
   const [occurredOn, setOccurredOn] = useState<string>(todayIso());
   const [displayTitle, setDisplayTitle] = useState<string | null>(null);
   const privacy = usePrivacy();
@@ -335,8 +336,10 @@ export function CategoryPage() {
       return;
     }
     const isNotes = (category.slug ?? "") === "notes";
-    const n = isNotes ? 1 : parseNumberInput(amount);
-    if (!isNotes && (n == null || n <= 0)) {
+    const isSimpleTracking = category.categoryType === "DO" || category.categoryType === "DONT";
+    const amountForSimple = scheduledStatus === "went" ? 1 : 0;
+    const n = isNotes ? 1 : isSimpleTracking ? amountForSimple : parseNumberInput(amount);
+    if (!isNotes && !isSimpleTracking && (n == null || n <= 0)) {
       window.alert("Enter a positive number.");
       return;
     }
@@ -351,11 +354,13 @@ export function CategoryPage() {
         categoryId: category.id,
         amount: n ?? 1,
         occurredOn,
-        rawText: isNotes ? note : amount.trim() || String(n ?? 1),
-        ...(isNotes ? { note } : {}),
+        rawText: isNotes ? note : isSimpleTracking ? `${category.title} ${scheduledStatus}` : amount.trim() || String(n ?? 1),
+        ...(isNotes ? { note } : note.trim() ? { note } : {}),
+        ...(isSimpleTracking ? { scheduledStatus } : {}),
       });
       setAmount("");
       setNote("");
+      setScheduledStatus("went");
       return;
     }
     if (isNotes && privacy.mode === "encrypted") {
@@ -367,23 +372,29 @@ export function CategoryPage() {
       await createEvent({ categoryId: category.id, amount: 1, occurredOn, noteEnc, rawText: null } as any);
       setAmount("");
       setNote("");
+      setScheduledStatus("went");
       return;
     }
     await createEvent({
       categoryId: category.id,
       amount: n ?? 1,
       occurredOn,
-      ...(isNotes ? { note } : {}),
-      ...(privacy.mode === "encrypted" ? {} : { rawText: isNotes ? note : amount.trim() || String(n ?? 1) }),
+      ...(isNotes ? { note } : note.trim() ? { note } : {}),
+      ...(isSimpleTracking ? { scheduledStatus } : {}),
+      ...(privacy.mode === "encrypted"
+        ? {}
+        : { rawText: isNotes ? note : isSimpleTracking ? `${category.title} ${scheduledStatus}` : amount.trim() || String(n ?? 1) }),
     } as any);
     setAmount("");
     setNote("");
+    setScheduledStatus("went");
   }
 
   const isWeight = category?.chartType === "line";
   const isNotes = (category?.slug ?? "") === "notes";
-  const isCountType = category?.categoryType === "DO" || category?.categoryType === "DONT";
-  const amountPlaceholder = isWeight ? "e.g. 84.5" : isCountType ? "e.g. 1" : "e.g. 20";
+  const isSimpleTracking = category?.categoryType === "DO" || category?.categoryType === "DONT";
+  const isScheduledTracking = isSimpleTracking && category?.scheduleEnabled === true;
+  const amountPlaceholder = isWeight ? "e.g. 84.5" : "e.g. 20";
   const resolvedCategoryId = category?.id ?? null;
   const resolvedTitle =
     displayTitle ?? (category && isEncryptedString(category.title) ? "Locked" : category?.title ?? null);
@@ -485,21 +496,73 @@ export function CategoryPage() {
                 />
               </div>
             </label>
-            <label className="flex min-w-0 flex-col gap-1">
-              <span className="label">Amount</span>
-              <input
-                type={isWeight ? "text" : "number"}
-                step={isWeight ? undefined : "1"}
-                inputMode={isWeight ? "decimal" : "numeric"}
-                pattern={isWeight ? "[0-9]*[.,]?[0-9]*" : undefined}
-                placeholder={amountPlaceholder}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-              />
-            </label>
-            <div className="flex min-w-0 items-end">
-              <Button className="h-10 w-full" onClick={onAdd} disabled={isLocked}>
+
+            {isSimpleTracking ? (
+              <div className="grid gap-3 sm:col-span-2">
+                {isScheduledTracking ? (
+                  <div>
+                    <span className="label">Status</span>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {[
+                        { value: "went", label: "Went" },
+                        { value: "missed", label: "Didn’t go" },
+                        { value: "cancelled", label: "Cancelled" },
+                      ].map((opt) => {
+                        const active = scheduledStatus === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setScheduledStatus(opt.value as "went" | "missed" | "cancelled")}
+                            className={
+                              "rounded-full border px-3 py-1.5 text-xs font-semibold " +
+                              (active
+                                ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
+                                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300 dark:hover:bg-neutral-800")
+                            }
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {category?.scheduleType || category?.scheduleTime ? (
+                      <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                        Scheduled {category.scheduleType === "daily" ? "daily" : "weekly"}
+                        {category.scheduleTime ? ` at ${category.scheduleTime}` : ""}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <label className="flex min-w-0 flex-col gap-1">
+                  <span className="label">Note (optional)</span>
+                  <input
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder={isScheduledTracking && scheduledStatus === "cancelled" ? "Why cancelled?" : "Any context"}
+                    className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                  />
+                </label>
+              </div>
+            ) : (
+              <label className="flex min-w-0 flex-col gap-1">
+                <span className="label">Amount</span>
+                <input
+                  type={isWeight ? "text" : "number"}
+                  step={isWeight ? undefined : "1"}
+                  inputMode={isWeight ? "decimal" : "numeric"}
+                  pattern={isWeight ? "[0-9]*[.,]?[0-9]*" : undefined}
+                  placeholder={amountPlaceholder}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                />
+              </label>
+            )}
+
+            <div className={`flex min-w-0 items-end ${isSimpleTracking ? "sm:col-span-3 sm:justify-end" : ""}`}>
+              <Button className={`h-10 ${isSimpleTracking ? "w-full sm:w-40" : "w-full"}`} onClick={onAdd} disabled={isLocked}>
                 Add
               </Button>
             </div>

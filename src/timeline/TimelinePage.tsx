@@ -10,6 +10,7 @@ import { localGetCategoryEvents, localListCategories } from "../focus/local";
 import { parseLocalIsoDate, startOfLocalDay, toLocalIsoDate, todayLocalIso } from "../shared/lib/localDate";
 import { useTheme } from "../theme/ThemeProvider";
 import { resolveAccentForTheme } from "../theme/colors";
+import { buildScheduledDateTime, normalizeCategorySchedule, scheduleAppliesToDate } from "../focus/schedule";
 
 type DayEvent = {
   id: string;
@@ -30,6 +31,10 @@ type DayEvent = {
     accentHex: string;
     emoji: string | null;
     isSystem: boolean;
+    scheduleEnabled?: boolean;
+    scheduleType?: "daily" | "weekly" | null;
+    scheduleDays?: number[] | null;
+    scheduleTime?: string | null;
   } | null;
 };
 
@@ -130,10 +135,55 @@ export function TimelinePage() {
                   accentHex: c.accentHex,
                   emoji: c.emoji,
                   isSystem: c.isSystem,
+                  scheduleEnabled: (c as any).scheduleEnabled === true,
+                  scheduleType: ((c as any).scheduleType as any) ?? null,
+                  scheduleDays: ((c as any).scheduleDays as any) ?? null,
+                  scheduleTime: ((c as any).scheduleTime as any) ?? null,
                 }
               : null,
           } satisfies DayEvent);
         }
+      }
+
+      const selectedDay = parseLocalIsoDate(onIso);
+      const hasEventByCategory = new Set(allEvents.map((e) => e.category?.id).filter(Boolean) as string[]);
+      for (const c of categories as any[]) {
+        if (hasEventByCategory.has(c.id)) continue;
+        const schedule = normalizeCategorySchedule({
+          enabled: c.scheduleEnabled === true,
+          type: c.scheduleType ?? null,
+          days: c.scheduleDays ?? null,
+          time: c.scheduleTime ?? null,
+        });
+        if (!scheduleAppliesToDate(schedule, selectedDay)) continue;
+        const dueAt = buildScheduledDateTime(selectedDay, schedule.time);
+        allEvents.push({
+          id: `pending:${c.id}:${onIso}`,
+          amount: 0,
+          occurredAt: dueAt,
+          occurredOn: selectedDay,
+          rawText: null,
+          data: { scheduledStatus: "pending", pending: true },
+          category: catById.get(c.id)
+            ? {
+                id: c.id,
+                title: c.title,
+                slug: c.slug,
+                unit: c.unit,
+                categoryType: c.categoryType,
+                chartType: c.chartType,
+                goalWeekly: c.goalWeekly,
+                goalValue: c.goalValue,
+                accentHex: c.accentHex,
+                emoji: c.emoji,
+                isSystem: c.isSystem,
+                scheduleEnabled: c.scheduleEnabled === true,
+                scheduleType: c.scheduleType ?? null,
+                scheduleDays: c.scheduleDays ?? null,
+                scheduleTime: c.scheduleTime ?? null,
+              }
+            : null,
+        } satisfies DayEvent);
       }
       allEvents.sort((a, b) => (a.occurredAt as any) - (b.occurredAt as any));
       if (cancelled) return;
@@ -260,6 +310,7 @@ export function TimelinePage() {
       avg: number | null;
       notePreview: string | null;
       notes: Array<{ occurredAt: Date; text: string }>;
+      scheduled: { went: number; missed: number; cancelled: number; pending: number };
     }> = [];
 
     for (const [categoryId, evs] of groups.entries()) {
@@ -284,6 +335,14 @@ export function TimelinePage() {
               "") || null
           : null;
       const notes: Array<{ occurredAt: Date; text: string }> = [];
+      const scheduled = { went: 0, missed: 0, cancelled: 0, pending: 0 };
+      for (const e of evs) {
+        const statusRaw = typeof e.data?.scheduledStatus === "string" ? e.data.scheduledStatus.trim().toLowerCase() : "";
+        if (statusRaw === "went") scheduled.went += 1;
+        else if (statusRaw === "missed") scheduled.missed += 1;
+        else if (statusRaw === "cancelled") scheduled.cancelled += 1;
+        else if (statusRaw === "pending") scheduled.pending += 1;
+      }
       if (isNotes) {
         for (const e of evs) {
           const occurredAt = new Date(e.occurredAt as any);
@@ -322,6 +381,7 @@ export function TimelinePage() {
         avg,
         notePreview,
         notes,
+        scheduled,
       });
     }
 
@@ -430,6 +490,14 @@ export function TimelinePage() {
             let main = "";
             if (isNotes) {
               main = `${s.count} ${s.count === 1 ? "note" : "notes"}`;
+            } else if ((s.categoryType === "DO" || s.categoryType === "DONT") && (s.scheduled.went + s.scheduled.missed + s.scheduled.cancelled + s.scheduled.pending > 0)) {
+              const labels: string[] = [];
+              if (s.scheduled.pending > 0) labels.push("Pending");
+              if (s.scheduled.went > 0) labels.push(s.scheduled.went === 1 ? "Went" : `${s.scheduled.went} went`);
+              if (s.scheduled.missed > 0) labels.push(s.scheduled.missed === 1 ? "Didn’t go" : `${s.scheduled.missed} missed`);
+              if (s.scheduled.cancelled > 0)
+                labels.push(s.scheduled.cancelled === 1 ? "Cancelled" : `${s.scheduled.cancelled} cancelled`);
+              main = labels.join(" · ");
             } else if (isWeight) {
               const kgUnit = unit || " kg";
               const v = Math.round(s.total * 10) / 10;

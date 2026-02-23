@@ -38,7 +38,7 @@ export function QuickAddDialog({
   const isWeight = category?.chartType === "line";
   const isCountType = category?.categoryType === "DO" || category?.categoryType === "DONT";
   const unit = unitLabel(category?.unit);
-  const amountPlaceholder = isWeight ? "e.g. 84.5" : isCountType ? "e.g. 1" : "e.g. 20";
+  const amountPlaceholder = isWeight ? "e.g. 84.5" : isCountType ? "Optional (defaults to 1)" : "e.g. 20";
 
   React.useEffect(() => {
     if (!open) return;
@@ -52,14 +52,16 @@ export function QuickAddDialog({
     if (privacy.mode === "local") return;
     const queryClient = await queryClientInitialized;
     await queryClient.invalidateQueries({ queryKey: ["operations/get-categories"] });
+    await queryClient.invalidateQueries({ queryKey: ["operations/get-scheduled-prompts"] });
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!category?.id) return;
 
-    const n = isNotes ? 1 : parseNumberInput(amount);
-    if (!isNotes && (n == null || n <= 0)) {
+    const parsed = isNotes ? 1 : parseNumberInput(amount);
+    const n = isCountType && parsed == null ? 1 : parsed;
+    if (!isNotes && !isCountType && (n == null || n <= 0)) {
       window.alert("Enter a positive number.");
       return;
     }
@@ -78,6 +80,7 @@ export function QuickAddDialog({
           amount: n ?? 1,
           rawText: isNotes ? note : amount.trim() || null,
           ...(isNotes ? { note } : {}),
+          ...(isCountType ? { scheduledStatus: (n ?? 1) > 0 ? "went" : "missed" } : {}),
         });
       } else if (isNotes && privacy.mode === "encrypted") {
         if (!privacy.key || !privacy.cryptoParams) {
@@ -91,6 +94,7 @@ export function QuickAddDialog({
           categoryId: category.id,
           amount: n ?? 1,
           ...(isNotes ? { note } : {}),
+          ...(isCountType ? { scheduledStatus: (n ?? 1) > 0 ? "went" : "missed" } : {}),
           ...(privacy.mode === "encrypted" ? {} : { rawText: isNotes ? note : amount.trim() || null }),
         } as any);
       }

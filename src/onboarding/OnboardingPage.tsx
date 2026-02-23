@@ -26,6 +26,10 @@ type Template = {
   accentHex: string;
   emoji: string | null;
   fieldsSchema?: any | null;
+  scheduleEnabled?: boolean | null;
+  scheduleType?: "daily" | "weekly" | null;
+  scheduleDays?: number[] | null;
+  scheduleTime?: string | null;
 };
 
 const RECOMMENDED_KEYS = ["weight", "active_kcal", "steps", "water"];
@@ -199,6 +203,10 @@ export function OnboardingPage() {
             accentHex: t.accentHex,
             emoji: t.emoji,
             fieldsSchema: t.fieldsSchema ?? null,
+            scheduleEnabled: t.scheduleEnabled === true,
+            scheduleType: t.scheduleType ?? null,
+            scheduleDays: t.scheduleDays ?? null,
+            scheduleTime: t.scheduleTime ?? null,
           });
         }
       } else {
@@ -227,6 +235,10 @@ export function OnboardingPage() {
             accentHex: t.accentHex,
             emoji: t.emoji ?? undefined,
             fieldsSchema: t.fieldsSchema ?? undefined,
+            scheduleEnabled: t.scheduleEnabled === true,
+            scheduleType: t.scheduleType ?? undefined,
+            scheduleDays: t.scheduleDays ?? undefined,
+            scheduleTime: t.scheduleTime ?? undefined,
           } as any);
         }
       }

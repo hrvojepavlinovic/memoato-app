@@ -46,6 +46,7 @@ After each completed change (feature/fix/docs), follow this flow:
 1. Sanity check:
    - `git status`
    - run tests/linters relevant to the change (at minimum: `npm test`)
+   - for Wasp entity/action/query changes, run `source ~/.nvm/nvm.sh && nvm use 22 >/dev/null && wasp db migrate-dev`
 2. Commit:
    - keep commits small and focused
    - never commit secrets (`.env*`, tokens, credentials)

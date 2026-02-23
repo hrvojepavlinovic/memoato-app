@@ -160,6 +160,10 @@ async function getCategoriesWithStatsForUser(args: {
       goalValue: true,
       fieldsSchema: true,
       rollupToActiveKcal: true,
+      scheduleEnabled: true,
+      scheduleType: true,
+      scheduleDays: true,
+      scheduleTime: true,
     },
     orderBy: [{ title: "asc" }],
   });
@@ -283,6 +287,27 @@ async function getCategoriesWithStatsForUser(args: {
       goalValue: c.goalValue ?? null,
       fieldsSchema: safeFieldsSchema(c.fieldsSchema),
       rollupToActiveKcal: c.rollupToActiveKcal === true,
+      scheduleEnabled: c.scheduleEnabled === true,
+      scheduleType:
+        typeof c.scheduleType === "string" && (c.scheduleType === "daily" || c.scheduleType === "weekly")
+          ? c.scheduleType
+          : null,
+      scheduleDays: (() => {
+        if (!Array.isArray(c.scheduleDays)) return null;
+        const normalized = Array.from(
+          new Set(
+            (c.scheduleDays as any[])
+              .map((d) => Number(d))
+              .filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6),
+          ),
+        ) as number[];
+        normalized.sort((a, b) => a - b);
+        return normalized;
+      })(),
+      scheduleTime:
+        typeof c.scheduleTime === "string" && /^([01]\d|2[0-3]):([0-5]\d)$/.test(c.scheduleTime)
+          ? c.scheduleTime
+          : null,
       todayCount: windowCount(dayStats, c.id),
       thisWeekCount: windowCount(weekStats, c.id),
       thisMonthCount: windowCount(monthStats, c.id),

@@ -167,6 +167,11 @@ query getCategories {
   entities: [User, Category, Event]
 }
 
+query getScheduledPrompts {
+  fn: import { getScheduledPrompts } from "@src/focus/queries",
+  entities: [User, Category, Event]
+}
+
 query getPublicUserDashboard {
   fn: import { getPublicUserDashboard } from "@src/public/dashboardQueries",
   entities: [User, Category, Event]

@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link, routes } from "wasp/client/router";
 import {
+  createEvent,
   ensureDefaultCategories,
   getCategories,
   getProfile,
+  getScheduledPrompts,
   resetCategoryOrder,
   setCategoryOrder,
   useQuery,
@@ -221,6 +223,14 @@ function tileTypeChip(c: CategoryWithStats): string {
   if (c.categoryType === "DO" || c.categoryType === "DONT") return "count";
   return "total";
 }
+
+type ScheduledPrompt = {
+  key: string;
+  categoryId: string;
+  scheduledOn: string;
+  scheduledAt: string;
+  scheduledTime: string | null;
+};
 
 function tileShowsDwyCounts(c: CategoryWithStats, displayTitle: string): boolean {
   const k = titleKey(displayTitle);
@@ -526,6 +536,7 @@ export function HomePage() {
   const theme = useTheme();
   const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
   const profileQuery = useQuery(getProfile, undefined, { enabled: privacy.mode !== "local" });
+  const scheduledPromptsQuery = useQuery(getScheduledPrompts, undefined, { enabled: privacy.mode !== "local" });
   const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>([]);
   const [localLoading, setLocalLoading] = useState(false);
   const categories = privacy.mode === "local" ? localCategories : (categoriesQuery.data ?? []);
@@ -543,6 +554,8 @@ export function HomePage() {
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [quickLogSeedCategoryId, setQuickLogSeedCategoryId] = useState<string | null>(null);
   const [quickLogMode, setQuickLogMode] = useState<"log" | "note">("log");
+  const [promptSaving, setPromptSaving] = useState(false);
+  const [promptNote, setPromptNote] = useState("");
   const dragPointerIdRef = useRef<number | null>(null);
   const reorderItemByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const onboardingDone = useMemo(() => {
@@ -677,6 +690,15 @@ export function HomePage() {
     }
     return out;
   }, [categories, titleById]);
+  const scheduledPrompts = useMemo(
+    () => (privacy.mode === "local" ? [] : (((scheduledPromptsQuery.data ?? []) as ScheduledPrompt[]) ?? [])),
+    [privacy.mode, scheduledPromptsQuery.data],
+  );
+  const activePrompt = scheduledPrompts[0] ?? null;
+  const activePromptCategory = useMemo(
+    () => (activePrompt ? categories.find((c) => c.id === activePrompt.categoryId) ?? null : null),
+    [activePrompt, categories],
+  );
 
   function openQuickLog(seedCategoryId: string | null) {
     setQuickLogMode("log");
@@ -851,6 +873,32 @@ export function HomePage() {
     }
   }
 
+  async function submitScheduledPrompt(status: "went" | "missed" | "cancelled"): Promise<void> {
+    if (!activePrompt || !activePromptCategory) return;
+    if (promptSaving) return;
+    setPromptSaving(true);
+    try {
+      const amount = status === "went" ? 1 : 0;
+      const note = promptNote.trim();
+      await createEvent({
+        categoryId: activePromptCategory.id,
+        amount,
+        occurredOn: activePrompt.scheduledOn,
+        occurredAt: activePrompt.scheduledAt,
+        scheduledStatus: status,
+        ...(note ? { note } : {}),
+        ...(privacy.mode === "encrypted" ? {} : { rawText: `${displayTitleById[activePromptCategory.id] ?? activePromptCategory.title} ${status}` }),
+      } as any);
+      setPromptNote("");
+      await Promise.all([
+        categoriesQuery.refetch(),
+        scheduledPromptsQuery.refetch(),
+      ]);
+    } finally {
+      setPromptSaving(false);
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 pt-6 pb-24 sm:pb-6">
       <CoachCard
@@ -860,6 +908,55 @@ export function HomePage() {
         onQuickAdd={(id) => openQuickLog(id)}
         enabled={nextUpEnabled}
       />
+
+      {activePrompt && activePromptCategory ? (
+        <div className="card mb-4 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-neutral-950 dark:text-neutral-100">Scheduled check-in</div>
+              <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                Did this happen?
+              </div>
+            </div>
+            <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+              {activePrompt.scheduledTime ? `${activePrompt.scheduledOn} ${activePrompt.scheduledTime}` : activePrompt.scheduledOn}
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
+            <div
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+              style={{ borderColor: resolveAccentForTheme(activePromptCategory.accentHex, theme.isDark) ?? activePromptCategory.accentHex }}
+              aria-hidden="true"
+            >
+              <div className="text-lg leading-none">{activePromptCategory.emoji ?? ""}</div>
+            </div>
+            <div className="min-w-0 truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">
+              {displayTitleById[activePromptCategory.id] ?? activePromptCategory.title}
+            </div>
+          </div>
+
+          <input
+            value={promptNote}
+            onChange={(e) => setPromptNote(e.target.value)}
+            placeholder="Optional note"
+            className="mt-3 block h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+            disabled={promptSaving}
+          />
+
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <Button className="h-10" onClick={() => submitScheduledPrompt("went")} disabled={promptSaving}>
+              Went
+            </Button>
+            <Button variant="ghost" className="h-10" onClick={() => submitScheduledPrompt("missed")} disabled={promptSaving}>
+              Didn’t go
+            </Button>
+            <Button variant="ghost" className="h-10" onClick={() => submitScheduledPrompt("cancelled")} disabled={promptSaving}>
+              Cancelled
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">

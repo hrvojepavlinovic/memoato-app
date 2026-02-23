@@ -2,6 +2,7 @@ import { Category } from "wasp/entities";
 import { HttpError } from "wasp/server";
 import {
   type GetCategories,
+  type GetScheduledPrompts,
   type GetCategorySeries,
   type GetCategoryLineSeries,
   type GetCategoryEvents,
@@ -17,6 +18,7 @@ import type {
   Period,
   SeriesBucket,
 } from "./types";
+import { buildScheduledDateTime, dateOnlyIso, normalizeCategorySchedule, scheduleAppliesToDate } from "./schedule";
 
 function slugifyTitle(title: string): string {
   const s = title
@@ -115,6 +117,10 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       goalValue: true,
       fieldsSchema: true,
       rollupToActiveKcal: true,
+      scheduleEnabled: true,
+      scheduleType: true,
+      scheduleDays: true,
+      scheduleTime: true,
     },
     orderBy: [{ title: "asc" }],
   });
@@ -345,6 +351,12 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     const recentAmt = recentAmountByCategory.get(c.id);
     const recentAvgAmount30d = recentAmt && recentAmt.count > 0 ? recentAmt.sum / recentAmt.count : null;
     const recentLastAmount30d = recentAmt?.lastAmount ?? null;
+    const schedule = normalizeCategorySchedule({
+      enabled: c.scheduleEnabled === true,
+      type: c.scheduleType,
+      days: c.scheduleDays,
+      time: c.scheduleTime,
+    });
 
     return {
       id: c.id,
@@ -364,6 +376,10 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       goalValue: c.goalValue ?? null,
       fieldsSchema: safeFieldsSchema(c.fieldsSchema),
       rollupToActiveKcal: c.rollupToActiveKcal === true,
+      scheduleEnabled: schedule.enabled,
+      scheduleType: schedule.type,
+      scheduleDays: schedule.days,
+      scheduleTime: schedule.time,
       todayCount: windowCount(dayStats, c.id),
       thisWeekCount: windowCount(weekStats, c.id),
       thisMonthCount: windowCount(monthStats, c.id),
@@ -532,6 +548,101 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
   });
 
   return result;
+};
+
+type ScheduledPromptItem = {
+  key: string;
+  categoryId: string;
+  scheduledOn: string;
+  scheduledAt: string;
+  scheduledTime: string | null;
+};
+
+export const getScheduledPrompts: GetScheduledPrompts<void, ScheduledPromptItem[]> = async (
+  _args,
+  context,
+) => {
+  if (!context.user) throw new HttpError(401);
+
+  const userId = context.user.id;
+  const now = new Date();
+  const today = startOfDay(now);
+  const fromDay = addDays(today, -2);
+  const toDayExclusive = addDays(today, 1);
+
+  const scheduledCategories = await context.entities.Category.findMany({
+    where: {
+      userId,
+      sourceArchivedAt: null,
+      scheduleEnabled: true,
+      categoryType: { in: ["DO", "DONT"] },
+    } as any,
+    select: {
+      id: true,
+      scheduleEnabled: true,
+      scheduleType: true,
+      scheduleDays: true,
+      scheduleTime: true,
+    },
+    orderBy: [{ title: "asc" }],
+  });
+
+  if (scheduledCategories.length === 0) return [];
+
+  const categoryIds = scheduledCategories.map((c) => String(c.id));
+  const existing = await context.entities.Event.findMany({
+    where: {
+      userId,
+      kind: "SESSION",
+      categoryId: { in: categoryIds },
+      occurredOn: { gte: fromDay, lt: toDayExclusive },
+    },
+    select: { categoryId: true, occurredOn: true },
+    take: 2000,
+  });
+
+  const loggedSet = new Set<string>();
+  for (const ev of existing) {
+    if (!ev.categoryId) continue;
+    const day = ev.occurredOn instanceof Date ? ev.occurredOn : new Date(ev.occurredOn as any);
+    if (Number.isNaN(day.getTime())) continue;
+    loggedSet.add(`${ev.categoryId}:${dateOnlyIso(day)}`);
+  }
+
+  const prompts: ScheduledPromptItem[] = [];
+  for (const c of scheduledCategories) {
+    const schedule = normalizeCategorySchedule({
+      enabled: c.scheduleEnabled === true,
+      type: (c as any).scheduleType ?? null,
+      days: (c as any).scheduleDays ?? null,
+      time: (c as any).scheduleTime ?? null,
+    });
+    if (!schedule.enabled) continue;
+
+    for (let offset = 2; offset >= 0; offset -= 1) {
+      const day = addDays(today, -offset);
+      if (!scheduleAppliesToDate(schedule, day)) continue;
+      const iso = dateOnlyIso(day);
+      if (loggedSet.has(`${c.id}:${iso}`)) continue;
+      const dueAt = buildScheduledDateTime(day, schedule.time);
+      if (dueAt.getTime() > now.getTime()) continue;
+      prompts.push({
+        key: `${c.id}:${iso}`,
+        categoryId: c.id,
+        scheduledOn: iso,
+        scheduledAt: dueAt.toISOString(),
+        scheduledTime: schedule.time,
+      });
+    }
+  }
+
+  prompts.sort((a, b) => {
+    const ta = new Date(a.scheduledAt).getTime();
+    const tb = new Date(b.scheduledAt).getTime();
+    return ta - tb;
+  });
+
+  return prompts.slice(0, 5);
 };
 
 type GetCategorySeriesArgs = {

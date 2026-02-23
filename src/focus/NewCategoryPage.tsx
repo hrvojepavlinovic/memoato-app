@@ -39,7 +39,21 @@ type CategoryTemplateItem = {
   accentHex: string;
   emoji: string | null;
   fieldsSchema?: any | null;
+  scheduleEnabled?: boolean | null;
+  scheduleType?: "daily" | "weekly" | null;
+  scheduleDays?: number[] | null;
+  scheduleTime?: string | null;
 };
+
+const weekdayOptions: Array<{ value: number; label: string }> = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
+];
 
 function SelectChevron({ disabled }: { disabled?: boolean }) {
   return (
@@ -75,6 +89,10 @@ export function NewCategoryPage() {
   const [accentHex, setAccentHex] = useState("#0A0A0A");
   const [accentHexInput, setAccentHexInput] = useState("#0A0A0A");
   const [emoji, setEmoji] = useState("");
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleType, setScheduleType] = useState<"daily" | "weekly">("weekly");
+  const [scheduleDays, setScheduleDays] = useState<number[]>([new Date().getDay()]);
+  const [scheduleTime, setScheduleTime] = useState("");
   const [fieldsSchema, setFieldsSchema] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -84,6 +102,18 @@ export function NewCategoryPage() {
     effectiveChartType === "bar" ? barAgg : lineAgg;
   const needsPeriod = effectiveChartType !== "line";
   const hint = useMemo(() => typeOptions.find((o) => o.value === categoryType)?.hint, [categoryType]);
+  const canSchedule = categoryType === "DO" || categoryType === "DONT";
+
+  function toggleScheduleDay(day: number) {
+    setScheduleDays((prev) => {
+      const exists = prev.includes(day);
+      if (exists) {
+        if (prev.length <= 1) return prev;
+        return prev.filter((d) => d !== day);
+      }
+      return [...prev, day].sort((a, b) => a - b);
+    });
+  }
 
   function normalizeHexInput(s: string): string | null {
     const m = /^#([0-9a-fA-F]{6})$/.exec(s.trim());
@@ -119,6 +149,16 @@ export function NewCategoryPage() {
     setGoalDirection(dir === "at_most" || dir === "target" ? dir : "at_least");
     setUnit(t.unit ?? "");
     setEmoji(t.emoji ?? "");
+    setScheduleEnabled(t.scheduleEnabled === true);
+    setScheduleType(t.scheduleType === "daily" ? "daily" : "weekly");
+    setScheduleDays(
+      Array.isArray(t.scheduleDays) && t.scheduleDays.length > 0
+        ? Array.from(new Set(t.scheduleDays.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))).sort(
+            (a, b) => a - b,
+          )
+        : [new Date().getDay()],
+    );
+    setScheduleTime(typeof t.scheduleTime === "string" ? t.scheduleTime : "");
     const hex = normalizeHexInput(t.accentHex) ?? "#0A0A0A";
     setAccentHex(hex);
     setAccentHexInput(hex);
@@ -148,6 +188,14 @@ export function NewCategoryPage() {
       window.alert("Goal value must be a number.");
       return;
     }
+    if (canSchedule && scheduleEnabled && scheduleType === "weekly" && scheduleDays.length === 0) {
+      window.alert("Pick at least one day.");
+      return;
+    }
+    if (canSchedule && scheduleEnabled && scheduleTime.trim() !== "" && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(scheduleTime.trim())) {
+      window.alert("Time must be in HH:mm format.");
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -167,6 +215,10 @@ export function NewCategoryPage() {
           bucketAggregation,
           goalDirection,
           fieldsSchema,
+          scheduleEnabled: canSchedule ? scheduleEnabled : false,
+          scheduleType: canSchedule && scheduleEnabled ? scheduleType : null,
+          scheduleDays: canSchedule && scheduleEnabled && scheduleType === "weekly" ? scheduleDays : null,
+          scheduleTime: canSchedule && scheduleEnabled && scheduleTime.trim() ? scheduleTime.trim() : null,
         });
         navigate(`/c/${created.slug ?? created.id}`);
         return;
@@ -194,6 +246,10 @@ export function NewCategoryPage() {
         accentHex: cleanHex,
         emoji: emoji.trim() || undefined,
         fieldsSchema: fieldsSchema ?? undefined,
+        scheduleEnabled: canSchedule ? scheduleEnabled : false,
+        scheduleType: canSchedule && scheduleEnabled ? scheduleType : null,
+        scheduleDays: canSchedule && scheduleEnabled && scheduleType === "weekly" ? scheduleDays : undefined,
+        scheduleTime: canSchedule && scheduleEnabled && scheduleTime.trim() ? scheduleTime.trim() : undefined,
       } as any);
       navigate(`/c/${(created as any).slug ?? created.id}`);
     } finally {
@@ -291,6 +347,74 @@ export function NewCategoryPage() {
               <SelectChevron disabled={!needsPeriod} />
             </div>
           </label>
+
+          {canSchedule ? (
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900/30 sm:col-span-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Schedule (optional)</div>
+                <label className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={scheduleEnabled}
+                    onChange={(e) => setScheduleEnabled(e.target.checked)}
+                  />
+                  Enable
+                </label>
+              </div>
+              {scheduleEnabled ? (
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="label">Frequency</span>
+                    <div className="relative">
+                      <select
+                        value={scheduleType}
+                        onChange={(e) => setScheduleType(e.target.value as "daily" | "weekly")}
+                        className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                      >
+                        <option value="weekly">Weekly</option>
+                        <option value="daily">Daily</option>
+                      </select>
+                      <SelectChevron />
+                    </div>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="label">Time (optional)</span>
+                    <input
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                      className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
+                    />
+                  </label>
+                  {scheduleType === "weekly" ? (
+                    <div className="sm:col-span-2">
+                      <span className="label">Days</span>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {weekdayOptions.map((day) => {
+                          const active = scheduleDays.includes(day.value);
+                          return (
+                            <button
+                              key={day.value}
+                              type="button"
+                              onClick={() => toggleScheduleDay(day.value)}
+                              className={
+                                "rounded-full border px-3 py-1.5 text-xs font-semibold " +
+                                (active
+                                  ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
+                                  : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300 dark:hover:bg-neutral-800")
+                              }
+                            >
+                              {day.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {categoryType === "NUMBER" ? (
             <label className="flex flex-col gap-1">

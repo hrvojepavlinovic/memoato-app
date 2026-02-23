@@ -1018,6 +1018,7 @@ export function QuickLogDialog({
     if (privacy.mode === "local") return;
     const queryClient = await queryClientInitialized;
     await queryClient.invalidateQueries({ queryKey: ["operations/get-categories"] });
+    await queryClient.invalidateQueries({ queryKey: ["operations/get-scheduled-prompts"] });
   }
 
   const createSuggestion = React.useMemo(() => {

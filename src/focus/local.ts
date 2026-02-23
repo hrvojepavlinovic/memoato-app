@@ -8,6 +8,7 @@ import type {
   BucketAggregation,
   GoalDirection,
 } from "./types";
+import { normalizeCategorySchedule } from "./schedule";
 
 export type LocalCategory = {
   id: string;
@@ -28,6 +29,10 @@ export type LocalCategory = {
   goalValue: number | null;
   fieldsSchema?: any | null;
   rollupToActiveKcal?: boolean;
+  scheduleEnabled?: boolean;
+  scheduleType?: "daily" | "weekly" | null;
+  scheduleDays?: number[] | null;
+  scheduleTime?: string | null;
   sourceArchivedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -188,7 +193,31 @@ function getBucketCount(period: Period): number {
   return 6;
 }
 
-function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Date } {
+function parseOccurred(args: { occurredOn?: string; occurredAt?: string | null }): { occurredAt: Date; occurredOn: Date } {
+  const { occurredOn, occurredAt } = args;
+  if (typeof occurredAt === "string" && occurredAt.trim().length > 0) {
+    const at = new Date(occurredAt);
+    if (Number.isNaN(at.getTime())) {
+      throw new Error("Invalid date/time.");
+    }
+    const on = new Date(at);
+    on.setHours(0, 0, 0, 0);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (on.getTime() > startOfToday.getTime()) {
+      throw new Error("Future dates are not allowed.");
+    }
+    if (occurredOn) {
+      const [yy, mm, dd] = occurredOn.split("-").map((x) => Number(x));
+      const explicitOn = new Date(yy, mm - 1, dd);
+      explicitOn.setHours(0, 0, 0, 0);
+      if (explicitOn.getTime() !== on.getTime()) {
+        throw new Error("Date and time are not on the same day.");
+      }
+    }
+    return { occurredAt: at, occurredOn: on };
+  }
+
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   const todayIso = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
@@ -424,6 +453,12 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
     const recentAmt = recentAmountByCategory.get(c.id);
     const recentAvgAmount30d = recentAmt && recentAmt.count > 0 ? recentAmt.sum / recentAmt.count : null;
     const recentLastAmount30d = recentAmt?.lastAmount ?? null;
+    const schedule = normalizeCategorySchedule({
+      enabled: (c as any).scheduleEnabled === true,
+      type: (c as any).scheduleType ?? null,
+      days: (c as any).scheduleDays ?? null,
+      time: (c as any).scheduleTime ?? null,
+    });
 
     return {
       id: c.id,
@@ -443,6 +478,10 @@ export async function localGetCategoriesWithStats(userId: string): Promise<Categ
       goalValue: c.goalValue ?? null,
       fieldsSchema: (c as any).fieldsSchema ?? null,
       rollupToActiveKcal: (c as any).rollupToActiveKcal === true,
+      scheduleEnabled: schedule.enabled,
+      scheduleType: schedule.type,
+      scheduleDays: schedule.days,
+      scheduleTime: schedule.time,
       todayCount: counts.day.get(c.id) ?? 0,
       thisWeekCount: counts.week.get(c.id) ?? 0,
       thisMonthCount: counts.month.get(c.id) ?? 0,
@@ -586,6 +625,10 @@ export async function localCreateCategory(args: {
   isSystem?: boolean | null;
   fieldsSchema?: any | null;
   rollupToActiveKcal?: boolean | null;
+  scheduleEnabled?: boolean | null;
+  scheduleType?: "daily" | "weekly" | null;
+  scheduleDays?: number[] | null;
+  scheduleTime?: string | null;
 }): Promise<Pick<CategoryWithStats, "id" | "slug">> {
   const db = await openDb();
   const now = new Date().toISOString();
@@ -614,6 +657,16 @@ export async function localCreateCategory(args: {
   const unitLower = (args.unit ?? "").trim().toLowerCase();
   const inferredRollup = unitLower === "kcal" && cleanTitle.trim().toLowerCase() !== "active kcal";
   const rollupToActiveKcal = args.rollupToActiveKcal != null ? args.rollupToActiveKcal === true : inferredRollup;
+  const schedule = normalizeCategorySchedule({
+    enabled: args.scheduleEnabled === true,
+    type: args.scheduleType ?? null,
+    days: args.scheduleDays ?? null,
+    time: args.scheduleTime ?? null,
+  });
+  const scheduleForCategory =
+    args.categoryType === "DO" || args.categoryType === "DONT"
+      ? schedule
+      : { enabled: false, type: null, days: null, time: null };
 
   const record: LocalCategory = {
     id,
@@ -633,6 +686,10 @@ export async function localCreateCategory(args: {
     goalValue: chartType === "line" ? args.goalValue ?? null : null,
     fieldsSchema: args.fieldsSchema ?? null,
     rollupToActiveKcal,
+    scheduleEnabled: scheduleForCategory.enabled,
+    scheduleType: scheduleForCategory.type,
+    scheduleDays: scheduleForCategory.days,
+    scheduleTime: scheduleForCategory.time,
     sourceArchivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -663,6 +720,10 @@ export async function localUpdateCategory(args: {
   goalDirection?: GoalDirection | null;
   rollupToActiveKcal?: boolean | null;
   fieldsSchema?: any | null;
+  scheduleEnabled?: boolean | null;
+  scheduleType?: "daily" | "weekly" | null;
+  scheduleDays?: number[] | null;
+  scheduleTime?: string | null;
 }): Promise<void> {
   const db = await openDb();
   const now = new Date().toISOString();
@@ -676,6 +737,16 @@ export async function localUpdateCategory(args: {
 
   const chartType: CategoryChartType = args.chartType ?? (args.categoryType === "GOAL" ? "line" : "bar");
   const needsPeriod = chartType !== "line";
+  const schedule = normalizeCategorySchedule({
+    enabled: args.scheduleEnabled ?? (existing as any).scheduleEnabled === true,
+    type: args.scheduleType ?? (existing as any).scheduleType ?? null,
+    days: args.scheduleDays ?? (existing as any).scheduleDays ?? null,
+    time: args.scheduleTime ?? (existing as any).scheduleTime ?? null,
+  });
+  const scheduleForCategory =
+    args.categoryType === "DO" || args.categoryType === "DONT"
+      ? schedule
+      : { enabled: false, type: null, days: null, time: null };
   const updated: LocalCategory = {
     ...existing,
     title: args.title.trim(),
@@ -691,6 +762,10 @@ export async function localUpdateCategory(args: {
     goalWeekly: needsPeriod ? args.goal ?? null : null,
     goalValue: chartType === "line" ? args.goalValue ?? null : null,
     fieldsSchema: args.fieldsSchema ?? (existing as any).fieldsSchema ?? null,
+    scheduleEnabled: scheduleForCategory.enabled,
+    scheduleType: scheduleForCategory.type,
+    scheduleDays: scheduleForCategory.days,
+    scheduleTime: scheduleForCategory.time,
     rollupToActiveKcal: (() => {
       if (args.rollupToActiveKcal != null) return args.rollupToActiveKcal === true;
       const titleLower = args.title.trim().toLowerCase();
@@ -745,17 +820,19 @@ export async function localDeleteCategory(args: { userId: string; categoryId: st
 export async function localCreateEvent(args: {
   userId: string;
   categoryId: string;
-  amount: number;
+  amount?: number | null;
   occurredOn?: string;
+  occurredAt?: string | null;
   duration?: number | null;
   fields?: Record<string, number | string> | null;
   note?: string | null;
   noteEnc?: any | null;
   rawText?: string | null;
+  scheduledStatus?: "went" | "missed" | "cancelled" | null;
 }): Promise<void> {
   const db = await openDb();
   const nowIso = new Date().toISOString();
-  const { occurredAt, occurredOn } = parseOccurred(args.occurredOn);
+  const { occurredAt, occurredOn } = parseOccurred({ occurredOn: args.occurredOn, occurredAt: args.occurredAt });
 
   const id = crypto.randomUUID();
   const nextData: Record<string, unknown> = {};
@@ -786,12 +863,18 @@ export async function localCreateEvent(args: {
     const clean = args.note.trim();
     nextData.note = clean.length > 0 ? clean : null;
   }
+  const status = (args.scheduledStatus ?? "").trim().toLowerCase();
+  if (status === "went" || status === "missed" || status === "cancelled") {
+    nextData.scheduledStatus = status;
+  }
+  const resolvedAmount =
+    typeof args.amount === "number" && Number.isFinite(args.amount) ? args.amount : status === "missed" || status === "cancelled" ? 0 : 1;
   const record: LocalEvent = {
     id,
     userId: args.userId,
     kind: "SESSION",
     categoryId: args.categoryId,
-    amount: args.amount,
+    amount: resolvedAmount,
     duration: cleanDuration,
     rawText: typeof args.rawText === "string" && args.rawText.trim() ? args.rawText.trim() : null,
     occurredAt: occurredAt.toISOString(),

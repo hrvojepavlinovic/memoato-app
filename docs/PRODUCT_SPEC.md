@@ -45,6 +45,9 @@ Memoato is also evolving toward structured journal logs:
     - `bucketAggregation`: `sum` | `avg` | `last` (bar charts use `sum`/`avg`. Line charts use `last`/`avg`).
   - Derived rollups:
     - `rollupToActiveKcal` marks kcal categories that should contribute to the Active kcal rollup
+  - Optional schedule metadata for simple trackers:
+    - `scheduleEnabled`, `scheduleType` (`daily` | `weekly`), `scheduleDays` (0-6), `scheduleTime` (`HH:mm`)
+    - Best fit for `DO`/`DONT` categories where amount can default to 1
   - Optional manual ordering:
     - `sortOrder` is used by the Home dashboard when the user sets a custom order (drag-and-drop reorder mode).
     - New categories created after a custom order is set appear at the bottom until reordered (or the order is reset).
@@ -63,6 +66,9 @@ Memoato is also evolving toward structured journal logs:
     - `duration` (minutes) can be captured as a structured field for time bound sessions
   - Constraints:
     - The UI prevents selecting future dates for `occurredAt`.
+  - Scheduled state metadata:
+    - `data.scheduledStatus` can be `went`, `missed`, `cancelled`, or `pending` (timeline synthetic state)
+    - For scheduled simple tracking, amount defaults to `1` for `went` and `0` for `missed`/`cancelled`
 
 ## Default categories & goals
 
@@ -110,6 +116,15 @@ Home can optionally show a “Next up” card with up to 3 suggestions for goal-
 - Value-based categories (line chart, e.g. weight) are not suggested again after you already logged them today.
 - Each suggestion includes a quick add button that opens the add-entry modal for that category.
 
+### Scheduled check-ins
+
+Home also shows a sequential scheduled check-in card when due events are not logged:
+
+- It asks if the event happened for overdue scheduled categories
+- Actions are `Went`, `Didn’t go`, and `Cancelled`
+- Optional note can be saved with the response
+- The queue advances to the next overdue item after each response
+
 ## Onboarding (first run)
 
 When a user has no non-system categories, Memoato opens an onboarding screen:
@@ -122,8 +137,10 @@ When a user has no non-system categories, Memoato opens an onboarding screen:
 
 - Header: accent circle with emoji, title (capitalized), edit button (visible on desktop/mobile), and summary text (`Last: 95 kg · Goal 85 kg`, or `This week 194 / 300`).
 - Add entry form:
-  - Date+time (`datetime-local`) defaults to current timestamp (not just today) and allows manual editing of date/time.
-  - Amount input accepts decimals with dot or comma.
+  - Numeric/value categories use date + amount entry.
+  - Simple tracking categories (`DO`/`DONT`) use date-only quick add with no required amount.
+  - Scheduled simple tracking adds explicit states: `Went`, `Didn’t go`, `Cancelled`.
+  - Amount input accepts decimals with dot or comma for numeric categories.
   - Add button uses black background with white text, aligned to inputs.
   - Optionally show current week summary at the top of the card.
 - Charts:
@@ -176,6 +193,12 @@ Memoato supports three privacy/storage modes (set in **Profile → Privacy**):
 1. **Cloud sync (default)**: data is stored normally to power charts/history and support multi-device access.
 2. **Encrypted cloud**: **category titles** and **per-entry notes** are encrypted client-side before saving to the DB. Users unlock with a passphrase per device (passphrase is never stored).
 3. **Local-only**: categories and entries are stored on-device (IndexedDB). Switching to local-only wipes server categories/events for that account.
+
+## Timeline behavior
+
+- Timeline can include scheduled pending items before they happen on that day
+- Scheduled rows display state (`Pending`, `Went`, `Didn’t go`, `Cancelled`) instead of numeric totals when relevant
+- Notes keep per-note timestamps in the timeline list
 
 ## Analytics & PWA
 

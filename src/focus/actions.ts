@@ -1,5 +1,6 @@
 import { Category, Event } from "wasp/entities";
 import { HttpError } from "wasp/server";
+import { normalizeCategorySchedule, normalizeScheduleTime } from "./schedule";
 import {
   type CreateEvent,
   type CreateCategory,
@@ -199,14 +200,14 @@ async function applyKnownCategoryDefaults(
     },
     padel: {
       chartType: "bar",
-      categoryType: "NUMBER",
+      categoryType: "DO",
       period: "week",
       accentHex: "#22C55E",
       emoji: "🎾",
     },
     football: {
       chartType: "bar",
-      categoryType: "NUMBER",
+      categoryType: "DO",
       period: "week",
       accentHex: "#A855F7",
       emoji: "⚽",
@@ -345,6 +346,10 @@ type CreateCategoryArgs = {
       }>
     | null;
   rollupToActiveKcal?: boolean | null;
+  scheduleEnabled?: boolean | null;
+  scheduleType?: "daily" | "weekly" | null;
+  scheduleDays?: number[] | null;
+  scheduleTime?: string | null;
 };
 
 function normalizeHex(s: string): string {
@@ -403,7 +408,25 @@ function normalizeFieldsSchemaInput(
 }
 
 export const createCategory: CreateCategory<CreateCategoryArgs, Category> = async (
-  { title, categoryType, chartType, bucketAggregation, goalDirection, period, unit, goal, goalValue, accentHex, emoji, fieldsSchema, rollupToActiveKcal },
+  {
+    title,
+    categoryType,
+    chartType,
+    bucketAggregation,
+    goalDirection,
+    period,
+    unit,
+    goal,
+    goalValue,
+    accentHex,
+    emoji,
+    fieldsSchema,
+    rollupToActiveKcal,
+    scheduleEnabled,
+    scheduleType,
+    scheduleDays,
+    scheduleTime,
+  },
   context,
 ) => {
   if (!context.user) {
@@ -424,6 +447,22 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
   const cleanAgg = normalizeBucketAggregation(bucketAggregation, cleanChartType);
   const cleanDir = normalizeGoalDirection(goalDirection);
   const cleanFieldsSchema = normalizeFieldsSchemaInput(fieldsSchema);
+  const baseSchedule = normalizeCategorySchedule({
+    enabled: scheduleEnabled === true,
+    type: scheduleType,
+    days: scheduleDays,
+    time: scheduleTime,
+  });
+  const cleanSchedule =
+    categoryType === "DO" || categoryType === "DONT"
+      ? baseSchedule
+      : { enabled: false, type: null, days: null, time: null };
+  if (cleanSchedule.enabled && cleanSchedule.type === "weekly" && (!cleanSchedule.days || cleanSchedule.days.length === 0)) {
+    throw new HttpError(400, "Pick at least one day for a weekly schedule.");
+  }
+  if (scheduleTime != null && scheduleTime !== "" && !normalizeScheduleTime(scheduleTime)) {
+    throw new HttpError(400, "Schedule time must be in HH:mm format.");
+  }
   const wantsRollup = rollupToActiveKcal === true;
   const inferredRollup =
     cleanUnit.trim().toLowerCase() === "kcal" && titleKey(cleanTitle) !== "active kcal";
@@ -467,6 +506,10 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
       goalValue: cleanChartType === "line" && goalValue != null ? goalValue : null,
       fieldsSchema: cleanFieldsSchema,
       rollupToActiveKcal: cleanRollupToActiveKcal,
+      scheduleEnabled: cleanSchedule.enabled,
+      scheduleType: cleanSchedule.type,
+      scheduleDays: cleanSchedule.days as any,
+      scheduleTime: cleanSchedule.time,
       kind: categoryType === "DO" || categoryType === "DONT" ? "count" : "amount",
       type: "Simple",
       createdAt: new Date(),
@@ -489,6 +532,10 @@ type UpdateCategoryArgs = {
   emoji?: string;
   fieldsSchema?: CreateCategoryArgs["fieldsSchema"];
   rollupToActiveKcal?: boolean | null;
+  scheduleEnabled?: boolean | null;
+  scheduleType?: "daily" | "weekly" | null;
+  scheduleDays?: number[] | null;
+  scheduleTime?: string | null;
 };
 
 export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = async (
@@ -507,6 +554,10 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
     emoji,
     fieldsSchema,
     rollupToActiveKcal,
+    scheduleEnabled,
+    scheduleType,
+    scheduleDays,
+    scheduleTime,
   },
   context,
 ) => {
@@ -517,7 +568,17 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
   const userId = context.user.id;
   const existing = await context.entities.Category.findFirst({
     where: { id: categoryId, userId, sourceArchivedAt: null },
-    select: { id: true, slug: true, unit: true, fieldsSchema: true, rollupToActiveKcal: true },
+    select: {
+      id: true,
+      slug: true,
+      unit: true,
+      fieldsSchema: true,
+      rollupToActiveKcal: true,
+      scheduleEnabled: true,
+      scheduleType: true,
+      scheduleDays: true,
+      scheduleTime: true,
+    },
   });
   if (!existing) {
     throw new HttpError(404, "Category not found");
@@ -538,6 +599,22 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
   const cleanDir = normalizeGoalDirection(goalDirection);
   const cleanFieldsSchema =
     fieldsSchema === undefined ? (existing as any).fieldsSchema ?? null : normalizeFieldsSchemaInput(fieldsSchema);
+  const baseSchedule = normalizeCategorySchedule({
+    enabled: scheduleEnabled ?? (existing as any).scheduleEnabled === true,
+    type: scheduleType ?? (existing as any).scheduleType ?? null,
+    days: scheduleDays ?? (existing as any).scheduleDays ?? null,
+    time: scheduleTime ?? (existing as any).scheduleTime ?? null,
+  });
+  const cleanSchedule =
+    categoryType === "DO" || categoryType === "DONT"
+      ? baseSchedule
+      : { enabled: false, type: null, days: null, time: null };
+  if (cleanSchedule.enabled && cleanSchedule.type === "weekly" && (!cleanSchedule.days || cleanSchedule.days.length === 0)) {
+    throw new HttpError(400, "Pick at least one day for a weekly schedule.");
+  }
+  if (scheduleTime != null && scheduleTime !== "" && !normalizeScheduleTime(scheduleTime)) {
+    throw new HttpError(400, "Schedule time must be in HH:mm format.");
+  }
 
   const needsPeriod = cleanChartType !== "line";
   if (needsPeriod && !period) {
@@ -586,6 +663,10 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
       goalValue: cleanChartType === "line" ? goalValue ?? null : null,
       fieldsSchema: cleanFieldsSchema as any,
       rollupToActiveKcal: cleanRollupToActiveKcal,
+      scheduleEnabled: cleanSchedule.enabled,
+      scheduleType: cleanSchedule.type,
+      scheduleDays: cleanSchedule.days as any,
+      scheduleTime: cleanSchedule.time,
       kind: categoryType === "DO" || categoryType === "DONT" ? "count" : "amount",
     } as any,
   });
@@ -709,16 +790,45 @@ export const resetCategoryOrder: ResetCategoryOrder<
 
 type CreateEventArgs = {
   categoryId: Category["id"];
-  amount: number;
+  amount?: number | null;
   occurredOn?: string; // YYYY-MM-DD
+  occurredAt?: string | null; // ISO or datetime-local
   duration?: number | null; // minutes
   fields?: Record<string, number | string> | null;
   note?: string | null;
   noteEnc?: any | null;
   rawText?: string | null;
+  scheduledStatus?: "went" | "missed" | "cancelled" | null;
 };
 
-function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Date } {
+function parseOccurred(args: { occurredOn?: string; occurredAt?: string | null }): { occurredAt: Date; occurredOn: Date } {
+  const { occurredOn, occurredAt } = args;
+  if (typeof occurredAt === "string" && occurredAt.trim().length > 0) {
+    const at = new Date(occurredAt);
+    if (Number.isNaN(at.getTime())) {
+      throw new HttpError(400, "Invalid date/time.");
+    }
+    const on = new Date(at);
+    on.setHours(0, 0, 0, 0);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (on.getTime() > startOfToday.getTime()) {
+      throw new HttpError(400, "Future dates are not allowed.");
+    }
+    if (occurredOn) {
+      const [yy, mm, dd] = occurredOn.split("-").map((x) => Number(x));
+      const explicitOn = new Date(yy, mm - 1, dd);
+      explicitOn.setHours(0, 0, 0, 0);
+      if (Number.isNaN(explicitOn.getTime())) {
+        throw new HttpError(400, "Invalid date.");
+      }
+      if (explicitOn.getTime() !== on.getTime()) {
+        throw new HttpError(400, "Date and time are not on the same day.");
+      }
+    }
+    return { occurredAt: at, occurredOn: on };
+  }
+
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   const todayIso = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
@@ -743,7 +853,7 @@ function parseOccurred(occurredOn?: string): { occurredAt: Date; occurredOn: Dat
 }
 
 export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
-  { categoryId, amount, occurredOn, duration, fields, note, noteEnc, rawText },
+  { categoryId, amount, occurredOn, occurredAt, duration, fields, note, noteEnc, rawText, scheduledStatus },
   context,
 ) => {
   if (!context.user) {
@@ -754,13 +864,34 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
 
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { title: true, unit: true },
+    select: { title: true, unit: true, categoryType: true },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
   }
 
-  const occurred = parseOccurred(occurredOn);
+  const normalizedStatus = (() => {
+    const s = (scheduledStatus ?? "").toString().trim().toLowerCase();
+    if (s === "went" || s === "missed" || s === "cancelled") return s;
+    return null;
+  })();
+  let resolvedAmount =
+    typeof amount === "number" && Number.isFinite(amount) ? amount : null;
+  if (resolvedAmount == null) {
+    if (category.categoryType === "DO" || category.categoryType === "DONT") {
+      resolvedAmount = normalizedStatus === "went" || normalizedStatus == null ? 1 : 0;
+    } else {
+      throw new HttpError(400, "Amount is required.");
+    }
+  }
+  if ((category.categoryType === "NUMBER" || category.categoryType === "GOAL") && !(resolvedAmount > 0)) {
+    throw new HttpError(400, "Enter a positive number.");
+  }
+  if (resolvedAmount < 0) {
+    throw new HttpError(400, "Amount can't be negative.");
+  }
+
+  const occurred = parseOccurred({ occurredOn, occurredAt });
   const unit = category.unit && category.unit !== "x" ? ` ${category.unit}` : "";
   const nextData: Record<string, unknown> = {};
   const cleanDuration =
@@ -790,16 +921,22 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
     const clean = note.trim();
     nextData.note = clean.length > 0 ? clean : null;
   }
+  if (normalizedStatus) {
+    nextData.scheduledStatus = normalizedStatus;
+  }
 
   const cleanRawText = typeof rawText === "string" ? rawText.trim() : "";
-  const fallbackRawText = `${category.title} ${amount}${unit}`;
+  const fallbackRawText =
+    normalizedStatus && (category.categoryType === "DO" || category.categoryType === "DONT")
+      ? `${category.title} ${normalizedStatus}`
+      : `${category.title} ${resolvedAmount}${unit}`;
   return context.entities.Event.create({
     data: {
       userId,
       source: "memoato",
       kind: "SESSION",
       categoryId,
-      amount,
+      amount: resolvedAmount,
       duration: cleanDuration ?? undefined,
       rawText: cleanRawText.length > 0 ? cleanRawText : fallbackRawText,
       occurredAt: occurred.occurredAt,

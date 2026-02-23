@@ -73,6 +73,10 @@ model Category {
   targetDuration Int?
   fieldsSchema   Json?
   rollupToActiveKcal Boolean @default(false)
+  scheduleEnabled Boolean @default(false)
+  scheduleType   String?
+  scheduleDays   Json?
+  scheduleTime   String?
 
   sourceCreatedAt  DateTime?
   sourceArchivedAt DateTime?
