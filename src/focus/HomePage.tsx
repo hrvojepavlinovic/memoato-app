@@ -1039,9 +1039,40 @@ export function HomePage() {
               </Button>
             </>
           ) : (
-            <Button size="sm" className="hidden h-10 px-4 sm:inline-flex" onClick={() => openQuickLog(null)}>
-              Log
-            </Button>
+            <>
+              <div className="flex items-center gap-2 sm:hidden">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-10 w-10 px-0"
+                  onClick={() => setOrderMode(true)}
+                  aria-label="Edit categories"
+                  title="Edit"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 6h18" />
+                    <path d="M3 12h18" />
+                    <path d="M3 18h18" />
+                  </svg>
+                </Button>
+                <ButtonLink
+                  to="/categories/new"
+                  size="sm"
+                  variant="ghost"
+                  className="h-10 w-10 px-0"
+                  aria-label="Add category"
+                  title="Add"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
+                </ButtonLink>
+              </div>
+              <Button size="sm" className="hidden h-10 px-4 sm:inline-flex" onClick={() => openQuickLog(null)}>
+                Log
+              </Button>
+            </>
           )}
         </div>
       </div>
