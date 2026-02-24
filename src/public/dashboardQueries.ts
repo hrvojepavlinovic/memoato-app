@@ -81,7 +81,7 @@ function normalizedUnit(u: unknown): string | null {
 
 function defaultChartTypeForCategoryType(v: unknown): CategoryChartType {
   if (v === "GOAL") return "line";
-  if (v === "DO" || v === "DONT") return "dot";
+  if (v === "DO" || v === "DONT") return "bar";
   return "bar";
 }
 

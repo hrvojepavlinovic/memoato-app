@@ -53,7 +53,6 @@ function normalizeDir(v: string | null, chartType: Template["chartType"]): "at_l
 function fmtTemplateMeta(t: Template): string {
   const parts: string[] = [];
   if (t.chartType === "line") parts.push("Line");
-  else if (t.chartType === "dot") parts.push(`Dots · ${t.period ?? "week"}`);
   else parts.push(`Bar · ${t.period ?? "week"}`);
 
   if (t.unit && t.unit !== "x") parts.push(t.unit);
@@ -189,18 +188,19 @@ export function OnboardingPage() {
         const existingTitles = new Set(existing.map((c) => titleKey(c.title)));
         for (const t of selected) {
           if (existingTitles.has(titleKey(t.title))) continue;
-          const needsPeriod = t.chartType !== "line";
+          const chartType = t.chartType === "line" ? "line" : "bar";
+          const needsPeriod = chartType !== "line";
           await localCreateCategory({
             userId: privacy.userId!,
             title: t.title,
             categoryType: t.categoryType,
-            chartType: t.chartType,
+            chartType,
             period: needsPeriod ? (t.period ?? "week") : undefined,
             unit: t.unit,
-            bucketAggregation: normalizeAgg(t.bucketAggregation, t.chartType),
-            goalDirection: normalizeDir(t.goalDirection, t.chartType),
+            bucketAggregation: normalizeAgg(t.bucketAggregation, chartType),
+            goalDirection: normalizeDir(t.goalDirection, chartType),
             goal: needsPeriod ? t.goalWeekly : null,
-            goalValue: t.chartType === "line" ? t.goalValue : null,
+            goalValue: chartType === "line" ? t.goalValue : null,
             accentHex: t.accentHex,
             emoji: t.emoji,
             fieldsSchema: t.fieldsSchema ?? null,
@@ -222,17 +222,18 @@ export function OnboardingPage() {
             titleToStore = await encryptUtf8ToEncryptedString(privacy.key!, privacy.cryptoParams!, t.title);
           }
 
-          const needsPeriod = t.chartType !== "line";
+          const chartType = t.chartType === "line" ? "line" : "bar";
+          const needsPeriod = chartType !== "line";
           await createCategory({
             title: titleToStore,
             categoryType: t.categoryType,
-            chartType: t.chartType,
-            bucketAggregation: normalizeAgg(t.bucketAggregation, t.chartType),
-            goalDirection: normalizeDir(t.goalDirection, t.chartType),
+            chartType,
+            bucketAggregation: normalizeAgg(t.bucketAggregation, chartType),
+            goalDirection: normalizeDir(t.goalDirection, chartType),
             period: needsPeriod ? (t.period ?? "week") : undefined,
             unit: t.unit ?? undefined,
             goal: needsPeriod ? (t.goalWeekly ?? undefined) : undefined,
-            goalValue: t.chartType === "line" ? (t.goalValue ?? undefined) : undefined,
+            goalValue: chartType === "line" ? (t.goalValue ?? undefined) : undefined,
             accentHex: t.accentHex,
             emoji: t.emoji ?? undefined,
             fieldsSchema: t.fieldsSchema ?? undefined,

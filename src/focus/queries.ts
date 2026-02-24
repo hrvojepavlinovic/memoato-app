@@ -8,6 +8,7 @@ import {
   type GetCategoryEvents,
 } from "wasp/server/operations";
 import type {
+  ContributionDay,
   CategoryChartType,
   CategoryEventItem,
   CategoryWithStats,
@@ -87,7 +88,7 @@ function normalizedUnit(u: unknown): string | null {
 
 function defaultChartTypeForCategoryType(v: unknown): CategoryChartType {
   if (v === "GOAL") return "line";
-  if (v === "DO" || v === "DONT") return "dot";
+  if (v === "DO" || v === "DONT") return "bar";
   return "bar";
 }
 
@@ -939,6 +940,59 @@ export const getCategoryLineSeries: GetCategoryLineSeries<
     startDate: toIsoDate(b.start),
     value: b.value,
   }));
+};
+
+type GetCategoryContributionsArgs = {
+  categoryId: string;
+};
+
+export const getCategoryContributions = async (
+  { categoryId }: GetCategoryContributionsArgs,
+  context: any,
+): Promise<ContributionDay[]> => {
+  if (!context.user) {
+    throw new HttpError(401);
+  }
+
+  const userId = context.user.id;
+  const category = await context.entities.Category.findFirst({
+    where: { id: categoryId, userId, sourceArchivedAt: null },
+    select: { id: true },
+  });
+  if (!category) {
+    throw new HttpError(404, "Category not found");
+  }
+
+  const DAYS = 52 * 7;
+  const today = startOfDay(new Date());
+  const start = addDays(today, -(DAYS - 1));
+  const end = addDays(today, 1);
+
+  const grouped = await context.entities.Event.groupBy({
+    by: ["occurredOn"],
+    where: {
+      userId,
+      categoryId,
+      kind: "SESSION",
+      occurredOn: { gte: start, lt: end },
+    },
+    _count: { _all: true },
+  });
+
+  const countByDate = new Map<string, number>();
+  for (const row of grouped as any[]) {
+    const on = row?.occurredOn instanceof Date ? row.occurredOn : new Date(row?.occurredOn);
+    if (Number.isNaN(on.getTime())) continue;
+    countByDate.set(toIsoDate(startOfDay(on)), Number((row?._count as any)?._all ?? 0));
+  }
+
+  const out: ContributionDay[] = [];
+  for (let i = 0; i < DAYS; i++) {
+    const d = addDays(start, i);
+    const iso = toIsoDate(d);
+    out.push({ date: iso, count: countByDate.get(iso) ?? 0 });
+  }
+  return out;
 };
 
 type GetCategoryEventsArgs = {

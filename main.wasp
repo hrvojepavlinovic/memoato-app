@@ -197,6 +197,11 @@ query getCategoryLineSeries {
   entities: [Event, Category]
 }
 
+query getCategoryContributions {
+  fn: import { getCategoryContributions } from "@src/focus/queries",
+  entities: [User, Event, Category]
+}
+
 query getCategoryEvents {
   fn: import { getCategoryEvents } from "@src/focus/queries",
   entities: [User, Event, Category]

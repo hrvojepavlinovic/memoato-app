@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createCategory, getCategoryTemplates, useQuery } from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
-import type { CategoryChartType, GoalDirection, Period } from "./types";
+import type { GoalDirection, Period } from "./types";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { encryptUtf8ToEncryptedString } from "../privacy/crypto";
 import { localCreateCategory } from "./local";
 
 type CategoryType = "NUMBER" | "DO" | "DONT";
-type ChartType = CategoryChartType;
+type ChartType = "bar" | "line";
 type BarAgg = "sum" | "avg";
 type LineAgg = "last" | "avg";
 
@@ -29,7 +29,7 @@ type CategoryTemplateItem = {
   key: string;
   title: string;
   categoryType: CategoryType;
-  chartType: ChartType;
+  chartType: ChartType | "dot";
   period: Period | null;
   unit: string | null;
   bucketAggregation: string | null;
@@ -71,7 +71,6 @@ function SelectChevron({ disabled }: { disabled?: boolean }) {
 }
 
 function defaultViewForType(categoryType: CategoryType): ChartType {
-  if (categoryType === "DO" || categoryType === "DONT") return "dot";
   return "bar";
 }
 
@@ -136,7 +135,7 @@ export function NewCategoryPage() {
 
     setTitle(t.title);
     setCategoryType(t.categoryType);
-    setChartType(t.chartType);
+    setChartType(t.chartType === "line" ? "line" : "bar");
     setFieldsSchema(t.fieldsSchema ?? null);
     if (t.chartType !== "line") {
       setPeriod(t.period ?? "week");
@@ -309,8 +308,6 @@ export function NewCategoryPage() {
                   setCategoryType(nextType);
                   if (nextType !== "NUMBER") {
                     setChartType(defaultViewForType(nextType));
-                  } else {
-                    setChartType((prev) => (prev === "dot" ? "bar" : prev));
                   }
                 }}
                 className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
@@ -335,7 +332,6 @@ export function NewCategoryPage() {
               >
                 <option value="bar">Bar</option>
                 <option value="line">Line</option>
-                <option value="dot">Dots</option>
               </select>
               <SelectChevron />
             </div>

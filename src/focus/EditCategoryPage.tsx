@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { deleteCategory, getCategories, updateCategory, useQuery } from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
-import type { GoalDirection, Period, BucketAggregation, CategoryChartType } from "./types";
+import type { GoalDirection, Period, BucketAggregation } from "./types";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
 import { encryptUtf8ToEncryptedString, isEncryptedString } from "../privacy/crypto";
 import { localDeleteCategory, localGetCategoriesWithStats, localUpdateCategory } from "./local";
 
 type CategoryType = "NUMBER" | "DO" | "DONT";
-type ChartType = CategoryChartType;
+type ChartType = "bar" | "line";
 type BarAgg = Extract<BucketAggregation, "sum" | "avg">;
 type LineAgg = Extract<BucketAggregation, "last" | "avg">;
 type FieldType = "number" | "text";
@@ -47,7 +47,6 @@ const periodOptions: { value: Period; label: string }[] = [
 
 function defaultViewForType(categoryType: CategoryType | "GOAL"): ChartType {
   if (categoryType === "GOAL") return "line";
-  if (categoryType === "DO" || categoryType === "DONT") return "dot";
   return "bar";
 }
 
@@ -108,8 +107,7 @@ export function EditCategoryPage() {
     setTitle(category.title ?? "");
     setCategoryType((category.categoryType === "GOAL" ? "NUMBER" : (category.categoryType as CategoryType)) ?? "NUMBER");
     setPeriod((category.period as Period) ?? "week");
-    const nextChartType =
-      (category.chartType as ChartType) ?? defaultViewForType(category.categoryType as CategoryType | "GOAL");
+    const nextChartType = category.chartType === "line" ? "line" : "bar";
     setChartType(nextChartType);
     const agg = (category.bucketAggregation ?? "").toLowerCase();
     if (nextChartType !== "line") {
@@ -191,7 +189,7 @@ export function EditCategoryPage() {
       }
       return;
     }
-    // bar/dot
+    // bar
     if (goal.trim() === "" && goalValue.trim() !== "") {
       setGoal(goalValue);
       setGoalValue("");
@@ -370,8 +368,6 @@ export function EditCategoryPage() {
                 setCategoryType(nextType);
                 if (nextType !== "NUMBER") {
                   setChartType(defaultViewForType(nextType));
-                } else {
-                  setChartType((prev) => (prev === "dot" ? "bar" : prev));
                 }
               }}
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
@@ -393,7 +389,6 @@ export function EditCategoryPage() {
             >
               <option value="bar">Bar</option>
               <option value="line">Line</option>
-              <option value="dot">Dots</option>
             </select>
           </label>
 

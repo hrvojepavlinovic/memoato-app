@@ -8,14 +8,15 @@ import {
   updateCategory,
   useQuery,
 } from "wasp/client/operations";
+import * as WaspOperations from "wasp/client/operations";
 import { routes } from "wasp/client/router";
 import { Button, ButtonLink } from "../shared/components/Button";
 import { BarChart } from "./components/BarChart";
-import { DotChart } from "./components/DotChart";
+import { ContributionsChart } from "./components/ContributionsChart";
 import { HistoryList } from "./components/HistoryList";
 import { LineChart } from "./components/LineChart";
 import { PeriodPicker } from "./components/PeriodPicker";
-import type { BucketAggregation, CategoryChartType, CategoryWithStats, Period } from "./types";
+import type { BucketAggregation, CategoryWithStats, ContributionDay, Period } from "./types";
 import { parseNumberInput } from "../shared/lib/parseNumberInput";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
@@ -23,12 +24,15 @@ import { encryptUtf8ToEncryptedString, isEncryptedString } from "../privacy/cryp
 import {
   localCreateEvent,
   localGetBarSeries,
+  localGetContributionSeries,
   localGetCategoriesWithStats,
   localGetLineSeries,
   localUpdateCategory,
 } from "./local";
 import { useTheme } from "../theme/ThemeProvider";
 import { resolveAccentForTheme } from "../theme/colors";
+
+const getCategoryContributions = (WaspOperations as any).getCategoryContributions;
 
 function todayIso(): string {
   const d = new Date();
@@ -259,46 +263,40 @@ function LineCategoryChart({
   return <LineChart data={seriesQuery.data} goal={goal} goalDirection={goalDirection} unit={unit} accentHex={accentHex} />;
 }
 
-function DotCategoryChart({
+function ContributionCategoryChart({
   categoryId,
-  period,
-  offset,
   accentHex,
   isLocal,
   localUserId,
-  bucketAggregation,
 }: {
   categoryId: string;
-  period: Period;
-  offset: number;
   accentHex?: string;
   isLocal: boolean;
   localUserId: string | null;
-  bucketAggregation?: any | null;
 }) {
-  const seriesQuery = useQuery(getCategorySeries, { categoryId, period, offset }, { enabled: !isLocal });
-  const [localData, setLocalData] = useState<any[] | null>(null);
+  const seriesQuery = useQuery(getCategoryContributions as any, { categoryId }, { enabled: !isLocal });
+  const [localData, setLocalData] = useState<ContributionDay[] | null>(null);
 
   useEffect(() => {
     if (!isLocal) return;
     if (!localUserId) return;
     let cancelled = false;
-    localGetBarSeries({ userId: localUserId, categoryId, period, offset, aggregation: bucketAggregation }).then((d) => {
+    localGetContributionSeries({ userId: localUserId, categoryId }).then((d) => {
       if (!cancelled) setLocalData(d);
     });
     return () => {
       cancelled = true;
     };
-  }, [bucketAggregation, categoryId, isLocal, localUserId, offset, period]);
+  }, [categoryId, isLocal, localUserId]);
 
   if (isLocal) {
     if (!localData) return <div className="h-[170px]" />;
-    return <DotChart data={localData as any} accentHex={accentHex} />;
+    return <ContributionsChart data={localData} accentHex={accentHex} />;
   }
 
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
   if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
-  return <DotChart data={seriesQuery.data} accentHex={accentHex} />;
+  return <ContributionsChart data={seriesQuery.data as ContributionDay[]} accentHex={accentHex} />;
 }
 
 export function CategoryPage() {
@@ -452,9 +450,10 @@ export function CategoryPage() {
   const accentHex = category ? resolveAccentForTheme(category.accentHex, theme.isDark) ?? category.accentHex : "#0A0A0A";
   const isLocked = !!category && isEncryptedString(category.title) && !privacy.key;
   const canSwitchView = !!category && !isLocked;
+  const activePrimaryView: "line" | "bar" = category?.chartType === "line" ? "line" : "bar";
 
   function normalizeAggregationForChartType(
-    chartType: CategoryChartType,
+    chartType: "line" | "bar",
     current: BucketAggregation | null | undefined,
   ): BucketAggregation {
     const raw = String(current ?? "").trim().toLowerCase();
@@ -464,9 +463,9 @@ export function CategoryPage() {
     return raw === "avg" ? "avg" : "sum";
   }
 
-  async function onSwitchView(nextChartType: CategoryChartType) {
+  async function onSwitchView(nextChartType: "line" | "bar") {
     if (!category || !canSwitchView) return;
-    if (nextChartType === category.chartType) return;
+    if (nextChartType === activePrimaryView) return;
     const nextAggregation = normalizeAggregationForChartType(nextChartType, category.bucketAggregation);
     setIsSwitchingView(true);
     try {
@@ -694,23 +693,22 @@ export function CategoryPage() {
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <div className="sm:order-1">
-          <div className="inline-flex rounded-full border border-neutral-200 bg-white p-1 dark:border-neutral-800 dark:bg-neutral-950">
+          <div className="flex w-full rounded-xl border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 sm:inline-flex sm:w-auto">
             {[
               { key: "line", label: "Chart" },
               { key: "bar", label: "Bar" },
-              { key: "dot", label: "Dots" },
             ].map((opt) => {
-              const active = category?.chartType === opt.key;
+              const active = activePrimaryView === opt.key;
               return (
                 <button
                   key={opt.key}
                   type="button"
-                  onClick={() => onSwitchView(opt.key as CategoryChartType)}
+                  onClick={() => onSwitchView(opt.key as "line" | "bar")}
                   disabled={!canSwitchView || isSwitchingView}
                   className={
-                    "rounded-full px-3 py-1.5 text-xs font-semibold " +
+                    "flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold sm:flex-none " +
                     (active
-                      ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-950"
+                      ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950"
                       : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800")
                   }
                 >
@@ -747,7 +745,7 @@ export function CategoryPage() {
       </div>
 
       {resolvedCategoryId && category ? (
-        category.chartType === "line" ? (
+        activePrimaryView === "line" ? (
           <LineCategoryChart
             key={`${resolvedCategoryId}-${period}-${offset}`}
             categoryId={resolvedCategoryId}
@@ -756,17 +754,6 @@ export function CategoryPage() {
             goal={category.goalValue}
             goalDirection={category.goalDirection}
             unit={category.unit}
-            accentHex={category.accentHex}
-            isLocal={privacy.mode === "local"}
-            localUserId={privacy.userId}
-            bucketAggregation={category.bucketAggregation}
-          />
-        ) : category.chartType === "dot" ? (
-          <DotCategoryChart
-            key={`${resolvedCategoryId}-${period}-${offset}`}
-            categoryId={resolvedCategoryId}
-            period={period}
-            offset={offset}
             accentHex={category.accentHex}
             isLocal={privacy.mode === "local"}
             localUserId={privacy.userId}
@@ -793,6 +780,18 @@ export function CategoryPage() {
             bucketAggregation={category.bucketAggregation}
           />
         )
+      ) : null}
+
+      {resolvedCategoryId && category ? (
+        <div className="mt-4">
+          <ContributionCategoryChart
+            key={`contrib-${resolvedCategoryId}`}
+            categoryId={resolvedCategoryId}
+            accentHex={category.accentHex}
+            isLocal={privacy.mode === "local"}
+            localUserId={privacy.userId}
+          />
+        </div>
       ) : null}
 
       {resolvedCategoryId && category ? (

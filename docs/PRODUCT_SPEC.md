@@ -32,17 +32,17 @@ Memoato is also evolving toward structured journal logs:
 - Each category belongs to a user, has a friendly slug (`/c/:categorySlug`), and stores:
   - `title`, optional `emoji`, accent color (`accentHex`), friendly slug.
   - `categoryType`: `NUMBER` | `DO` | `DONT` (legacy `GOAL` may exist but is treated as `NUMBER`).
-  - `chartType`: `bar` (totals per bucket), `line` (values over time), or `dot` (GitHub-style dot intensity by bucket).
-  - `period`: day/week/month/year for non-line charts (`bar`/`dot`). Line charts have no period field.
+  - `chartType`: `bar` (totals per bucket) or `line` (values over time).
+  - `period`: day/week/month/year for bar charts. Line charts have no period field.
   - `unit`: optional text (omit `x` when there is no service unit).
   - Optional extra fields schema:
     - `fieldsSchema` is a JSON definition that allows a category to capture additional structured fields per entry, for example distance or duration
   - Goals:
-    - `goalWeekly`: per-period goal (used by non-line charts for the selected `period`).
+    - `goalWeekly`: per-period goal (used by bar charts for the selected `period`).
     - `goalValue`: target value (used by line charts like weight).
     - `goalDirection`: `at_least` (higher is better) or `at_most` (lower is better).
   - Multiple entries per bucket:
-    - `bucketAggregation`: `sum` | `avg` | `last` (`bar`/`dot` use `sum`/`avg`. `line` uses `last`/`avg`).
+    - `bucketAggregation`: `sum` | `avg` | `last` (`bar` uses `sum`/`avg`. `line` uses `last`/`avg`).
   - Derived rollups:
     - `rollupToActiveKcal` marks kcal categories that should contribute to the Active kcal rollup
   - Optional schedule metadata for simple trackers:
@@ -144,11 +144,11 @@ When a user has no non-system categories, Memoato opens an onboarding screen:
   - Add button uses black background with white text, aligned to inputs.
   - Optionally show current week summary at the top of the card.
 - Charts:
-  - Quick default view switcher in category header: `Chart` (line), `Bar`, `Dots`. Switching persists as category default view.
+  - Quick default view switcher in category header: `Chart` (line) and `Bar`. Switching persists as category default view.
   - Period picker (Day/Week/Month/Year) sits next to period navigation buttons on desktop. On mobile the picker moves right above the chart.
   - `← Prev` / `Next →` buttons change the offset (with “Next” disabled at current).
   - Bar chart shows number labels on top of each bar, touches the right edge while leaving a little padding (avoids empty space). Bars scroll horizontally with the latest period aligned to the right, and arrows help jump between spans.
-  - Dot chart shows one dot per bucket, with stronger fill intensity for higher totals (GitHub-like view).
+  - A separate GitHub-style `Contributions` heatmap sits above history and shows per-day entry activity for the category.
   - Weekly goal line renders as a strikethrough line tinted with a lighter version of the accent color (same style as the weight goal line) with text legend.
   - Line chart (weight) auto scales and adds padding when values exceed the goal so the highest point and strikethrough label never get clipped. Value bubbles show numbers. The x-axis label simplifies months to short names (e.g., `Jan`).
 - History:

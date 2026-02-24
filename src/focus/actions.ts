@@ -199,14 +199,14 @@ async function applyKnownCategoryDefaults(
       emoji: "🔥",
     },
     padel: {
-      chartType: "dot",
+      chartType: "bar",
       categoryType: "DO",
       period: "week",
       accentHex: "#22C55E",
       emoji: "🎾",
     },
     football: {
-      chartType: "dot",
+      chartType: "bar",
       categoryType: "DO",
       period: "week",
       accentHex: "#A855F7",
@@ -363,7 +363,7 @@ function normalizeHex(s: string): string {
 
 function defaultChartTypeForCategoryType(categoryType: CreateCategoryArgs["categoryType"]): "bar" | "line" | "dot" {
   if (categoryType === "GOAL") return "line";
-  if (categoryType === "DO" || categoryType === "DONT") return "dot";
+  if (categoryType === "DO" || categoryType === "DONT") return "bar";
   return "bar";
 }
 

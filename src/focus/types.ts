@@ -65,6 +65,11 @@ export type LinePoint = {
   value: number | null;
 };
 
+export type ContributionDay = {
+  date: string; // YYYY-MM-DD
+  count: number;
+};
+
 export type CategoryEventItem = {
   id: string;
   amount: number | null;

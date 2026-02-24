@@ -1,5 +1,6 @@
 import type {
   CategoryWithStats,
+  ContributionDay,
   LinePoint,
   Period,
   SeriesBucket,
@@ -58,7 +59,7 @@ const DB_VERSION = 1;
 
 function defaultChartTypeForCategoryType(categoryType: LocalCategory["categoryType"]): CategoryChartType {
   if (categoryType === "GOAL") return "line";
-  if (categoryType === "DO" || categoryType === "DONT") return "dot";
+  if (categoryType === "DO" || categoryType === "DONT") return "bar";
   return "bar";
 }
 
@@ -1040,6 +1041,53 @@ export async function localGetBarSeries(args: {
     total: aggregation === "avg" && b.count > 0 ? b.total / b.count : b.total,
     startDate: toIsoDate(b.start),
   }));
+}
+
+export async function localGetContributionSeries(args: {
+  userId: string;
+  categoryId: string;
+}): Promise<ContributionDay[]> {
+  const { userId, categoryId } = args;
+  const DAYS = 52 * 7;
+  const today = startOfDay(new Date());
+  const start = addDays(today, -(DAYS - 1));
+  const end = addDays(today, 1);
+
+  const countByDate = new Map<string, number>();
+  const db = await openDb();
+  const range = IDBKeyRange.bound(
+    [userId, categoryId, start.toISOString()],
+    [userId, categoryId, end.toISOString()],
+    false,
+    true,
+  );
+
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction("events", "readonly");
+    const index = tx.objectStore("events").index("byUserCategoryOccurredAt");
+    index.openCursor(range).onsuccess = (e) => {
+      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+      if (!cursor) return;
+      const ev = cursor.value as LocalEvent;
+      const on = new Date(ev.occurredOn);
+      if (!Number.isNaN(on.getTime())) {
+        const key = toIsoDate(startOfDay(on));
+        countByDate.set(key, (countByDate.get(key) ?? 0) + 1);
+      }
+      cursor.continue();
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  const out: ContributionDay[] = [];
+  for (let i = 0; i < DAYS; i++) {
+    const d = addDays(start, i);
+    const iso = toIsoDate(d);
+    out.push({ date: iso, count: countByDate.get(iso) ?? 0 });
+  }
+  return out;
 }
 
 export async function localGetLineSeries(args: {

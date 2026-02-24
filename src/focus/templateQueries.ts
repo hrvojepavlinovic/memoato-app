@@ -5,7 +5,7 @@ type CategoryTemplateItem = {
   key: string;
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT";
-  chartType: "bar" | "line" | "dot";
+  chartType: "bar" | "line";
   period: "day" | "week" | "month" | "year" | null;
   unit: string | null;
   bucketAggregation: string | null;
@@ -26,10 +26,9 @@ type CategoryTemplateItem = {
     | null;
 };
 
-function normalizeChartType(v: unknown): "bar" | "line" | "dot" {
+function normalizeChartType(v: unknown): "bar" | "line" {
   const s = typeof v === "string" ? v.trim().toLowerCase() : "";
   if (s === "line") return "line";
-  if (s === "dot") return "dot";
   return "bar";
 }
 
@@ -72,8 +71,7 @@ export const getCategoryTemplates: GetCategoryTemplates<void, CategoryTemplateIt
 
   return templates.map((t) => {
     const categoryType = normalizeCategoryType(t.categoryType);
-    const chartType =
-      categoryType === "DO" || categoryType === "DONT" ? "dot" : normalizeChartType(t.chartType);
+    const chartType = normalizeChartType(t.chartType);
     return {
       key: String(t.key),
       title: String(t.title),

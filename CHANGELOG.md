@@ -2,9 +2,10 @@
 
 ## 2026-02-24
 
-- Category view: added quick `Chart` / `Bar` / `Dots` switcher and persist as default view.
-- Category charts: added GitHub-style dot chart mode (`dot`) for bucket intensity.
-- Category editor: renamed `Chart` to `Default view` and aligned defaults (`DO`/`DONT` now default to dots, weight-like goals stay line).
+- Category view: quick `Chart` / `Bar` switcher persists the category default visualization.
+- Category detail: added a GitHub-style `Contributions` heatmap above history (all categories, including Notes).
+- Category editor/new category: `Default view` is now explicitly selectable (line or bar), not fixed by category type.
+- Timeline: entries are grouped only when consecutive and DO/DONT rows no longer show `Went` labels (note only, if present).
 
 ## 2026-02-11
 
