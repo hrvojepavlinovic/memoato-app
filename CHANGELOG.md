@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-02-24
+
+- Category view: added quick `Chart` / `Bar` / `Dots` switcher and persist as default view.
+- Category charts: added GitHub-style dot chart mode (`dot`) for bucket intensity.
+- Category editor: renamed `Chart` to `Default view` and aligned defaults (`DO`/`DONT` now default to dots, weight-like goals stay line).
+
 ## 2026-02-11
 
 - Home: added Quick log modal with smart category suggestions (number or text) and Notes fallback.

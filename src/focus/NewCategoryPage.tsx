@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createCategory, getCategoryTemplates, useQuery } from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
-import type { GoalDirection, Period } from "./types";
+import type { CategoryChartType, GoalDirection, Period } from "./types";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { encryptUtf8ToEncryptedString } from "../privacy/crypto";
 import { localCreateCategory } from "./local";
 
 type CategoryType = "NUMBER" | "DO" | "DONT";
-type ChartType = "bar" | "line";
+type ChartType = CategoryChartType;
 type BarAgg = "sum" | "avg";
 type LineAgg = "last" | "avg";
 
@@ -70,6 +70,11 @@ function SelectChevron({ disabled }: { disabled?: boolean }) {
   );
 }
 
+function defaultViewForType(categoryType: CategoryType): ChartType {
+  if (categoryType === "DO" || categoryType === "DONT") return "dot";
+  return "bar";
+}
+
 export function NewCategoryPage() {
   const navigate = useNavigate();
   const privacy = usePrivacy();
@@ -97,9 +102,9 @@ export function NewCategoryPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const effectiveChartType: ChartType =
-    categoryType === "NUMBER" ? chartType : "bar";
+    categoryType === "NUMBER" ? chartType : defaultViewForType(categoryType);
   const bucketAggregation =
-    effectiveChartType === "bar" ? barAgg : lineAgg;
+    effectiveChartType === "line" ? lineAgg : barAgg;
   const needsPeriod = effectiveChartType !== "line";
   const hint = useMemo(() => typeOptions.find((o) => o.value === categoryType)?.hint, [categoryType]);
   const canSchedule = categoryType === "DO" || categoryType === "DONT";
@@ -134,7 +139,7 @@ export function NewCategoryPage() {
     setCategoryType(t.categoryType);
     setChartType(t.chartType);
     setFieldsSchema(t.fieldsSchema ?? null);
-    if (t.chartType === "bar") {
+    if (t.chartType !== "line") {
       setPeriod(t.period ?? "week");
       const agg = (t.bucketAggregation ?? "").toLowerCase();
       setBarAgg(agg === "avg" ? "avg" : "sum");
@@ -300,7 +305,15 @@ export function NewCategoryPage() {
             <div className="relative">
               <select
                 value={categoryType}
-                onChange={(e) => setCategoryType(e.target.value as CategoryType)}
+                onChange={(e) => {
+                  const nextType = e.target.value as CategoryType;
+                  setCategoryType(nextType);
+                  if (nextType !== "NUMBER") {
+                    setChartType(defaultViewForType(nextType));
+                  } else {
+                    setChartType((prev) => (prev === "dot" ? "bar" : prev));
+                  }
+                }}
                 className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
               >
                 {typeOptions.map((o) => (
@@ -314,7 +327,7 @@ export function NewCategoryPage() {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="label">Chart</span>
+            <span className="label">Default view</span>
             <div className="relative">
               <select
                 value={effectiveChartType}
@@ -324,6 +337,7 @@ export function NewCategoryPage() {
               >
                 <option value="bar">Bar</option>
                 <option value="line">Line</option>
+                <option value="dot">Dots</option>
               </select>
               <SelectChevron disabled={categoryType !== "NUMBER"} />
             </div>
@@ -419,7 +433,7 @@ export function NewCategoryPage() {
           {categoryType === "NUMBER" ? (
             <label className="flex flex-col gap-1">
               <span className="label">Multiple entries</span>
-              {effectiveChartType === "bar" ? (
+              {effectiveChartType !== "line" ? (
                 <div className="relative">
                   <select
                     value={barAgg}

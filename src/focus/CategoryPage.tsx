@@ -5,20 +5,28 @@ import {
   getCategories,
   getCategorySeries,
   getCategoryLineSeries,
+  updateCategory,
   useQuery,
 } from "wasp/client/operations";
 import { routes } from "wasp/client/router";
 import { Button, ButtonLink } from "../shared/components/Button";
 import { BarChart } from "./components/BarChart";
+import { DotChart } from "./components/DotChart";
 import { HistoryList } from "./components/HistoryList";
 import { LineChart } from "./components/LineChart";
 import { PeriodPicker } from "./components/PeriodPicker";
-import type { BucketAggregation, CategoryWithStats, Period } from "./types";
+import type { BucketAggregation, CategoryChartType, CategoryWithStats, Period } from "./types";
 import { parseNumberInput } from "../shared/lib/parseNumberInput";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
 import { encryptUtf8ToEncryptedString, isEncryptedString } from "../privacy/crypto";
-import { localCreateEvent, localGetBarSeries, localGetCategoriesWithStats, localGetLineSeries } from "./local";
+import {
+  localCreateEvent,
+  localGetBarSeries,
+  localGetCategoriesWithStats,
+  localGetLineSeries,
+  localUpdateCategory,
+} from "./local";
 import { useTheme } from "../theme/ThemeProvider";
 import { resolveAccentForTheme } from "../theme/colors";
 
@@ -251,6 +259,48 @@ function LineCategoryChart({
   return <LineChart data={seriesQuery.data} goal={goal} goalDirection={goalDirection} unit={unit} accentHex={accentHex} />;
 }
 
+function DotCategoryChart({
+  categoryId,
+  period,
+  offset,
+  accentHex,
+  isLocal,
+  localUserId,
+  bucketAggregation,
+}: {
+  categoryId: string;
+  period: Period;
+  offset: number;
+  accentHex?: string;
+  isLocal: boolean;
+  localUserId: string | null;
+  bucketAggregation?: any | null;
+}) {
+  const seriesQuery = useQuery(getCategorySeries, { categoryId, period, offset }, { enabled: !isLocal });
+  const [localData, setLocalData] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    if (!isLocal) return;
+    if (!localUserId) return;
+    let cancelled = false;
+    localGetBarSeries({ userId: localUserId, categoryId, period, offset, aggregation: bucketAggregation }).then((d) => {
+      if (!cancelled) setLocalData(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bucketAggregation, categoryId, isLocal, localUserId, offset, period]);
+
+  if (isLocal) {
+    if (!localData) return <div className="h-[170px]" />;
+    return <DotChart data={localData as any} accentHex={accentHex} />;
+  }
+
+  if (seriesQuery.isLoading) return <div className="h-[170px]" />;
+  if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
+  return <DotChart data={seriesQuery.data} accentHex={accentHex} />;
+}
+
 export function CategoryPage() {
   const navigate = useNavigate();
   const { categorySlug } = useParams<{ categorySlug: string }>();
@@ -261,6 +311,7 @@ export function CategoryPage() {
   const [scheduledStatus, setScheduledStatus] = useState<"went" | "missed" | "cancelled">("went");
   const [occurredOn, setOccurredOn] = useState<string>(todayIso());
   const [displayTitle, setDisplayTitle] = useState<string | null>(null);
+  const [isSwitchingView, setIsSwitchingView] = useState(false);
   const privacy = usePrivacy();
   const theme = useTheme();
   const today = todayIso();
@@ -400,6 +451,77 @@ export function CategoryPage() {
     displayTitle ?? (category && isEncryptedString(category.title) ? "Locked" : category?.title ?? null);
   const accentHex = category ? resolveAccentForTheme(category.accentHex, theme.isDark) ?? category.accentHex : "#0A0A0A";
   const isLocked = !!category && isEncryptedString(category.title) && !privacy.key;
+  const canSwitchView = !!category && !isLocked;
+
+  function normalizeAggregationForChartType(
+    chartType: CategoryChartType,
+    current: BucketAggregation | null | undefined,
+  ): BucketAggregation {
+    const raw = String(current ?? "").trim().toLowerCase();
+    if (chartType === "line") {
+      return raw === "avg" ? "avg" : "last";
+    }
+    return raw === "avg" ? "avg" : "sum";
+  }
+
+  async function onSwitchView(nextChartType: CategoryChartType) {
+    if (!category || !canSwitchView) return;
+    if (nextChartType === category.chartType) return;
+    const nextAggregation = normalizeAggregationForChartType(nextChartType, category.bucketAggregation);
+    setIsSwitchingView(true);
+    try {
+      if (privacy.mode === "local") {
+        if (!privacy.userId) return;
+        await localUpdateCategory({
+          userId: privacy.userId,
+          categoryId: category.id,
+          title: category.title,
+          categoryType: category.categoryType,
+          chartType: nextChartType,
+          period: nextChartType !== "line" ? category.period ?? "week" : undefined,
+          unit: category.unit ?? null,
+          goal: nextChartType !== "line" ? category.goalWeekly ?? null : null,
+          goalValue: nextChartType === "line" ? category.goalValue ?? null : null,
+          accentHex: category.accentHex,
+          emoji: category.emoji ?? null,
+          bucketAggregation: nextAggregation,
+          goalDirection: category.goalDirection ?? null,
+          rollupToActiveKcal: category.rollupToActiveKcal,
+          fieldsSchema: category.fieldsSchema ?? null,
+          scheduleEnabled: category.scheduleEnabled,
+          scheduleType: category.scheduleType,
+          scheduleDays: category.scheduleDays ?? null,
+          scheduleTime: category.scheduleTime ?? null,
+        });
+      } else {
+        await updateCategory({
+          categoryId: category.id,
+          title: category.title,
+          categoryType: category.categoryType,
+          chartType: nextChartType,
+          bucketAggregation: nextAggregation,
+          goalDirection: category.goalDirection ?? undefined,
+          period: nextChartType !== "line" ? category.period ?? "week" : undefined,
+          unit: category.unit ?? undefined,
+          goal: nextChartType !== "line" ? category.goalWeekly ?? undefined : undefined,
+          goalValue: nextChartType === "line" ? category.goalValue ?? undefined : undefined,
+          accentHex: category.accentHex,
+          emoji: category.emoji ?? undefined,
+          fieldsSchema: category.fieldsSchema ?? undefined,
+          rollupToActiveKcal: category.rollupToActiveKcal,
+          scheduleEnabled: category.scheduleEnabled,
+          scheduleType: category.scheduleType,
+          scheduleDays: category.scheduleDays ?? undefined,
+          scheduleTime: category.scheduleTime ?? undefined,
+        } as any);
+        await categoriesQuery.refetch();
+      }
+    } catch (e: any) {
+      window.alert(e?.message ?? "Failed to update default view.");
+    } finally {
+      setIsSwitchingView(false);
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
@@ -571,10 +693,37 @@ export function CategoryPage() {
       </div>
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <div className="sm:order-1">
+          <div className="inline-flex rounded-full border border-neutral-200 bg-white p-1 dark:border-neutral-800 dark:bg-neutral-950">
+            {[
+              { key: "line", label: "Chart" },
+              { key: "bar", label: "Bar" },
+              { key: "dot", label: "Dots" },
+            ].map((opt) => {
+              const active = category?.chartType === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => onSwitchView(opt.key as CategoryChartType)}
+                  disabled={!canSwitchView || isSwitchingView}
+                  className={
+                    "rounded-full px-3 py-1.5 text-xs font-semibold " +
+                    (active
+                      ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-950"
+                      : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800")
+                  }
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div className="sm:order-2">
           <PeriodPicker value={period} onChange={setPeriod} />
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:order-1 sm:flex sm:gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:order-3 sm:flex sm:gap-2">
           <Button
             variant="ghost"
             size="sm"
@@ -607,6 +756,17 @@ export function CategoryPage() {
             goal={category.goalValue}
             goalDirection={category.goalDirection}
             unit={category.unit}
+            accentHex={category.accentHex}
+            isLocal={privacy.mode === "local"}
+            localUserId={privacy.userId}
+            bucketAggregation={category.bucketAggregation}
+          />
+        ) : category.chartType === "dot" ? (
+          <DotCategoryChart
+            key={`${resolvedCategoryId}-${period}-${offset}`}
+            categoryId={resolvedCategoryId}
+            period={period}
+            offset={offset}
             accentHex={category.accentHex}
             isLocal={privacy.mode === "local"}
             localUserId={privacy.userId}

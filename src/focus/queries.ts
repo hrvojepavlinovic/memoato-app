@@ -85,6 +85,20 @@ function normalizedUnit(u: unknown): string | null {
   return s;
 }
 
+function defaultChartTypeForCategoryType(v: unknown): CategoryChartType {
+  if (v === "GOAL") return "line";
+  if (v === "DO" || v === "DONT") return "dot";
+  return "bar";
+}
+
+function normalizeChartType(v: unknown, fallback: CategoryChartType): CategoryChartType {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  if (s === "line") return "line";
+  if (s === "dot") return "dot";
+  if (s === "bar") return "bar";
+  return fallback;
+}
+
 export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
   _args,
   context,
@@ -239,7 +253,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
 
   const lastByCategory = new Map<string, number>();
   const lineCategoryIds = categories
-    .filter((c) => (c.chartType ?? "bar") === "line")
+    .filter((c) => normalizeChartType(c.chartType, defaultChartTypeForCategoryType(c.categoryType)) === "line")
     .map((c) => c.id);
   if (lineCategoryIds.length > 0) {
     const lastEvents = await context.entities.Event.findMany({
@@ -331,7 +345,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
   }
 
   const result = categories.map((c) => {
-    const chartType = ((c.chartType ?? "bar") as CategoryChartType);
+    const chartType = normalizeChartType(c.chartType, defaultChartTypeForCategoryType(c.categoryType));
     const agg = normalizeBucketAggregation(chartType, c.bucketAggregation);
     const period = normalizePeriod(c.period);
     const periodStats =
@@ -710,12 +724,15 @@ export const getCategorySeries: GetCategorySeries<
   const userId = context.user.id;
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { id: true, slug: true, chartType: true, bucketAggregation: true },
+    select: { id: true, slug: true, categoryType: true, chartType: true, bucketAggregation: true },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
   }
-  const chartType = ((category.chartType ?? "bar") as CategoryChartType);
+  const chartType = normalizeChartType(
+    category.chartType,
+    defaultChartTypeForCategoryType((category as any).categoryType),
+  );
   const aggregation = normalizeAgg((category as any).bucketAggregation, chartType);
   const isActiveKcal = String(category.slug ?? "").trim().toLowerCase() === "active-kcal";
 
@@ -840,12 +857,15 @@ export const getCategoryLineSeries: GetCategoryLineSeries<
   const userId = context.user.id;
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { id: true, chartType: true, bucketAggregation: true },
+    select: { id: true, categoryType: true, chartType: true, bucketAggregation: true },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
   }
-  const chartType = ((category.chartType ?? "bar") as CategoryChartType);
+  const chartType = normalizeChartType(
+    category.chartType,
+    defaultChartTypeForCategoryType((category as any).categoryType),
+  );
   const aggregation = normalizeAgg((category as any).bucketAggregation, chartType);
 
   const rawOffset = Math.min(0, Math.trunc(offset ?? 0));

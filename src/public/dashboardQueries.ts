@@ -79,6 +79,20 @@ function normalizedUnit(u: unknown): string | null {
   return s;
 }
 
+function defaultChartTypeForCategoryType(v: unknown): CategoryChartType {
+  if (v === "GOAL") return "line";
+  if (v === "DO" || v === "DONT") return "dot";
+  return "bar";
+}
+
+function normalizeChartType(v: unknown, fallback: CategoryChartType): CategoryChartType {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  if (s === "line") return "line";
+  if (s === "dot") return "dot";
+  if (s === "bar") return "bar";
+  return fallback;
+}
+
 function parseCategoryIds(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   const out: string[] = [];
@@ -226,7 +240,7 @@ async function getCategoriesWithStatsForUser(args: {
 
   const lastByCategory = new Map<string, number>();
   const lineCategoryIds = categories
-    .filter((c) => (c.chartType ?? "bar") === "line")
+    .filter((c) => normalizeChartType(c.chartType, defaultChartTypeForCategoryType(c.categoryType)) === "line")
     .map((c) => c.id);
   if (lineCategoryIds.length > 0) {
     const lastEvents = await prisma.event.findMany({
@@ -263,7 +277,7 @@ async function getCategoriesWithStatsForUser(args: {
   }
 
   const result = categories.map((c) => {
-    const chartType = ((c.chartType ?? "bar") as CategoryChartType);
+    const chartType = normalizeChartType(c.chartType, defaultChartTypeForCategoryType(c.categoryType));
     const agg = normalizeBucketAggregation(chartType, c.bucketAggregation);
     const period = normalizePeriod(c.period);
     const periodStats =
@@ -489,7 +503,7 @@ async function resolvePublicCategory(args: { username: string; categoryId: strin
 
   const category = await prisma.category.findFirst({
     where: { id: categoryId, userId: user.id, sourceArchivedAt: null },
-    select: { id: true, slug: true, bucketAggregation: true, chartType: true },
+    select: { id: true, slug: true, categoryType: true, bucketAggregation: true, chartType: true },
   });
   if (!category) throw new HttpError(404);
 
@@ -504,7 +518,10 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
   const rawOffset = Math.min(0, Math.trunc(args.offset ?? 0));
 
   const { userId, category } = await resolvePublicCategory({ username: args.username, categoryId: args.categoryId });
-  const chartType = ((category.chartType ?? "bar") as CategoryChartType);
+  const chartType = normalizeChartType(
+    category.chartType,
+    defaultChartTypeForCategoryType((category as any).categoryType),
+  );
   const aggregation = normalizeBucketAggregation(chartType, category.bucketAggregation);
   const isActiveKcal = String(category.slug ?? "").trim().toLowerCase() === "active-kcal";
 
@@ -622,7 +639,10 @@ export const getPublicUserCategoryLineSeries: GetPublicUserCategoryLineSeries<Pu
   const rawOffset = Math.min(0, Math.trunc(args.offset ?? 0));
 
   const { userId, category } = await resolvePublicCategory({ username: args.username, categoryId: args.categoryId });
-  const chartType = ((category.chartType ?? "bar") as CategoryChartType);
+  const chartType = normalizeChartType(
+    category.chartType,
+    defaultChartTypeForCategoryType((category as any).categoryType),
+  );
   const aggregation = normalizeBucketAggregation(chartType, category.bucketAggregation);
 
   const baseNow = new Date();

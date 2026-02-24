@@ -5,7 +5,7 @@ type CategoryTemplateItem = {
   key: string;
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT";
-  chartType: "bar" | "line";
+  chartType: "bar" | "line" | "dot";
   period: "day" | "week" | "month" | "year" | null;
   unit: string | null;
   bucketAggregation: string | null;
@@ -26,9 +26,11 @@ type CategoryTemplateItem = {
     | null;
 };
 
-function normalizeChartType(v: unknown): "bar" | "line" {
+function normalizeChartType(v: unknown): "bar" | "line" | "dot" {
   const s = typeof v === "string" ? v.trim().toLowerCase() : "";
-  return s === "line" ? "line" : "bar";
+  if (s === "line") return "line";
+  if (s === "dot") return "dot";
+  return "bar";
 }
 
 function normalizePeriod(v: unknown): CategoryTemplateItem["period"] {
@@ -68,25 +70,30 @@ export const getCategoryTemplates: GetCategoryTemplates<void, CategoryTemplateIt
     orderBy: [{ title: "asc" }],
   });
 
-  return templates.map((t) => ({
-    key: String(t.key),
-    title: String(t.title),
-    categoryType: normalizeCategoryType(t.categoryType),
-    chartType: normalizeChartType(t.chartType),
-    period: normalizePeriod(t.period),
-    unit: typeof t.unit === "string" && t.unit.trim() ? t.unit.trim() : null,
-    bucketAggregation:
-      typeof t.bucketAggregation === "string" && t.bucketAggregation.trim()
-        ? t.bucketAggregation.trim().toLowerCase()
-        : null,
-    goalDirection:
-      typeof t.goalDirection === "string" && t.goalDirection.trim()
-        ? t.goalDirection.trim().toLowerCase()
-        : null,
-    goalWeekly: typeof t.goalWeekly === "number" ? t.goalWeekly : null,
-    goalValue: typeof t.goalValue === "number" ? t.goalValue : null,
-    accentHex: typeof t.accentHex === "string" ? t.accentHex : "#0A0A0A",
-    emoji: typeof t.emoji === "string" && t.emoji.trim() ? t.emoji.trim() : null,
-    fieldsSchema: t.fieldsSchema ?? null,
-  }));
+  return templates.map((t) => {
+    const categoryType = normalizeCategoryType(t.categoryType);
+    const chartType =
+      categoryType === "DO" || categoryType === "DONT" ? "dot" : normalizeChartType(t.chartType);
+    return {
+      key: String(t.key),
+      title: String(t.title),
+      categoryType,
+      chartType,
+      period: normalizePeriod(t.period),
+      unit: typeof t.unit === "string" && t.unit.trim() ? t.unit.trim() : null,
+      bucketAggregation:
+        typeof t.bucketAggregation === "string" && t.bucketAggregation.trim()
+          ? t.bucketAggregation.trim().toLowerCase()
+          : null,
+      goalDirection:
+        typeof t.goalDirection === "string" && t.goalDirection.trim()
+          ? t.goalDirection.trim().toLowerCase()
+          : null,
+      goalWeekly: typeof t.goalWeekly === "number" ? t.goalWeekly : null,
+      goalValue: typeof t.goalValue === "number" ? t.goalValue : null,
+      accentHex: typeof t.accentHex === "string" ? t.accentHex : "#0A0A0A",
+      emoji: typeof t.emoji === "string" && t.emoji.trim() ? t.emoji.trim() : null,
+      fieldsSchema: t.fieldsSchema ?? null,
+    };
+  });
 };

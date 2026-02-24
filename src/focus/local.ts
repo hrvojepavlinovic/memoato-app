@@ -56,6 +56,12 @@ export type LocalEvent = {
 const DB_NAME = "memoato.local.v1";
 const DB_VERSION = 1;
 
+function defaultChartTypeForCategoryType(categoryType: LocalCategory["categoryType"]): CategoryChartType {
+  if (categoryType === "GOAL") return "line";
+  if (categoryType === "DO" || categoryType === "DONT") return "dot";
+  return "bar";
+}
+
 function emitLocalChanged(userId: string): void {
   window.dispatchEvent(new CustomEvent("memoato:localChanged", { detail: { userId } }));
 }
@@ -652,7 +658,7 @@ export async function localCreateCategory(args: {
       n += 1;
     }
   }
-  const chartType: CategoryChartType = args.chartType ?? (args.categoryType === "GOAL" ? "line" : "bar");
+  const chartType: CategoryChartType = args.chartType ?? defaultChartTypeForCategoryType(args.categoryType);
   const needsPeriod = chartType !== "line";
   const unitLower = (args.unit ?? "").trim().toLowerCase();
   const inferredRollup = unitLower === "kcal" && cleanTitle.trim().toLowerCase() !== "active kcal";
@@ -735,7 +741,7 @@ export async function localUpdateCategory(args: {
   });
   if (!existing || existing.userId !== args.userId) throw new Error("Category not found");
 
-  const chartType: CategoryChartType = args.chartType ?? (args.categoryType === "GOAL" ? "line" : "bar");
+  const chartType: CategoryChartType = args.chartType ?? defaultChartTypeForCategoryType(args.categoryType);
   const needsPeriod = chartType !== "line";
   const schedule = normalizeCategorySchedule({
     enabled: args.scheduleEnabled ?? (existing as any).scheduleEnabled === true,

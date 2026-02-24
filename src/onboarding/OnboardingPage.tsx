@@ -16,7 +16,7 @@ type Template = {
   key: string;
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT";
-  chartType: "bar" | "line";
+  chartType: "bar" | "line" | "dot";
   period: "day" | "week" | "month" | "year" | null;
   unit: string | null;
   bucketAggregation: string | null;
@@ -53,6 +53,7 @@ function normalizeDir(v: string | null, chartType: Template["chartType"]): "at_l
 function fmtTemplateMeta(t: Template): string {
   const parts: string[] = [];
   if (t.chartType === "line") parts.push("Line");
+  else if (t.chartType === "dot") parts.push(`Dots · ${t.period ?? "week"}`);
   else parts.push(`Bar · ${t.period ?? "week"}`);
 
   if (t.unit && t.unit !== "x") parts.push(t.unit);

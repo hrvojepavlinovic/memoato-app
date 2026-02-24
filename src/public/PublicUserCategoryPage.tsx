@@ -8,6 +8,7 @@ import {
 } from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
 import { BarChart } from "../focus/components/BarChart";
+import { DotChart } from "../focus/components/DotChart";
 import { LineChart } from "../focus/components/LineChart";
 import { PeriodPicker } from "../focus/components/PeriodPicker";
 import type { BucketAggregation, CategoryWithStats, GoalDirection, Period } from "../focus/types";
@@ -188,6 +189,30 @@ function LineCategoryChart({
   return <LineChart data={seriesQuery.data} goal={goal} goalDirection={goalDirection} unit={unit} accentHex={accentHex} />;
 }
 
+function DotCategoryChart({
+  username,
+  categoryId,
+  period,
+  offset,
+  accentHex,
+}: {
+  username: string;
+  categoryId: string;
+  period: Period;
+  offset: number;
+  accentHex?: string;
+}) {
+  const seriesQuery = useQuery(
+    getPublicUserCategorySeries,
+    { username, categoryId, period, offset },
+    { retry: false },
+  );
+
+  if (seriesQuery.isLoading) return <div className="h-[170px]" />;
+  if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
+  return <DotChart data={seriesQuery.data} accentHex={accentHex} />;
+}
+
 export function PublicUserCategoryPage() {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -227,6 +252,7 @@ export function PublicUserCategoryPage() {
   const resolvedTitle = isEncryptedString(category.title) ? "Private" : category.title;
   const accentHex = resolveAccentForTheme(category.accentHex, theme.isDark) ?? category.accentHex;
   const isLocked = isEncryptedString(category.title);
+  const categoryChartType = (category.chartType ?? "bar") as "bar" | "line" | "dot";
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
@@ -301,7 +327,7 @@ export function PublicUserCategoryPage() {
       </div>
 
       <div className="card p-4">
-        {category.chartType === "line" ? (
+        {categoryChartType === "line" ? (
           <LineCategoryChart
             username={dash.data.username}
             categoryId={category.id}
@@ -311,6 +337,14 @@ export function PublicUserCategoryPage() {
             unit={category.unit ?? null}
             accentHex={accentHex}
             goalDirection={category.goalDirection}
+          />
+        ) : categoryChartType === "dot" ? (
+          <DotCategoryChart
+            username={dash.data.username}
+            categoryId={category.id}
+            period={period}
+            offset={offset}
+            accentHex={accentHex}
           />
         ) : (
           <BarCategoryChart
@@ -328,4 +362,3 @@ export function PublicUserCategoryPage() {
     </div>
   );
 }
-

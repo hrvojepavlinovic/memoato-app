@@ -199,14 +199,14 @@ async function applyKnownCategoryDefaults(
       emoji: "🔥",
     },
     padel: {
-      chartType: "bar",
+      chartType: "dot",
       categoryType: "DO",
       period: "week",
       accentHex: "#22C55E",
       emoji: "🎾",
     },
     football: {
-      chartType: "bar",
+      chartType: "dot",
       categoryType: "DO",
       period: "week",
       accentHex: "#A855F7",
@@ -316,7 +316,7 @@ function isBlank(v: unknown): boolean {
   return v == null || (typeof v === "string" && v.trim() === "");
 }
 
-function normalizeAggForChartType(v: unknown, chartType: "bar" | "line"): "sum" | "avg" | "last" | null {
+function normalizeAggForChartType(v: unknown, chartType: "bar" | "line" | "dot"): "sum" | "avg" | "last" | null {
   const s = typeof v === "string" ? v.trim().toLowerCase() : "";
   if (s === "") return null;
   if (s === "sum" || s === "avg" || s === "last") return s;
@@ -326,7 +326,7 @@ function normalizeAggForChartType(v: unknown, chartType: "bar" | "line"): "sum" 
 type CreateCategoryArgs = {
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
-  chartType?: "bar" | "line";
+  chartType?: "bar" | "line" | "dot";
   bucketAggregation?: string | null;
   goalDirection?: string | null;
   period?: "day" | "week" | "month" | "year";
@@ -361,19 +361,26 @@ function normalizeHex(s: string): string {
   return `#${m[1].toUpperCase()}`;
 }
 
-function normalizeChartType(v: unknown, fallback: "bar" | "line"): "bar" | "line" {
+function defaultChartTypeForCategoryType(categoryType: CreateCategoryArgs["categoryType"]): "bar" | "line" | "dot" {
+  if (categoryType === "GOAL") return "line";
+  if (categoryType === "DO" || categoryType === "DONT") return "dot";
+  return "bar";
+}
+
+function normalizeChartType(v: unknown, fallback: "bar" | "line" | "dot"): "bar" | "line" | "dot" {
   const s = typeof v === "string" ? v.trim().toLowerCase() : "";
   if (s === "line") return "line";
+  if (s === "dot") return "dot";
   if (s === "bar") return "bar";
   return fallback;
 }
 
-function normalizeBucketAggregation(v: unknown, chartType: "bar" | "line"): string | null {
+function normalizeBucketAggregation(v: unknown, chartType: "bar" | "line" | "dot"): string | null {
   const s = typeof v === "string" ? v.trim().toLowerCase() : "";
   if (s === "") return null;
-  if (chartType === "bar") {
+  if (chartType === "bar" || chartType === "dot") {
     if (s === "sum" || s === "avg") return s;
-    throw new HttpError(400, "Bucket aggregation must be 'sum' or 'avg' for bar charts.");
+    throw new HttpError(400, "Bucket aggregation must be 'sum' or 'avg' for bar and dot charts.");
   }
   if (s === "last" || s === "avg") return s;
   throw new HttpError(400, "Bucket aggregation must be 'last' or 'avg' for line charts.");
@@ -442,7 +449,7 @@ export const createCategory: CreateCategory<CreateCategoryArgs, Category> = asyn
   const cleanUnit = (unit ?? "").trim();
   const cleanHex = normalizeHex(accentHex);
 
-  const fallbackChartType = categoryType === "GOAL" ? "line" : "bar";
+  const fallbackChartType = defaultChartTypeForCategoryType(categoryType);
   const cleanChartType = normalizeChartType(chartType, fallbackChartType);
   const cleanAgg = normalizeBucketAggregation(bucketAggregation, cleanChartType);
   const cleanDir = normalizeGoalDirection(goalDirection);
@@ -521,7 +528,7 @@ type UpdateCategoryArgs = {
   categoryId: Category["id"];
   title: string;
   categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
-  chartType?: "bar" | "line";
+  chartType?: "bar" | "line" | "dot";
   bucketAggregation?: string | null;
   goalDirection?: string | null;
   period?: "day" | "week" | "month" | "year";
@@ -593,7 +600,7 @@ export const updateCategory: UpdateCategory<UpdateCategoryArgs, Category> = asyn
   const cleanUnit = (unit ?? "").trim();
   const cleanHex = normalizeHex(accentHex);
 
-  const fallbackChartType = categoryType === "GOAL" ? "line" : "bar";
+  const fallbackChartType = defaultChartTypeForCategoryType(categoryType);
   const cleanChartType = normalizeChartType(chartType, fallbackChartType);
   const cleanAgg = normalizeBucketAggregation(bucketAggregation, cleanChartType);
   const cleanDir = normalizeGoalDirection(goalDirection);

@@ -25,7 +25,7 @@ type DayEvent = {
     slug: string | null;
     unit: string | null;
     categoryType: "NUMBER" | "DO" | "DONT" | "GOAL";
-    chartType: "bar" | "line" | null;
+    chartType: "bar" | "line" | "dot" | null;
     goalWeekly: number | null;
     goalValue: number | null;
     accentHex: string;

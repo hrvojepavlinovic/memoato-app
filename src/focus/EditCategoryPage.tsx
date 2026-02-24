@@ -45,6 +45,12 @@ const periodOptions: { value: Period; label: string }[] = [
   { value: "year", label: "Year" },
 ];
 
+function defaultViewForType(categoryType: CategoryType | "GOAL"): ChartType {
+  if (categoryType === "GOAL") return "line";
+  if (categoryType === "DO" || categoryType === "DONT") return "dot";
+  return "bar";
+}
+
 export function EditCategoryPage() {
   const navigate = useNavigate();
   const { categorySlug } = useParams<{ categorySlug: string }>();
@@ -103,11 +109,12 @@ export function EditCategoryPage() {
     setCategoryType((category.categoryType === "GOAL" ? "NUMBER" : (category.categoryType as CategoryType)) ?? "NUMBER");
     setPeriod((category.period as Period) ?? "week");
     const nextChartType =
-      (category.categoryType === "NUMBER" ? (category.chartType as ChartType) : "bar") ??
-      ((category.categoryType === "GOAL" ? "line" : "bar") as ChartType);
+      category.categoryType === "NUMBER"
+        ? ((category.chartType as ChartType) ?? "bar")
+        : defaultViewForType(category.categoryType as CategoryType | "GOAL");
     setChartType(nextChartType);
     const agg = (category.bucketAggregation ?? "").toLowerCase();
-    if (nextChartType === "bar") {
+    if (nextChartType !== "line") {
       setBarAgg(agg === "avg" ? "avg" : "sum");
     } else {
       setLineAgg(agg === "avg" ? "avg" : "last");
@@ -160,8 +167,8 @@ export function EditCategoryPage() {
     };
   }, [category, privacy.key]);
 
-  const effectiveChartType: ChartType = categoryType === "NUMBER" ? chartType : "bar";
-  const bucketAggregation: BucketAggregation = effectiveChartType === "bar" ? barAgg : lineAgg;
+  const effectiveChartType: ChartType = categoryType === "NUMBER" ? chartType : defaultViewForType(categoryType);
+  const bucketAggregation: BucketAggregation = effectiveChartType === "line" ? lineAgg : barAgg;
   const needsPeriod = effectiveChartType !== "line";
   const hint = useMemo(() => typeOptions.find((o) => o.value === categoryType)?.hint, [categoryType]);
   const canSchedule = categoryType === "DO" || categoryType === "DONT";
@@ -186,7 +193,7 @@ export function EditCategoryPage() {
       }
       return;
     }
-    // bar
+    // bar/dot
     if (goal.trim() === "" && goalValue.trim() !== "") {
       setGoal(goalValue);
       setGoalValue("");
@@ -360,7 +367,15 @@ export function EditCategoryPage() {
             <span className="label">Type</span>
             <select
               value={categoryType}
-              onChange={(e) => setCategoryType(e.target.value as CategoryType)}
+              onChange={(e) => {
+                const nextType = e.target.value as CategoryType;
+                setCategoryType(nextType);
+                if (nextType !== "NUMBER") {
+                  setChartType(defaultViewForType(nextType));
+                } else {
+                  setChartType((prev) => (prev === "dot" ? "bar" : prev));
+                }
+              }}
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               {typeOptions.map((o) => (
@@ -372,7 +387,7 @@ export function EditCategoryPage() {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="label">Chart</span>
+            <span className="label">Default view</span>
             <select
               value={effectiveChartType}
               onChange={(e) => onChartTypeChange(e.target.value as ChartType)}
@@ -381,6 +396,7 @@ export function EditCategoryPage() {
             >
               <option value="bar">Bar</option>
               <option value="line">Line</option>
+              <option value="dot">Dots</option>
             </select>
           </label>
 
@@ -468,7 +484,7 @@ export function EditCategoryPage() {
           {categoryType === "NUMBER" ? (
             <label className="flex flex-col gap-1">
               <span className="label">Multiple entries</span>
-              {effectiveChartType === "bar" ? (
+              {effectiveChartType !== "line" ? (
                 <select
                   value={barAgg}
                   onChange={(e) => setBarAgg(e.target.value as BarAgg)}

@@ -6,7 +6,7 @@ export type SeriesBucket = {
   startDate: string; // YYYY-MM-DD
 };
 
-export type CategoryChartType = "bar" | "line";
+export type CategoryChartType = "bar" | "line" | "dot";
 
 export type BucketAggregation = "sum" | "avg" | "last";
 export type GoalDirection = "at_least" | "at_most" | "target";
