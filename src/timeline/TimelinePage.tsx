@@ -344,24 +344,42 @@ export function TimelinePage() {
         else if (statusRaw === "pending") scheduled.pending += 1;
       }
       if (isNotes) {
-        for (const e of evs) {
+        const sortedNoteEvents = evs
+          .slice()
+          .sort((a, b) => new Date(a.occurredAt as any).getTime() - new Date(b.occurredAt as any).getTime());
+
+        for (const e of sortedNoteEvents) {
           const occurredAt = new Date(e.occurredAt as any);
           const fromMap = noteByEventId[e.id];
-          if (fromMap) {
-            notes.push({ occurredAt, text: fromMap });
-            continue;
-          }
           const plain = typeof e.data?.note === "string" ? (e.data.note as string).trim() : "";
-          if (plain) {
-            notes.push({ occurredAt, text: plain });
-            continue;
-          }
-          const enc = e.data && typeof e.data === "object" && !Array.isArray(e.data) ? (e.data as any).noteEnc : null;
-          if (isEncryptedString(enc)) {
-            notes.push({ occurredAt, text: "Locked note" });
-          }
+          const enc =
+            e.data && typeof e.data === "object" && !Array.isArray(e.data) ? (e.data as any).noteEnc : null;
+          const text = fromMap || plain || (isEncryptedString(enc) ? "Locked note" : "");
+          if (!text) continue;
+          items.push({
+            categoryId: `${categoryId}:${e.id}`,
+            title:
+              titleByCategoryId[categoryId] ??
+              (isEncryptedString(c.title) ? "Locked" : String(c.title).trim()),
+            emoji: c.emoji ?? null,
+            accentHex: c.accentHex,
+            unit: c.unit ?? null,
+            slug,
+            chartType: c.chartType ?? "bar",
+            categoryType: c.categoryType,
+            count: 1,
+            firstAt: occurredAt,
+            lastAt: occurredAt,
+            total: e.amount ?? 1,
+            avg: null,
+            notePreview: text,
+            notes: [{ occurredAt, text }],
+            scheduled: { went: 0, missed: 0, cancelled: 0, pending: 0 },
+          });
         }
+        continue;
       }
+
       notes.sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
       items.push({
         categoryId,
@@ -547,9 +565,9 @@ export function TimelinePage() {
                       </div>
                     </div>
 
-	                    {isNotes && s.notes.length > 0 ? (
+                    {isNotes && s.notes.length > 0 ? (
 	                      <div className="mt-2 space-y-2">
-	                        {s.notes.slice(0, 3).map((n, i) => {
+	                        {s.notes.map((n, i) => {
 	                          const t = fmtMaybeTime(n.occurredAt);
 	                          return (
 	                            <div key={`${s.categoryId}-${i}`} className="flex items-start justify-between gap-3">
@@ -564,9 +582,6 @@ export function TimelinePage() {
 	                            </div>
 	                          );
 	                        })}
-	                        {s.notes.length > 3 ? (
-	                          <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">+{s.notes.length - 3} more</div>
-	                        ) : null}
 	                      </div>
                     ) : null}
                   </div>
