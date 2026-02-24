@@ -957,7 +957,7 @@ export const getCategoryContributions = async (
   const userId = context.user.id;
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId, sourceArchivedAt: null },
-    select: { id: true },
+    select: { id: true, slug: true },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
@@ -967,30 +967,80 @@ export const getCategoryContributions = async (
   const today = startOfDay(new Date());
   const start = addDays(today, -(DAYS - 1));
   const end = addDays(today, 1);
+  const normalizedSlug = String((category as any).slug ?? "").trim().toLowerCase();
+  const isActiveKcal = normalizedSlug === "active-kcal";
+  const isNotes = normalizedSlug === "notes";
 
-  const grouped = await context.entities.Event.groupBy({
-    by: ["occurredOn"],
+  let sourceCategoryIds: string[] = [categoryId];
+  let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
+  if (isActiveKcal) {
+    const pref = (await context.entities.User.findUnique({
+      where: { id: userId },
+      select: { activeKcalRollupEnabled: true },
+    }))?.activeKcalRollupEnabled;
+    const hasManual = await context.entities.Event.findFirst({
+      where: { userId, kind: "SESSION", categoryId },
+      select: { id: true },
+    });
+    const rollupEnabled = pref === true || (pref == null && !hasManual);
+
+    if (rollupEnabled) {
+      const contributors = await context.entities.Category.findMany({
+        where: {
+          userId,
+          sourceArchivedAt: null,
+          rollupToActiveKcal: true,
+          NOT: { id: categoryId },
+        },
+        select: { id: true, unit: true },
+      });
+      sourceCategoryIds = [categoryId, ...contributors.map((c: any) => String(c.id))];
+      rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
+      rollupMetaById.set(categoryId, { unit: "kcal", isActive: true });
+      for (const c of contributors as any[]) {
+        rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+      }
+    }
+  }
+
+  const events = await context.entities.Event.findMany({
     where: {
       userId,
-      categoryId,
       kind: "SESSION",
-      occurredOn: { gte: start, lt: end },
+      categoryId: { in: sourceCategoryIds },
+      occurredAt: { gte: start, lt: end },
     },
-    _count: { _all: true },
+    select: { occurredAt: true, amount: true, categoryId: true, data: true },
   });
 
-  const countByDate = new Map<string, number>();
-  for (const row of grouped as any[]) {
-    const on = row?.occurredOn instanceof Date ? row.occurredOn : new Date(row?.occurredOn);
-    if (Number.isNaN(on.getTime())) continue;
-    countByDate.set(toIsoDate(startOfDay(on)), Number((row?._count as any)?._all ?? 0));
+  const valueByDate = new Map<string, number>();
+  for (const ev of events as any[]) {
+    const occurredAt = ev?.occurredAt instanceof Date ? ev.occurredAt : new Date(ev?.occurredAt);
+    if (Number.isNaN(occurredAt.getTime())) continue;
+    let contribution = 0;
+    if (isNotes) {
+      contribution = 1;
+    } else {
+      const amount = typeof ev?.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+      const maybeMeta = rollupMetaById?.get(String(ev?.categoryId ?? "")) ?? null;
+      contribution =
+        rollupMetaById && maybeMeta
+          ? maybeMeta.isActive
+            ? amount
+            : maybeMeta.unit === "kcal"
+              ? amount
+              : getNumberField(ev?.data, "kcal") ?? 0
+          : amount;
+    }
+    const iso = toIsoDate(startOfDay(occurredAt));
+    valueByDate.set(iso, (valueByDate.get(iso) ?? 0) + contribution);
   }
 
   const out: ContributionDay[] = [];
   for (let i = 0; i < DAYS; i++) {
     const d = addDays(start, i);
     const iso = toIsoDate(d);
-    out.push({ date: iso, count: countByDate.get(iso) ?? 0 });
+    out.push({ date: iso, value: valueByDate.get(iso) ?? 0 });
   }
   return out;
 };

@@ -173,6 +173,27 @@ function toIsoDate(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+function normalizedUnit(u: unknown): string | null {
+  if (typeof u !== "string") return null;
+  const s = u.trim().toLowerCase();
+  if (!s || s === "x") return null;
+  if (s === "cal" || s === "cals" || s === "calorie" || s === "calories") return "kcal";
+  if (s === "kilogram" || s === "kilograms" || s === "kgs") return "kg";
+  if (s === "liter" || s === "liters" || s === "litre" || s === "litres") return "l";
+  if (s === "minute" || s === "minutes" || s === "mins") return "min";
+  if (s === "hour" || s === "hours" || s === "hrs" || s === "hr") return "h";
+  return s;
+}
+
+function getNumberField(data: unknown, key: string): number | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const fields = (data as any).fields;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return null;
+  const v = (fields as any)[key];
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  return null;
+}
+
 function nextBucketStart(d: Date, period: Period): Date {
   if (period === "day") return addDays(d, 1);
   if (period === "week") return addDays(d, 7);
@@ -1053,39 +1074,77 @@ export async function localGetContributionSeries(args: {
   const start = addDays(today, -(DAYS - 1));
   const end = addDays(today, 1);
 
-  const countByDate = new Map<string, number>();
+  const valueByDate = new Map<string, number>();
   const db = await openDb();
-  const range = IDBKeyRange.bound(
-    [userId, categoryId, start.toISOString()],
-    [userId, categoryId, end.toISOString()],
-    false,
-    true,
-  );
+  const categories = await getAllByIndex<LocalCategory>(db, "categories", "byUser", userId);
+  const category = categories.find((c) => c.id === categoryId && c.sourceArchivedAt == null);
+  if (!category) {
+    throw new Error("Category not found.");
+  }
 
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction("events", "readonly");
-    const index = tx.objectStore("events").index("byUserCategoryOccurredAt");
-    index.openCursor(range).onsuccess = (e) => {
-      const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
-      if (!cursor) return;
-      const ev = cursor.value as LocalEvent;
-      const on = new Date(ev.occurredOn);
-      if (!Number.isNaN(on.getTime())) {
-        const key = toIsoDate(startOfDay(on));
-        countByDate.set(key, (countByDate.get(key) ?? 0) + 1);
-      }
-      cursor.continue();
-    };
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error);
-  });
+  const normalizedSlug = String(category.slug ?? "").trim().toLowerCase();
+  const isActiveKcal = normalizedSlug === "active-kcal";
+  const isNotes = normalizedSlug === "notes";
+
+  let sourceCategoryIds: string[] = [categoryId];
+  let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
+  if (isActiveKcal) {
+    const contributors = categories.filter((c) => c.sourceArchivedAt == null && c.rollupToActiveKcal === true && c.id !== categoryId);
+    sourceCategoryIds = [categoryId, ...contributors.map((c) => c.id)];
+    rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
+    rollupMetaById.set(categoryId, { unit: "kcal", isActive: true });
+    for (const c of contributors) {
+      rollupMetaById.set(c.id, { unit: normalizedUnit(c.unit), isActive: false });
+    }
+  }
+
+  for (const sourceCategoryId of sourceCategoryIds) {
+    const range = IDBKeyRange.bound(
+      [userId, sourceCategoryId, start.toISOString()],
+      [userId, sourceCategoryId, end.toISOString()],
+      false,
+      true,
+    );
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("events", "readonly");
+      const index = tx.objectStore("events").index("byUserCategoryOccurredAt");
+      index.openCursor(range).onsuccess = (e) => {
+        const cursor = (e.target as IDBRequest<IDBCursorWithValue | null>).result;
+        if (!cursor) return;
+        const ev = cursor.value as LocalEvent;
+        const on = new Date(ev.occurredOn);
+        if (!Number.isNaN(on.getTime())) {
+          const key = toIsoDate(startOfDay(on));
+          let contribution = 0;
+          if (isNotes) {
+            contribution = 1;
+          } else {
+            const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+            const maybeMeta = rollupMetaById?.get(sourceCategoryId) ?? null;
+            contribution =
+              rollupMetaById && maybeMeta
+                ? maybeMeta.isActive
+                  ? amount
+                  : maybeMeta.unit === "kcal"
+                    ? amount
+                    : getNumberField(ev.data, "kcal") ?? 0
+                : amount;
+          }
+          valueByDate.set(key, (valueByDate.get(key) ?? 0) + contribution);
+        }
+        cursor.continue();
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  }
 
   const out: ContributionDay[] = [];
   for (let i = 0; i < DAYS; i++) {
     const d = addDays(start, i);
     const iso = toIsoDate(d);
-    out.push({ date: iso, count: countByDate.get(iso) ?? 0 });
+    out.push({ date: iso, value: valueByDate.get(iso) ?? 0 });
   }
   return out;
 }

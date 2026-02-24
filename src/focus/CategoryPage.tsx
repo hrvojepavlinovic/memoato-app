@@ -5,7 +5,6 @@ import {
   getCategories,
   getCategorySeries,
   getCategoryLineSeries,
-  updateCategory,
   useQuery,
 } from "wasp/client/operations";
 import * as WaspOperations from "wasp/client/operations";
@@ -27,7 +26,6 @@ import {
   localGetContributionSeries,
   localGetCategoriesWithStats,
   localGetLineSeries,
-  localUpdateCategory,
 } from "./local";
 import { useTheme } from "../theme/ThemeProvider";
 import { resolveAccentForTheme } from "../theme/colors";
@@ -265,11 +263,15 @@ function LineCategoryChart({
 
 function ContributionCategoryChart({
   categoryId,
+  categorySlug,
+  unit,
   accentHex,
   isLocal,
   localUserId,
 }: {
   categoryId: string;
+  categorySlug?: string | null;
+  unit?: string | null;
   accentHex?: string;
   isLocal: boolean;
   localUserId: string | null;
@@ -291,12 +293,19 @@ function ContributionCategoryChart({
 
   if (isLocal) {
     if (!localData) return <div className="h-[170px]" />;
-    return <ContributionsChart data={localData} accentHex={accentHex} />;
+    return <ContributionsChart data={localData} accentHex={accentHex} unit={unit} isNotes={categorySlug === "notes"} />;
   }
 
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
   if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
-  return <ContributionsChart data={seriesQuery.data as ContributionDay[]} accentHex={accentHex} />;
+  return (
+    <ContributionsChart
+      data={seriesQuery.data as ContributionDay[]}
+      accentHex={accentHex}
+      unit={unit}
+      isNotes={categorySlug === "notes"}
+    />
+  );
 }
 
 export function CategoryPage() {
@@ -309,7 +318,6 @@ export function CategoryPage() {
   const [scheduledStatus, setScheduledStatus] = useState<"went" | "missed" | "cancelled">("went");
   const [occurredOn, setOccurredOn] = useState<string>(todayIso());
   const [displayTitle, setDisplayTitle] = useState<string | null>(null);
-  const [isSwitchingView, setIsSwitchingView] = useState(false);
   const privacy = usePrivacy();
   const theme = useTheme();
   const today = todayIso();
@@ -449,78 +457,7 @@ export function CategoryPage() {
     displayTitle ?? (category && isEncryptedString(category.title) ? "Locked" : category?.title ?? null);
   const accentHex = category ? resolveAccentForTheme(category.accentHex, theme.isDark) ?? category.accentHex : "#0A0A0A";
   const isLocked = !!category && isEncryptedString(category.title) && !privacy.key;
-  const canSwitchView = !!category && !isLocked;
   const activePrimaryView: "line" | "bar" = category?.chartType === "line" ? "line" : "bar";
-
-  function normalizeAggregationForChartType(
-    chartType: "line" | "bar",
-    current: BucketAggregation | null | undefined,
-  ): BucketAggregation {
-    const raw = String(current ?? "").trim().toLowerCase();
-    if (chartType === "line") {
-      return raw === "avg" ? "avg" : "last";
-    }
-    return raw === "avg" ? "avg" : "sum";
-  }
-
-  async function onSwitchView(nextChartType: "line" | "bar") {
-    if (!category || !canSwitchView) return;
-    if (nextChartType === activePrimaryView) return;
-    const nextAggregation = normalizeAggregationForChartType(nextChartType, category.bucketAggregation);
-    setIsSwitchingView(true);
-    try {
-      if (privacy.mode === "local") {
-        if (!privacy.userId) return;
-        await localUpdateCategory({
-          userId: privacy.userId,
-          categoryId: category.id,
-          title: category.title,
-          categoryType: category.categoryType,
-          chartType: nextChartType,
-          period: nextChartType !== "line" ? category.period ?? "week" : undefined,
-          unit: category.unit ?? null,
-          goal: nextChartType !== "line" ? category.goalWeekly ?? null : null,
-          goalValue: nextChartType === "line" ? category.goalValue ?? null : null,
-          accentHex: category.accentHex,
-          emoji: category.emoji ?? null,
-          bucketAggregation: nextAggregation,
-          goalDirection: category.goalDirection ?? null,
-          rollupToActiveKcal: category.rollupToActiveKcal,
-          fieldsSchema: category.fieldsSchema ?? null,
-          scheduleEnabled: category.scheduleEnabled,
-          scheduleType: category.scheduleType,
-          scheduleDays: category.scheduleDays ?? null,
-          scheduleTime: category.scheduleTime ?? null,
-        });
-      } else {
-        await updateCategory({
-          categoryId: category.id,
-          title: category.title,
-          categoryType: category.categoryType,
-          chartType: nextChartType,
-          bucketAggregation: nextAggregation,
-          goalDirection: category.goalDirection ?? undefined,
-          period: nextChartType !== "line" ? category.period ?? "week" : undefined,
-          unit: category.unit ?? undefined,
-          goal: nextChartType !== "line" ? category.goalWeekly ?? undefined : undefined,
-          goalValue: nextChartType === "line" ? category.goalValue ?? undefined : undefined,
-          accentHex: category.accentHex,
-          emoji: category.emoji ?? undefined,
-          fieldsSchema: category.fieldsSchema ?? undefined,
-          rollupToActiveKcal: category.rollupToActiveKcal,
-          scheduleEnabled: category.scheduleEnabled,
-          scheduleType: category.scheduleType,
-          scheduleDays: category.scheduleDays ?? undefined,
-          scheduleTime: category.scheduleTime ?? undefined,
-        } as any);
-        await categoriesQuery.refetch();
-      }
-    } catch (e: any) {
-      window.alert(e?.message ?? "Failed to update default view.");
-    } finally {
-      setIsSwitchingView(false);
-    }
-  }
 
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
@@ -693,35 +630,9 @@ export function CategoryPage() {
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <div className="sm:order-1">
-          <div className="flex w-full rounded-xl border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 sm:inline-flex sm:w-auto">
-            {[
-              { key: "line", label: "Chart" },
-              { key: "bar", label: "Bar" },
-            ].map((opt) => {
-              const active = activePrimaryView === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => onSwitchView(opt.key as "line" | "bar")}
-                  disabled={!canSwitchView || isSwitchingView}
-                  className={
-                    "flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold sm:flex-none " +
-                    (active
-                      ? "bg-neutral-950 text-white dark:bg-white dark:text-neutral-950"
-                      : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800")
-                  }
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div className="sm:order-2">
           <PeriodPicker value={period} onChange={setPeriod} />
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:order-3 sm:flex sm:gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:order-2 sm:flex sm:gap-2">
           <Button
             variant="ghost"
             size="sm"
@@ -787,6 +698,8 @@ export function CategoryPage() {
           <ContributionCategoryChart
             key={`contrib-${resolvedCategoryId}`}
             categoryId={resolvedCategoryId}
+            categorySlug={category.slug}
+            unit={category.unit}
             accentHex={category.accentHex}
             isLocal={privacy.mode === "local"}
             localUserId={privacy.userId}
