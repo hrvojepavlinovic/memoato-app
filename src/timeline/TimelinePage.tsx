@@ -286,15 +286,30 @@ export function TimelinePage() {
 
   const summary = useMemo(() => {
     if (!events) return [];
-    const groups = new Map<string, DayEvent[]>();
-    for (const ev of events) {
-      if (!ev.category?.id) continue;
-      const arr = groups.get(ev.category.id) ?? [];
-      arr.push(ev);
-      groups.set(ev.category.id, arr);
+    const ordered = events
+      .filter((ev) => !!ev.category?.id)
+      .slice()
+      .sort((a, b) => {
+        const ta = new Date(a.occurredAt as any).getTime();
+        const tb = new Date(b.occurredAt as any).getTime();
+        if (ta !== tb) return ta - tb;
+        return String(a.id).localeCompare(String(b.id));
+      });
+
+    const chunks: Array<{ categoryId: string; events: DayEvent[] }> = [];
+    for (const ev of ordered) {
+      const categoryId = ev.category?.id;
+      if (!categoryId) continue;
+      const prev = chunks[chunks.length - 1];
+      if (prev && prev.categoryId === categoryId) {
+        prev.events.push(ev);
+      } else {
+        chunks.push({ categoryId, events: [ev] });
+      }
     }
 
     const items: Array<{
+      chunkId: string;
       categoryId: string;
       title: string;
       emoji: string | null;
@@ -313,7 +328,9 @@ export function TimelinePage() {
       scheduled: { went: number; missed: number; cancelled: number; pending: number };
     }> = [];
 
-    for (const [categoryId, evs] of groups.entries()) {
+    for (const chunk of chunks) {
+      const categoryId = chunk.categoryId;
+      const evs = chunk.events;
       const c = evs[0]?.category;
       if (!c) continue;
       const slug = c.slug ?? c.id;
@@ -344,11 +361,7 @@ export function TimelinePage() {
         else if (statusRaw === "pending") scheduled.pending += 1;
       }
       if (isNotes) {
-        const sortedNoteEvents = evs
-          .slice()
-          .sort((a, b) => new Date(a.occurredAt as any).getTime() - new Date(b.occurredAt as any).getTime());
-
-        for (const e of sortedNoteEvents) {
+        for (const e of evs) {
           const occurredAt = new Date(e.occurredAt as any);
           const fromMap = noteByEventId[e.id];
           const plain = typeof e.data?.note === "string" ? (e.data.note as string).trim() : "";
@@ -356,32 +369,14 @@ export function TimelinePage() {
             e.data && typeof e.data === "object" && !Array.isArray(e.data) ? (e.data as any).noteEnc : null;
           const text = fromMap || plain || (isEncryptedString(enc) ? "Locked note" : "");
           if (!text) continue;
-          items.push({
-            categoryId: `${categoryId}:${e.id}`,
-            title:
-              titleByCategoryId[categoryId] ??
-              (isEncryptedString(c.title) ? "Locked" : String(c.title).trim()),
-            emoji: c.emoji ?? null,
-            accentHex: c.accentHex,
-            unit: c.unit ?? null,
-            slug,
-            chartType: c.chartType ?? "bar",
-            categoryType: c.categoryType,
-            count: 1,
-            firstAt: occurredAt,
-            lastAt: occurredAt,
-            total: e.amount ?? 1,
-            avg: null,
-            notePreview: text,
-            notes: [{ occurredAt, text }],
-            scheduled: { went: 0, missed: 0, cancelled: 0, pending: 0 },
-          });
+          notes.push({ occurredAt, text });
         }
-        continue;
       }
 
       notes.sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
+      if (isNotes && notes.length === 0) continue;
       items.push({
+        chunkId: `${categoryId}:${evs[0]?.id ?? "chunk"}`,
         categoryId,
         title:
           titleByCategoryId[categoryId] ??
@@ -403,7 +398,6 @@ export function TimelinePage() {
       });
     }
 
-    items.sort((a, b) => a.firstAt.getTime() - b.firstAt.getTime());
     return items;
   }, [events, noteByEventId, titleByCategoryId]);
 
@@ -507,7 +501,7 @@ export function TimelinePage() {
 
             let main = "";
             if (isNotes) {
-              main = `${s.count} ${s.count === 1 ? "note" : "notes"}`;
+              main = "";
             } else if ((s.categoryType === "DO" || s.categoryType === "DONT") && (s.scheduled.went + s.scheduled.missed + s.scheduled.cancelled + s.scheduled.pending > 0)) {
               const labels: string[] = [];
               if (s.scheduled.pending > 0) labels.push("Pending");
@@ -540,7 +534,7 @@ export function TimelinePage() {
 
             return (
               <Link
-                key={s.categoryId}
+                key={s.chunkId}
                 to={routes.CategoryRoute.to}
                 params={{ categorySlug: s.slug }}
                 className="group relative block rounded-xl px-2 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-900"
@@ -557,7 +551,7 @@ export function TimelinePage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate text-base font-semibold">{s.title}</div>
-                        <div className="text-sm text-neutral-600 dark:text-neutral-300">{main}</div>
+                        {main ? <div className="text-sm text-neutral-600 dark:text-neutral-300">{main}</div> : null}
                       </div>
                       <div className="shrink-0 text-right">
                         {time ? <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">{time}</div> : null}
