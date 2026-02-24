@@ -346,11 +346,17 @@ export function TimelinePage() {
       const total = evs.reduce((acc, e) => acc + (e.amount ?? 0), 0);
       const avg = isWeight && count > 0 ? total / count : null;
       const notePreview =
-        count === 1
-          ? (noteByEventId[evs[0]!.id] ??
-              (typeof evs[0]!.data?.note === "string" ? (evs[0]!.data.note as string).trim() : "") ??
-              "") || null
-          : null;
+        evs
+          .map((e) => {
+            const fromMap = noteByEventId[e.id];
+            if (fromMap && fromMap.trim()) return fromMap.trim();
+            const plain = typeof e.data?.note === "string" ? (e.data.note as string).trim() : "";
+            if (plain) return plain;
+            const enc =
+              e.data && typeof e.data === "object" && !Array.isArray(e.data) ? (e.data as any).noteEnc : null;
+            return isEncryptedString(enc) ? "Locked note" : "";
+          })
+          .find((s) => !!s) ?? null;
       const notes: Array<{ occurredAt: Date; text: string }> = [];
       const scheduled = { went: 0, missed: 0, cancelled: 0, pending: 0 };
       for (const e of evs) {
@@ -502,14 +508,8 @@ export function TimelinePage() {
             let main = "";
             if (isNotes) {
               main = "";
-            } else if ((s.categoryType === "DO" || s.categoryType === "DONT") && (s.scheduled.went + s.scheduled.missed + s.scheduled.cancelled + s.scheduled.pending > 0)) {
-              const labels: string[] = [];
-              if (s.scheduled.pending > 0) labels.push("Pending");
-              if (s.scheduled.went > 0) labels.push(s.scheduled.went === 1 ? "Went" : `${s.scheduled.went} went`);
-              if (s.scheduled.missed > 0) labels.push(s.scheduled.missed === 1 ? "Didn’t go" : `${s.scheduled.missed} missed`);
-              if (s.scheduled.cancelled > 0)
-                labels.push(s.scheduled.cancelled === 1 ? "Cancelled" : `${s.scheduled.cancelled} cancelled`);
-              main = labels.join(" · ");
+            } else if (s.categoryType === "DO" || s.categoryType === "DONT") {
+              main = s.notePreview ?? "";
             } else if (isWeight) {
               const kgUnit = unit || " kg";
               const v = Math.round(s.total * 10) / 10;

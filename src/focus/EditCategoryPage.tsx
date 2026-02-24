@@ -109,9 +109,7 @@ export function EditCategoryPage() {
     setCategoryType((category.categoryType === "GOAL" ? "NUMBER" : (category.categoryType as CategoryType)) ?? "NUMBER");
     setPeriod((category.period as Period) ?? "week");
     const nextChartType =
-      category.categoryType === "NUMBER"
-        ? ((category.chartType as ChartType) ?? "bar")
-        : defaultViewForType(category.categoryType as CategoryType | "GOAL");
+      (category.chartType as ChartType) ?? defaultViewForType(category.categoryType as CategoryType | "GOAL");
     setChartType(nextChartType);
     const agg = (category.bucketAggregation ?? "").toLowerCase();
     if (nextChartType !== "line") {
@@ -167,7 +165,7 @@ export function EditCategoryPage() {
     };
   }, [category, privacy.key]);
 
-  const effectiveChartType: ChartType = categoryType === "NUMBER" ? chartType : defaultViewForType(categoryType);
+  const effectiveChartType: ChartType = chartType;
   const bucketAggregation: BucketAggregation = effectiveChartType === "line" ? lineAgg : barAgg;
   const needsPeriod = effectiveChartType !== "line";
   const hint = useMemo(() => typeOptions.find((o) => o.value === categoryType)?.hint, [categoryType]);
@@ -391,8 +389,7 @@ export function EditCategoryPage() {
             <select
               value={effectiveChartType}
               onChange={(e) => onChartTypeChange(e.target.value as ChartType)}
-              disabled={categoryType !== "NUMBER"}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
             >
               <option value="bar">Bar</option>
               <option value="line">Line</option>

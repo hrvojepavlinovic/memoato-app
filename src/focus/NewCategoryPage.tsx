@@ -101,8 +101,7 @@ export function NewCategoryPage() {
   const [fieldsSchema, setFieldsSchema] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const effectiveChartType: ChartType =
-    categoryType === "NUMBER" ? chartType : defaultViewForType(categoryType);
+  const effectiveChartType: ChartType = chartType;
   const bucketAggregation =
     effectiveChartType === "line" ? lineAgg : barAgg;
   const needsPeriod = effectiveChartType !== "line";
@@ -332,14 +331,13 @@ export function NewCategoryPage() {
               <select
                 value={effectiveChartType}
                 onChange={(e) => setChartType(e.target.value as ChartType)}
-                disabled={categoryType !== "NUMBER"}
-                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
+                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
               >
                 <option value="bar">Bar</option>
                 <option value="line">Line</option>
                 <option value="dot">Dots</option>
               </select>
-              <SelectChevron disabled={categoryType !== "NUMBER"} />
+              <SelectChevron />
             </div>
           </label>
 
