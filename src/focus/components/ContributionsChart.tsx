@@ -18,6 +18,30 @@ function parseIsoDate(iso: string): Date {
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
 
+function toIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function mondayIndex(d: Date): number {
+  return (d.getDay() + 6) % 7; // Mon=0 ... Sun=6
+}
+
+function startOfWeekMonday(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - mondayIndex(x));
+  return x;
+}
+
+function addDays(d: Date, days: number): Date {
+  const x = new Date(d);
+  x.setDate(x.getDate() + days);
+  return x;
+}
+
 function formatDateLabel(iso: string): string {
   const d = parseIsoDate(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -47,9 +71,29 @@ export function ContributionsChart({
   const maxValue = useMemo(() => Math.max(0, ...days.map((d) => (d.value > 0 ? d.value : 0))), [days]);
   const weeks = useMemo(() => {
     const out: ContributionDay[][] = [];
-    for (let i = 0; i < days.length; i += 7) {
-      out.push(days.slice(i, i + 7));
+    if (days.length === 0) return out;
+
+    const byDate = new Map(days.map((d) => [d.date, d] as const));
+    const firstDate = parseIsoDate(days[0]!.date);
+    const lastDate = parseIsoDate(days[days.length - 1]!.date);
+    if (Number.isNaN(firstDate.getTime()) || Number.isNaN(lastDate.getTime())) return out;
+
+    const firstWeekStart = startOfWeekMonday(firstDate);
+    const lastTime = lastDate.getTime();
+    const firstTime = firstDate.getTime();
+
+    for (let weekStart = firstWeekStart; weekStart.getTime() <= lastTime; weekStart = addDays(weekStart, 7)) {
+      const week: ContributionDay[] = [];
+      for (let i = 0; i < 7; i += 1) {
+        const day = addDays(weekStart, i);
+        const t = day.getTime();
+        if (t < firstTime || t > lastTime) continue;
+        const iso = toIsoDate(day);
+        week.push(byDate.get(iso) ?? { date: iso, value: 0 });
+      }
+      if (week.length > 0) out.push(week);
     }
+
     return out;
   }, [days]);
   const [activeDate, setActiveDate] = useState<string | null>(null);
@@ -128,20 +172,6 @@ export function ContributionsChart({
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="mt-2 flex items-center justify-end gap-1.5 text-[11px] font-medium text-neutral-500 dark:text-neutral-400">
-        <span>Less</span>
-        {[0, 1, 2, 3, 4].map((level) => {
-          const color =
-            level === 0
-              ? theme.isDark
-                ? "#262626"
-                : "#E5E7EB"
-              : tileColor(Math.ceil((maxValue * level) / 4));
-          return <span key={level} className="h-2.5 w-2.5 rounded-[2px]" style={{ backgroundColor: color }} />;
-        })}
-        <span>More</span>
       </div>
     </div>
   );
