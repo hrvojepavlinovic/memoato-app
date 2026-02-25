@@ -265,6 +265,7 @@ function ContributionCategoryChart({
   categoryId,
   categorySlug,
   unit,
+  invertScale,
   accentHex,
   isLocal,
   localUserId,
@@ -272,6 +273,7 @@ function ContributionCategoryChart({
   categoryId: string;
   categorySlug?: string | null;
   unit?: string | null;
+  invertScale?: boolean;
   accentHex?: string;
   isLocal: boolean;
   localUserId: string | null;
@@ -293,7 +295,15 @@ function ContributionCategoryChart({
 
   if (isLocal) {
     if (!localData) return <div className="h-[170px]" />;
-    return <ContributionsChart data={localData} accentHex={accentHex} unit={unit} isNotes={categorySlug === "notes"} />;
+    return (
+      <ContributionsChart
+        data={localData}
+        accentHex={accentHex}
+        unit={unit}
+        isNotes={categorySlug === "notes"}
+        invertScale={invertScale}
+      />
+    );
   }
 
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
@@ -304,6 +314,7 @@ function ContributionCategoryChart({
       accentHex={accentHex}
       unit={unit}
       isNotes={categorySlug === "notes"}
+      invertScale={invertScale}
     />
   );
 }
@@ -700,6 +711,7 @@ export function CategoryPage() {
             categoryId={resolvedCategoryId}
             categorySlug={category.slug}
             unit={category.unit}
+            invertScale={category.goalDirection === "at_most"}
             accentHex={category.accentHex}
             isLocal={privacy.mode === "local"}
             localUserId={privacy.userId}

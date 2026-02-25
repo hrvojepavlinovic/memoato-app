@@ -58,17 +58,24 @@ export function ContributionsChart({
   accentHex,
   unit,
   isNotes,
+  invertScale,
 }: {
   data: ContributionDay[];
   accentHex?: string;
   unit?: string | null;
   isNotes?: boolean;
+  invertScale?: boolean;
 }) {
   const theme = useTheme();
   const resolvedAccent = resolveAccentForTheme(accentHex ?? undefined, theme.isDark);
   const accent = resolvedAccent ?? (theme.isDark ? "#FAFAFA" : "#0A0A0A");
   const days = useMemo(() => data.slice().sort((a, b) => a.date.localeCompare(b.date)), [data]);
   const maxValue = useMemo(() => Math.max(0, ...days.map((d) => (d.value > 0 ? d.value : 0))), [days]);
+  const minPositiveValue = useMemo(() => {
+    const values = days.map((d) => d.value).filter((v) => v > 0);
+    if (values.length === 0) return 0;
+    return Math.min(...values);
+  }, [days]);
   const weeks = useMemo(() => {
     const out: ContributionDay[][] = [];
     if (days.length === 0) return out;
@@ -136,7 +143,15 @@ export function ContributionsChart({
   function tileColor(value: number): string {
     const normalizedValue = value > 0 ? value : 0;
     if (normalizedValue <= 0 || maxValue <= 0) return theme.isDark ? "#262626" : "#E5E7EB";
-    const level = Math.min(4, Math.max(1, Math.ceil((normalizedValue / maxValue) * 4)));
+    let level = Math.min(4, Math.max(1, Math.ceil((normalizedValue / maxValue) * 4)));
+    if (invertScale) {
+      if (maxValue > minPositiveValue) {
+        const ratio = (maxValue - normalizedValue) / (maxValue - minPositiveValue);
+        level = Math.min(4, Math.max(1, Math.ceil(ratio * 4)));
+      } else {
+        level = 4;
+      }
+    }
     if (level === 1) return withAlpha(accent, 0.24);
     if (level === 2) return withAlpha(accent, 0.4);
     if (level === 3) return withAlpha(accent, 0.58);

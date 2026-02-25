@@ -1085,6 +1085,8 @@ export async function localGetContributionSeries(args: {
   const normalizedSlug = String(category.slug ?? "").trim().toLowerCase();
   const isActiveKcal = normalizedSlug === "active-kcal";
   const isNotes = normalizedSlug === "notes";
+  const bucketAgg = String(category.bucketAggregation ?? "").trim().toLowerCase();
+  const useLastPerDay = !isNotes && !isActiveKcal && (category.chartType === "line" || bucketAgg === "last");
 
   let sourceCategoryIds: string[] = [categoryId];
   let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
@@ -1130,7 +1132,11 @@ export async function localGetContributionSeries(args: {
                     : getNumberField(ev.data, "kcal") ?? 0
                 : amount;
           }
-          valueByDate.set(key, (valueByDate.get(key) ?? 0) + contribution);
+          if (useLastPerDay) {
+            valueByDate.set(key, contribution);
+          } else {
+            valueByDate.set(key, (valueByDate.get(key) ?? 0) + contribution);
+          }
         }
         cursor.continue();
       };

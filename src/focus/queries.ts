@@ -957,7 +957,7 @@ export const getCategoryContributions = async (
   const userId = context.user.id;
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId, sourceArchivedAt: null },
-    select: { id: true, slug: true },
+    select: { id: true, slug: true, chartType: true, categoryType: true, bucketAggregation: true },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
@@ -970,6 +970,12 @@ export const getCategoryContributions = async (
   const normalizedSlug = String((category as any).slug ?? "").trim().toLowerCase();
   const isActiveKcal = normalizedSlug === "active-kcal";
   const isNotes = normalizedSlug === "notes";
+  const chartType = normalizeChartType(
+    (category as any).chartType,
+    defaultChartTypeForCategoryType((category as any).categoryType),
+  );
+  const aggregation = normalizeAgg((category as any).bucketAggregation, chartType);
+  const useLastPerDay = !isNotes && !isActiveKcal && (chartType === "line" || aggregation === "last");
 
   let sourceCategoryIds: string[] = [categoryId];
   let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
@@ -1011,6 +1017,7 @@ export const getCategoryContributions = async (
       occurredAt: { gte: start, lt: end },
     },
     select: { occurredAt: true, amount: true, categoryId: true, data: true },
+    orderBy: [{ occurredAt: "asc" }],
   });
 
   const valueByDate = new Map<string, number>();
@@ -1033,7 +1040,11 @@ export const getCategoryContributions = async (
           : amount;
     }
     const iso = toIsoDate(startOfDay(occurredAt));
-    valueByDate.set(iso, (valueByDate.get(iso) ?? 0) + contribution);
+    if (useLastPerDay) {
+      valueByDate.set(iso, contribution);
+    } else {
+      valueByDate.set(iso, (valueByDate.get(iso) ?? 0) + contribution);
+    }
   }
 
   const out: ContributionDay[] = [];
