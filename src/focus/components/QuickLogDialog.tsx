@@ -63,31 +63,23 @@ function toHourMinute(h: number, m: number): string {
 type DetectedOccurredAt = {
   occurredAt: string;
   label: string;
-  source: string;
   sourceField: "raw" | "note";
   start: number;
   end: number;
 };
 
-function buildOccurredAtFromTexts(
-  texts: Array<{ field: "raw" | "note"; text: string | null | undefined }>,
-): DetectedOccurredAt | null {
-  for (const { field, text } of texts) {
-    if (!text) continue;
-    const extracted = extractTimeFromText(text);
-    if (!extracted) continue;
-    const now = new Date();
-    const hhmm = toHourMinute(extracted.hour, extracted.minute);
-    return {
-      occurredAt: `${toLocalDateIso(now)}T${hhmm}`,
-      label: hhmm,
-      source: extracted.source,
-      sourceField: field,
-      start: extracted.start,
-      end: extracted.end,
-    };
-  }
-  return null;
+function detectTimeInField(field: "raw" | "note", text: string): DetectedOccurredAt | null {
+  const extracted = extractTimeFromText(text);
+  if (!extracted) return null;
+  const now = new Date();
+  const hhmm = toHourMinute(extracted.hour, extracted.minute);
+  return {
+    occurredAt: `${toLocalDateIso(now)}T${hhmm}`,
+    label: hhmm,
+    sourceField: field,
+    start: extracted.start,
+    end: extracted.end,
+  };
 }
 
 function removeDetectedTimeFromText(text: string, detected: DetectedOccurredAt | null): string {
@@ -807,7 +799,7 @@ export function QuickLogDialog({
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [detailValues, setDetailValues] = React.useState<Record<string, string>>({});
   const [noteValue, setNoteValue] = React.useState("");
-  const [timeAutoDetectionDisabled, setTimeAutoDetectionDisabled] = React.useState(false);
+  const [capturedTime, setCapturedTime] = React.useState<{ occurredAt: string; label: string } | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const isMobile = useIsMobileSm();
   const [mobileViewport, setMobileViewport] = React.useState<{ height: number; top: number }>({ height: 0, top: 0 });
@@ -928,15 +920,6 @@ export function QuickLogDialog({
     if (previewIsNotes) return { fields: {}, durationMinutes: null as number | null, capturedLabel: null as string | null };
     return buildAutoFields({ parsed, selected: previewCategory, amount: previewAmount });
   }, [parsed, previewAmount, previewCategory, previewIsNotes, previewTitle]);
-  const detectedTime = React.useMemo(
-    () =>
-      buildOccurredAtFromTexts([
-        { field: "raw", text: raw },
-        { field: "note", text: !seededNotes ? noteValue : null },
-      ]),
-    [noteValue, raw, seededNotes],
-  );
-  const activeDetectedTime = timeAutoDetectionDisabled ? null : detectedTime;
 
   React.useEffect(() => {
     if (!open) return;
@@ -946,7 +929,7 @@ export function QuickLogDialog({
     setDetailsOpen(false);
     setDetailValues({});
     setNoteValue("");
-    setTimeAutoDetectionDisabled(false);
+    setCapturedTime(null);
     setSelectionMode(seedCategoryId || forceNotes ? "seed" : "auto");
     setSelectedCategoryId(seedCategoryId);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
@@ -1058,6 +1041,20 @@ export function QuickLogDialog({
 
   const listMore = suppressAltSuggestions ? [] : ranked.slice(0, 12);
 
+  function captureTimeFromRaw(nextRaw: string): string {
+    const detected = detectTimeInField("raw", nextRaw);
+    if (!detected) return nextRaw;
+    setCapturedTime({ occurredAt: detected.occurredAt, label: detected.label });
+    return removeDetectedTimeFromText(nextRaw, detected);
+  }
+
+  function captureTimeFromNote(nextNote: string): string {
+    const detected = detectTimeInField("note", nextNote);
+    if (!detected) return nextNote;
+    setCapturedTime({ occurredAt: detected.occurredAt, label: detected.label });
+    return removeDetectedTimeFromText(nextNote, detected);
+  }
+
   function togglePicker(next?: boolean) {
     if (seededNotes || suppressAltSuggestions) return;
     const willShow = typeof next === "boolean" ? next : !showPicker;
@@ -1122,18 +1119,8 @@ export function QuickLogDialog({
     const rawText = raw.trim();
     if (!rawText) return;
     const sideNoteRaw = noteValue.trim();
-    const sideNote = sideNoteRaw.length > 0 ? sideNoteRaw : null;
-    const parsedTime = timeAutoDetectionDisabled
-      ? null
-      : buildOccurredAtFromTexts([
-          { field: "raw", text: rawText },
-          { field: "note", text: sideNote },
-        ]);
-    const rawTextToSend =
-      parsedTime && parsedTime.sourceField === "raw" ? removeDetectedTimeFromText(rawText, parsedTime) : rawText;
-    const sideNoteToSendRaw =
-      parsedTime && parsedTime.sourceField === "note" && sideNote ? removeDetectedTimeFromText(sideNote, parsedTime) : sideNote;
-    const sideNoteToSend = sideNoteToSendRaw && sideNoteToSendRaw.trim().length > 0 ? sideNoteToSendRaw.trim() : null;
+    const sideNoteToSend = sideNoteRaw.length > 0 ? sideNoteRaw : null;
+    const parsedTime = capturedTime;
 
     const cfg = defaultNewCategoryConfig(parsed);
     const title = createSuggestion.title;
@@ -1202,7 +1189,7 @@ export function QuickLogDialog({
           userId: privacy.userId,
           categoryId,
           amount,
-          rawText: rawTextToSend || null,
+          rawText: rawText || null,
           ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
           ...(sideNoteToSend ? { note: sideNoteToSend } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
@@ -1217,7 +1204,7 @@ export function QuickLogDialog({
           categoryId,
           amount,
           ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
-          ...(privacy.mode === "encrypted" ? {} : { rawText: rawTextToSend || null, ...(sideNoteToSend ? { note: sideNoteToSend } : {}) }),
+          ...(privacy.mode === "encrypted" ? {} : { rawText: rawText || null, ...(sideNoteToSend ? { note: sideNoteToSend } : {}) }),
           ...(noteEncToSend ? { noteEnc: noteEncToSend } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
@@ -1234,30 +1221,15 @@ export function QuickLogDialog({
   async function submit(): Promise<void> {
     if (!selected) return;
 
-    const noteTextRaw = raw.trim();
+    const noteText = raw.trim();
     const sideNoteRaw = noteValue.trim();
-    const sideNoteInitial = sideNoteRaw.length > 0 ? sideNoteRaw : null;
-    const detectedTimeForSubmit = timeAutoDetectionDisabled
-      ? null
-      : buildOccurredAtFromTexts([
-          { field: "raw", text: noteTextRaw },
-          { field: "note", text: sideNoteInitial },
-        ]);
-    const noteText =
-      detectedTimeForSubmit && detectedTimeForSubmit.sourceField === "raw"
-        ? removeDetectedTimeFromText(noteTextRaw, detectedTimeForSubmit)
-        : noteTextRaw;
-    const sideNoteCleanRaw =
-      detectedTimeForSubmit && detectedTimeForSubmit.sourceField === "note" && sideNoteInitial
-        ? removeDetectedTimeFromText(sideNoteInitial, detectedTimeForSubmit)
-        : sideNoteInitial;
-    const sideNote = sideNoteCleanRaw && sideNoteCleanRaw.trim().length > 0 ? sideNoteCleanRaw.trim() : null;
+    const sideNote = sideNoteRaw.length > 0 ? sideNoteRaw : null;
     const shouldForceNotes =
       !selectedIsNotes &&
       !seededNotes &&
       selectionMode !== "manual" &&
       noteIntent >= 0.75 &&
-      noteTextRaw.length >= 24 &&
+      noteText.length >= 24 &&
       !!notesCategoryIdFromCats;
 
     const submitCategory =
@@ -1268,7 +1240,7 @@ export function QuickLogDialog({
 
     const submitDisplayTitle = displayTitleById[submitCategory.id] ?? submitCategory.title;
     const isNotes = shouldForceNotes || (submitCategory.slug ?? "").toLowerCase() === "notes";
-    const parsedTime = detectedTimeForSubmit;
+    const parsedTime = capturedTime;
     const amount = isNotes
       ? null
       : pickAmountForCategory({ parsed, c: submitCategory, displayTitle: submitDisplayTitle, intent: "submit" });
@@ -1655,14 +1627,17 @@ export function QuickLogDialog({
                       const nextRaw = e.target.value;
                       const extracted = extractTrailingAnnotation(nextRaw);
                       if (extracted.annotation) {
-                        setRaw(extracted.rawForParsing);
-                        setNoteValue((prev) => {
-                          if (!prev.trim()) return extracted.annotation ?? "";
-                          if (prev.trim() === (extracted.annotation ?? "").trim()) return prev;
-                          return `${prev.trim()}\n${(extracted.annotation ?? "").trim()}`.trim();
-                        });
+                        setRaw(captureTimeFromRaw(extracted.rawForParsing));
+                        const ann = extracted.annotation ?? "";
+                        const currentNote = noteValue.trim();
+                        const merged = !currentNote
+                          ? ann
+                          : currentNote === ann.trim()
+                            ? noteValue
+                            : `${currentNote}\n${ann.trim()}`.trim();
+                        setNoteValue(captureTimeFromNote(merged));
                       } else {
-                        setRaw(nextRaw);
+                        setRaw(captureTimeFromRaw(nextRaw));
                       }
                       if (selectionMode === "seed" && !seededNotes) setSelectionMode("auto");
                     }}
@@ -1706,7 +1681,7 @@ export function QuickLogDialog({
                   {previewCategory && !previewIsNotes ? (
                     <input
                       value={noteValue}
-                      onChange={(e) => setNoteValue(e.target.value)}
+                      onChange={(e) => setNoteValue(captureTimeFromNote(e.target.value))}
                       inputMode="text"
                       autoCapitalize="sentences"
                       autoCorrect="on"
@@ -1720,23 +1695,17 @@ export function QuickLogDialog({
                   )}
                 </div>
               ) : null}
-              {detectedTime ? (
+              {capturedTime ? (
                 <div className="mt-2">
-                  {!timeAutoDetectionDisabled && activeDetectedTime ? (
-                    <button
-                      type="button"
-                      onClick={() => setTimeAutoDetectionDisabled(true)}
-                      className="inline-flex items-center rounded-full bg-neutral-900 px-2.5 py-1 text-xs font-bold text-white dark:bg-neutral-100 dark:text-neutral-950"
-                      title="Detected time. Tap to keep it as note text instead."
-                      disabled={saving}
-                    >
-                      {activeDetectedTime.label}
-                    </button>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
-                      Time kept as text
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCapturedTime(null)}
+                    className="inline-flex items-center rounded-full bg-neutral-900 px-2.5 py-1 text-xs font-bold text-white dark:bg-neutral-100 dark:text-neutral-950"
+                    title="Detected time. Tap to remove timestamp."
+                    disabled={saving}
+                  >
+                    {capturedTime.label}
+                  </button>
                 </div>
               ) : null}
               {!seededNotes && previewCategory && !previewIsNotes && (previewAmount != null || !!auto.capturedLabel) ? (
@@ -1745,7 +1714,7 @@ export function QuickLogDialog({
                     ? `Logging: ${formatValue(previewAmount)} ${previewTitle ?? previewCategory.title}${previewUnit ? ` ${previewUnit}` : ""}`
                     : `Logging: ${previewTitle ?? previewCategory.title}${previewUnit ? ` (${previewUnit})` : ""}`}
                   {auto.capturedLabel ? ` · ${auto.capturedLabel.replace(/^Captured:\\s*/i, "")}` : ""}
-                  {activeDetectedTime ? ` · at ${activeDetectedTime.label}` : ""}
+                  {capturedTime ? ` · at ${capturedTime.label}` : ""}
                 </div>
               ) : null}
               {!seededNotes && createSuggestion ? (
