@@ -1695,8 +1695,8 @@ export function QuickLogDialog({
                   )}
                 </div>
               ) : null}
-              {capturedTime ? (
-                <div className="mt-2">
+              <div className="mt-2 min-h-[26px]">
+                {capturedTime ? (
                   <button
                     type="button"
                     onClick={() => setCapturedTime(null)}
@@ -1706,8 +1706,8 @@ export function QuickLogDialog({
                   >
                     {capturedTime.label}
                   </button>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
               {!seededNotes && previewCategory && !previewIsNotes && (previewAmount != null || !!auto.capturedLabel) ? (
                 <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
                   {previewAmount != null
