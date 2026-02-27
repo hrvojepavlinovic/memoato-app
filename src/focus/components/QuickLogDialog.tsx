@@ -38,6 +38,18 @@ function tokenize(s: string): string[] {
   return n.split(" ").filter(Boolean);
 }
 
+function looksLikeSentenceThenNumber(raw: string): boolean {
+  const s = raw.trim();
+  if (!s) return false;
+  const firstNumber = /[+-]?\d+(?:[.,]\d+)?/.exec(s);
+  if (!firstNumber || typeof firstNumber.index !== "number") return false;
+  if (firstNumber.index <= 0) return false;
+  const before = s.slice(0, firstNumber.index).trim();
+  if (!before) return false;
+  const words = before.split(/\s+/).filter((w) => /[\p{L}]/u.test(w));
+  return words.length >= 3;
+}
+
 function toLocalDateIso(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -48,16 +60,42 @@ function toHourMinute(h: number, m: number): string {
   return `${pad(h)}:${pad(m)}`;
 }
 
-function buildOccurredAtFromTexts(texts: Array<string | null | undefined>): { occurredAt: string; label: string } | null {
-  for (const text of texts) {
+type DetectedOccurredAt = {
+  occurredAt: string;
+  label: string;
+  source: string;
+  sourceField: "raw" | "note";
+  start: number;
+  end: number;
+};
+
+function buildOccurredAtFromTexts(
+  texts: Array<{ field: "raw" | "note"; text: string | null | undefined }>,
+): DetectedOccurredAt | null {
+  for (const { field, text } of texts) {
     if (!text) continue;
     const extracted = extractTimeFromText(text);
     if (!extracted) continue;
     const now = new Date();
     const hhmm = toHourMinute(extracted.hour, extracted.minute);
-    return { occurredAt: `${toLocalDateIso(now)}T${hhmm}`, label: hhmm };
+    return {
+      occurredAt: `${toLocalDateIso(now)}T${hhmm}`,
+      label: hhmm,
+      source: extracted.source,
+      sourceField: field,
+      start: extracted.start,
+      end: extracted.end,
+    };
   }
   return null;
+}
+
+function removeDetectedTimeFromText(text: string, detected: DetectedOccurredAt | null): string {
+  if (!detected) return text;
+  const start = Math.max(0, Math.min(text.length, detected.start));
+  const end = Math.max(start, Math.min(text.length, detected.end));
+  const merged = `${text.slice(0, start)}${text.slice(end)}`;
+  return merged.replace(/\s{2,}/g, " ").trim();
 }
 
 function noteIntentScore(parsed: ParsedQuickLog): number {
@@ -769,6 +807,7 @@ export function QuickLogDialog({
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [detailValues, setDetailValues] = React.useState<Record<string, string>>({});
   const [noteValue, setNoteValue] = React.useState("");
+  const [timeAutoDetectionDisabled, setTimeAutoDetectionDisabled] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const isMobile = useIsMobileSm();
   const [mobileViewport, setMobileViewport] = React.useState<{ height: number; top: number }>({ height: 0, top: 0 });
@@ -776,6 +815,7 @@ export function QuickLogDialog({
   const now = new Date();
   const nowMinute = now.getHours() * 60 + now.getMinutes();
   const parsed = React.useMemo(() => parseQuickLogInput(raw), [raw]);
+  const suppressAltSuggestions = React.useMemo(() => looksLikeSentenceThenNumber(raw), [raw]);
   const noteIntent = React.useMemo(() => noteIntentScore(parsed), [parsed]);
   const ranked = React.useMemo(
     () =>
@@ -889,9 +929,14 @@ export function QuickLogDialog({
     return buildAutoFields({ parsed, selected: previewCategory, amount: previewAmount });
   }, [parsed, previewAmount, previewCategory, previewIsNotes, previewTitle]);
   const detectedTime = React.useMemo(
-    () => buildOccurredAtFromTexts([raw, !seededNotes ? noteValue : null]),
+    () =>
+      buildOccurredAtFromTexts([
+        { field: "raw", text: raw },
+        { field: "note", text: !seededNotes ? noteValue : null },
+      ]),
     [noteValue, raw, seededNotes],
   );
+  const activeDetectedTime = timeAutoDetectionDisabled ? null : detectedTime;
 
   React.useEffect(() => {
     if (!open) return;
@@ -901,6 +946,7 @@ export function QuickLogDialog({
     setDetailsOpen(false);
     setDetailValues({});
     setNoteValue("");
+    setTimeAutoDetectionDisabled(false);
     setSelectionMode(seedCategoryId || forceNotes ? "seed" : "auto");
     setSelectedCategoryId(seedCategoryId);
     const t = window.setTimeout(() => inputRef.current?.focus(), 0);
@@ -953,6 +999,12 @@ export function QuickLogDialog({
     setSelectionMode("seed");
   }, [forceNotes, notesCategoryIdFromCats, open, selectedCategoryId]);
 
+  React.useEffect(() => {
+    if (!suppressAltSuggestions) return;
+    if (!showPicker) return;
+    setShowPicker(false);
+  }, [showPicker, suppressAltSuggestions]);
+
   React.useLayoutEffect(() => {
     if (!open) return;
     if (!isMobile) return;
@@ -982,6 +1034,12 @@ export function QuickLogDialog({
     if (!open) return;
     if (selectionMode === "manual") return;
     if (seedCategoryId && selectionMode === "seed") return;
+    if (suppressAltSuggestions) {
+      if (notesCategoryIdFromCats && selectedCategoryId !== notesCategoryIdFromCats) {
+        setSelectedCategoryId(notesCategoryIdFromCats);
+      }
+      return;
+    }
     const top = ranked[0];
     if (!top) return;
 
@@ -996,12 +1054,12 @@ export function QuickLogDialog({
     if (top.c.id !== selectedCategoryId && top.score - currentScore >= 0.12 && (hasTyped || top.score > 0.62)) {
       setSelectedCategoryId(top.c.id);
     }
-  }, [open, ranked, raw, seedCategoryId, selectedCategoryId, selectionMode]);
+  }, [notesCategoryIdFromCats, open, ranked, raw, seedCategoryId, selectedCategoryId, selectionMode, suppressAltSuggestions]);
 
-  const listMore = ranked.slice(0, 12);
+  const listMore = suppressAltSuggestions ? [] : ranked.slice(0, 12);
 
   function togglePicker(next?: boolean) {
-    if (seededNotes) return;
+    if (seededNotes || suppressAltSuggestions) return;
     const willShow = typeof next === "boolean" ? next : !showPicker;
     setShowPicker(willShow);
     if (willShow) {
@@ -1046,6 +1104,7 @@ export function QuickLogDialog({
   const createSuggestion = React.useMemo(() => {
     if (!open) return null;
     if (seededNotes) return null;
+    if (suppressAltSuggestions) return null;
     const hasAnyQuantity = (parsed.quantities ?? []).length > 0;
     if (!hasAnyQuantity) return null;
     const title = suggestNewCategoryTitle(parsed);
@@ -1054,7 +1113,7 @@ export function QuickLogDialog({
     if (!top) return null;
     if (top.score >= 0.55) return null;
     return { title };
-  }, [open, parsed, ranked, seededNotes]);
+  }, [open, parsed, ranked, seededNotes, suppressAltSuggestions]);
 
   async function createCategoryAndSubmit(): Promise<void> {
     if (!createSuggestion) return;
@@ -1062,8 +1121,19 @@ export function QuickLogDialog({
 
     const rawText = raw.trim();
     if (!rawText) return;
-    const sideNote = noteValue.trim() || null;
-    const parsedTime = buildOccurredAtFromTexts([rawText, sideNote]);
+    const sideNoteRaw = noteValue.trim();
+    const sideNote = sideNoteRaw.length > 0 ? sideNoteRaw : null;
+    const parsedTime = timeAutoDetectionDisabled
+      ? null
+      : buildOccurredAtFromTexts([
+          { field: "raw", text: rawText },
+          { field: "note", text: sideNote },
+        ]);
+    const rawTextToSend =
+      parsedTime && parsedTime.sourceField === "raw" ? removeDetectedTimeFromText(rawText, parsedTime) : rawText;
+    const sideNoteToSendRaw =
+      parsedTime && parsedTime.sourceField === "note" && sideNote ? removeDetectedTimeFromText(sideNote, parsedTime) : sideNote;
+    const sideNoteToSend = sideNoteToSendRaw && sideNoteToSendRaw.trim().length > 0 ? sideNoteToSendRaw.trim() : null;
 
     const cfg = defaultNewCategoryConfig(parsed);
     const title = createSuggestion.title;
@@ -1132,22 +1202,22 @@ export function QuickLogDialog({
           userId: privacy.userId,
           categoryId,
           amount,
-          rawText,
+          rawText: rawTextToSend || null,
           ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
-          ...(sideNote ? { note: sideNote } : {}),
+          ...(sideNoteToSend ? { note: sideNoteToSend } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
         });
       } else {
         const noteEncToSend =
-          sideNote && privacy.mode === "encrypted" && privacy.key && privacy.cryptoParams
-            ? await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, sideNote)
+          sideNoteToSend && privacy.mode === "encrypted" && privacy.key && privacy.cryptoParams
+            ? await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, sideNoteToSend)
             : null;
         await createEvent({
           categoryId,
           amount,
           ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
-          ...(privacy.mode === "encrypted" ? {} : { rawText, ...(sideNote ? { note: sideNote } : {}) }),
+          ...(privacy.mode === "encrypted" ? {} : { rawText: rawTextToSend || null, ...(sideNoteToSend ? { note: sideNoteToSend } : {}) }),
           ...(noteEncToSend ? { noteEnc: noteEncToSend } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
@@ -1164,14 +1234,30 @@ export function QuickLogDialog({
   async function submit(): Promise<void> {
     if (!selected) return;
 
-    const noteText = raw.trim();
-    const sideNote = noteValue.trim() || null;
+    const noteTextRaw = raw.trim();
+    const sideNoteRaw = noteValue.trim();
+    const sideNoteInitial = sideNoteRaw.length > 0 ? sideNoteRaw : null;
+    const detectedTimeForSubmit = timeAutoDetectionDisabled
+      ? null
+      : buildOccurredAtFromTexts([
+          { field: "raw", text: noteTextRaw },
+          { field: "note", text: sideNoteInitial },
+        ]);
+    const noteText =
+      detectedTimeForSubmit && detectedTimeForSubmit.sourceField === "raw"
+        ? removeDetectedTimeFromText(noteTextRaw, detectedTimeForSubmit)
+        : noteTextRaw;
+    const sideNoteCleanRaw =
+      detectedTimeForSubmit && detectedTimeForSubmit.sourceField === "note" && sideNoteInitial
+        ? removeDetectedTimeFromText(sideNoteInitial, detectedTimeForSubmit)
+        : sideNoteInitial;
+    const sideNote = sideNoteCleanRaw && sideNoteCleanRaw.trim().length > 0 ? sideNoteCleanRaw.trim() : null;
     const shouldForceNotes =
       !selectedIsNotes &&
       !seededNotes &&
       selectionMode !== "manual" &&
       noteIntent >= 0.75 &&
-      noteText.length >= 24 &&
+      noteTextRaw.length >= 24 &&
       !!notesCategoryIdFromCats;
 
     const submitCategory =
@@ -1182,7 +1268,7 @@ export function QuickLogDialog({
 
     const submitDisplayTitle = displayTitleById[submitCategory.id] ?? submitCategory.title;
     const isNotes = shouldForceNotes || (submitCategory.slug ?? "").toLowerCase() === "notes";
-    const parsedTime = buildOccurredAtFromTexts([noteText, sideNote]);
+    const parsedTime = detectedTimeForSubmit;
     const amount = isNotes
       ? null
       : pickAmountForCategory({ parsed, c: submitCategory, displayTitle: submitDisplayTitle, intent: "submit" });
@@ -1328,7 +1414,7 @@ export function QuickLogDialog({
             </div>
 
 		            <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 sm:p-4">
-              {!selected && ranked.length > 0 ? (
+              {!selected && ranked.length > 0 && !suppressAltSuggestions ? (
                 <div className="mt-2 flex justify-end">
                   <button
                     type="button"
@@ -1447,7 +1533,7 @@ export function QuickLogDialog({
                 </div>
               ) : null}
 
-	            {showPicker && !seededNotes ? (
+		            {showPicker && !seededNotes && !suppressAltSuggestions ? (
 	              <div id="memoato-quicklog-pick" className="pt-3">
 	                <div className="flex items-center justify-between gap-3">
 	                  <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Pick category</div>
@@ -1634,13 +1720,32 @@ export function QuickLogDialog({
                   )}
                 </div>
               ) : null}
+              {detectedTime ? (
+                <div className="mt-2">
+                  {!timeAutoDetectionDisabled && activeDetectedTime ? (
+                    <button
+                      type="button"
+                      onClick={() => setTimeAutoDetectionDisabled(true)}
+                      className="inline-flex items-center rounded-full bg-neutral-900 px-2.5 py-1 text-xs font-bold text-white dark:bg-neutral-100 dark:text-neutral-950"
+                      title="Detected time. Tap to keep it as note text instead."
+                      disabled={saving}
+                    >
+                      {activeDetectedTime.label}
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                      Time kept as text
+                    </span>
+                  )}
+                </div>
+              ) : null}
               {!seededNotes && previewCategory && !previewIsNotes && (previewAmount != null || !!auto.capturedLabel) ? (
                 <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
                   {previewAmount != null
                     ? `Logging: ${formatValue(previewAmount)} ${previewTitle ?? previewCategory.title}${previewUnit ? ` ${previewUnit}` : ""}`
                     : `Logging: ${previewTitle ?? previewCategory.title}${previewUnit ? ` (${previewUnit})` : ""}`}
                   {auto.capturedLabel ? ` · ${auto.capturedLabel.replace(/^Captured:\\s*/i, "")}` : ""}
-                  {detectedTime ? ` · at ${detectedTime.label}` : ""}
+                  {activeDetectedTime ? ` · at ${activeDetectedTime.label}` : ""}
                 </div>
               ) : null}
               {!seededNotes && createSuggestion ? (
