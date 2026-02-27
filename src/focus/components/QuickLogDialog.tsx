@@ -2,6 +2,7 @@ import React from "react";
 import { createCategory, createEvent, getCategoryEvents, queryClientInitialized, useQuery } from "wasp/client/operations";
 import { Button } from "../../shared/components/Button";
 import { Dialog } from "../../shared/components/Dialog";
+import { extractTimeFromText } from "../../shared/lib/extractTimeFromText";
 import { usePrivacy } from "../../privacy/PrivacyProvider";
 import { encryptUtf8ToEncryptedString } from "../../privacy/crypto";
 import { parseNumberInput } from "../../shared/lib/parseNumberInput";
@@ -35,6 +36,28 @@ function tokenize(s: string): string[] {
   const n = normalizeText(s);
   if (!n) return [];
   return n.split(" ").filter(Boolean);
+}
+
+function toLocalDateIso(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function toHourMinute(h: number, m: number): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(h)}:${pad(m)}`;
+}
+
+function buildOccurredAtFromTexts(texts: Array<string | null | undefined>): { occurredAt: string; label: string } | null {
+  for (const text of texts) {
+    if (!text) continue;
+    const extracted = extractTimeFromText(text);
+    if (!extracted) continue;
+    const now = new Date();
+    const hhmm = toHourMinute(extracted.hour, extracted.minute);
+    return { occurredAt: `${toLocalDateIso(now)}T${hhmm}`, label: hhmm };
+  }
+  return null;
 }
 
 function noteIntentScore(parsed: ParsedQuickLog): number {
@@ -865,6 +888,10 @@ export function QuickLogDialog({
     if (previewIsNotes) return { fields: {}, durationMinutes: null as number | null, capturedLabel: null as string | null };
     return buildAutoFields({ parsed, selected: previewCategory, amount: previewAmount });
   }, [parsed, previewAmount, previewCategory, previewIsNotes, previewTitle]);
+  const detectedTime = React.useMemo(
+    () => buildOccurredAtFromTexts([raw, !seededNotes ? noteValue : null]),
+    [noteValue, raw, seededNotes],
+  );
 
   React.useEffect(() => {
     if (!open) return;
@@ -971,11 +998,6 @@ export function QuickLogDialog({
     }
   }, [open, ranked, raw, seedCategoryId, selectedCategoryId, selectionMode]);
 
-  const chips = React.useMemo(() => {
-    if (seededNotes) return [];
-    const filtered = selectedCategoryId ? ranked.filter((r) => r.c.id !== selectedCategoryId) : ranked;
-    return filtered.slice(0, 2);
-  }, [ranked, seededNotes, selectedCategoryId]);
   const listMore = ranked.slice(0, 12);
 
   function togglePicker(next?: boolean) {
@@ -1041,6 +1063,7 @@ export function QuickLogDialog({
     const rawText = raw.trim();
     if (!rawText) return;
     const sideNote = noteValue.trim() || null;
+    const parsedTime = buildOccurredAtFromTexts([rawText, sideNote]);
 
     const cfg = defaultNewCategoryConfig(parsed);
     const title = createSuggestion.title;
@@ -1110,6 +1133,7 @@ export function QuickLogDialog({
           categoryId,
           amount,
           rawText,
+          ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
           ...(sideNote ? { note: sideNote } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
@@ -1122,6 +1146,7 @@ export function QuickLogDialog({
         await createEvent({
           categoryId,
           amount,
+          ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
           ...(privacy.mode === "encrypted" ? {} : { rawText, ...(sideNote ? { note: sideNote } : {}) }),
           ...(noteEncToSend ? { noteEnc: noteEncToSend } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
@@ -1157,6 +1182,7 @@ export function QuickLogDialog({
 
     const submitDisplayTitle = displayTitleById[submitCategory.id] ?? submitCategory.title;
     const isNotes = shouldForceNotes || (submitCategory.slug ?? "").toLowerCase() === "notes";
+    const parsedTime = buildOccurredAtFromTexts([noteText, sideNote]);
     const amount = isNotes
       ? null
       : pickAmountForCategory({ parsed, c: submitCategory, displayTitle: submitDisplayTitle, intent: "submit" });
@@ -1200,6 +1226,7 @@ export function QuickLogDialog({
           categoryId: submitCategory.id,
           amount: amount ?? 1,
           rawText: noteText,
+          ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
           ...(isNotes ? { note: noteText } : sideNote ? { note: sideNote } : {}),
@@ -1210,7 +1237,13 @@ export function QuickLogDialog({
           return;
         }
         const noteEnc = await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, noteText);
-        await createEvent({ categoryId: submitCategory.id, amount: 1, noteEnc, rawText: null } as any);
+        await createEvent({
+          categoryId: submitCategory.id,
+          amount: 1,
+          noteEnc,
+          rawText: null,
+          ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
+        } as any);
       } else if (!isNotes && privacy.mode === "encrypted") {
         if (sideNote && (!privacy.key || !privacy.cryptoParams)) {
           window.alert("Unlock encryption from Profile → Privacy first.");
@@ -1223,6 +1256,7 @@ export function QuickLogDialog({
         await createEvent({
           categoryId: submitCategory.id,
           amount: amount ?? 1,
+          ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
           ...(noteEncToSend ? { noteEnc: noteEncToSend } : {}),
@@ -1231,6 +1265,7 @@ export function QuickLogDialog({
         await createEvent({
           categoryId: submitCategory.id,
           amount: amount ?? 1,
+          ...(parsedTime ? { occurredAt: parsedTime.occurredAt } : {}),
           rawText: privacy.mode === "encrypted" ? undefined : noteText,
           ...(durationToSend != null ? { duration: durationToSend } : {}),
           ...(Object.keys(fieldsToSend).length > 0 ? { fields: fieldsToSend } : {}),
@@ -1292,34 +1327,7 @@ export function QuickLogDialog({
               </div>
             </div>
 
-	            <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 sm:p-4">
-	              {chips.length > 0 ? (
-	                <div className="flex flex-wrap gap-2">
-	                  {chips.map((r) => {
-	                    const active = r.c.id === selectedCategoryId;
-	                    return (
-	                      <button
-	                        key={r.c.id}
-	                        type="button"
-	                        onClick={() => onChipPick(r.c.id)}
-	                        className={
-	                          "inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold shadow-sm " +
-	                          (active
-	                            ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
-	                            : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
-	                        }
-	                        title={r.displayTitle}
-	                        disabled={saving}
-	                      >
-	                        <span className="text-base leading-none" aria-hidden="true">
-	                          {r.c.emoji ?? ""}
-	                        </span>
-	                        <span className="max-w-[14rem] truncate">{r.displayTitle}</span>
-	                      </button>
-	                    );
-	                  })}
-	                </div>
-	              ) : null}
+		            <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 sm:p-4">
               {!selected && ranked.length > 0 ? (
                 <div className="mt-2 flex justify-end">
                   <button
@@ -1632,6 +1640,7 @@ export function QuickLogDialog({
                     ? `Logging: ${formatValue(previewAmount)} ${previewTitle ?? previewCategory.title}${previewUnit ? ` ${previewUnit}` : ""}`
                     : `Logging: ${previewTitle ?? previewCategory.title}${previewUnit ? ` (${previewUnit})` : ""}`}
                   {auto.capturedLabel ? ` · ${auto.capturedLabel.replace(/^Captured:\\s*/i, "")}` : ""}
+                  {detectedTime ? ` · at ${detectedTime.label}` : ""}
                 </div>
               ) : null}
               {!seededNotes && createSuggestion ? (
