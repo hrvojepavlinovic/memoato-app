@@ -38,6 +38,7 @@ Create `.env.server` based on `.env.server.example` and fill:
 Create `.env.client` based on `.env.client.example` (used at build time):
 
 - `REACT_APP_API_URL` (recommended: `https://api.memoato.com`)
+- `REACT_APP_DATABUDDY_CLIENT_ID`
 
 ## Analytics verification (Databuddy)
 
@@ -67,10 +68,23 @@ Local ports:
 - Web: `http://127.0.0.1:5050`
 - API: `http://127.0.0.1:5051`
 
+Hetzner target notes:
+
+- Preferred long-term process manager is `systemd`, not PM2.
+- Example systemd units live in `deploy/memoato-web.service.example` and `deploy/memoato-api.service.example`.
+- Example Caddy routes live in `deploy/Caddyfile.memoato.example`.
+- Hetzner migration notes live in `docs/HETZNER_MIGRATION.md`.
+
 ## Non-breaking deployments
 
 `memoato-web` / `memoato-api` run from `deploy/current` (a symlink to the latest built release under `deploy/releases/`),
 so rebuilding `.wasp/build` won’t delete files the running app is using.
+
+Release retention:
+
+- `scripts/publish_release.sh` prunes old releases after publishing.
+- Default retention is `3` releases.
+- Override with `MEMOATO_RELEASES_TO_KEEP=<n>`.
 
 ## Cloudflare Tunnel
 

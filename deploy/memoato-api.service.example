@@ -1,0 +1,22 @@
+[Unit]
+Description=Memoato API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=memoato
+Group=memoato
+WorkingDirectory=/srv/apps/memoato/app
+EnvironmentFile=/srv/apps/memoato/shared/.env.server
+Environment=DOTENV_CONFIG_PATH=/srv/apps/memoato/shared/.env.server
+Environment=MEMOATO_RELEASE_DIR=/srv/apps/memoato/current
+ExecStart=/usr/bin/bash /srv/apps/memoato/app/scripts/run_api_prod.sh
+Restart=always
+RestartSec=5
+MemoryHigh=1G
+MemoryMax=1536M
+CPUQuota=150%
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

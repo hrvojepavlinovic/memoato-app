@@ -7,6 +7,7 @@ cd "${repo_root}"
 build_dir="${repo_root}/.wasp/build"
 releases_dir="${repo_root}/deploy/releases"
 current_link="${repo_root}/deploy/current"
+keep_count="${MEMOATO_RELEASES_TO_KEEP:-3}"
 
 if [[ ! -d "${build_dir}/server" || ! -d "${build_dir}/web-app" ]]; then
   echo "Missing build output at ${build_dir}. Run ./scripts/build_prod_artifacts.sh first." >&2
@@ -30,3 +31,5 @@ ln -s "${release_dir}" "${tmp_link}"
 mv -Tf "${tmp_link}" "${current_link}"
 
 echo "Published release: ${release_dir}"
+
+MEMOATO_RELEASES_TO_KEEP="${keep_count}" "${repo_root}/scripts/prune_releases.sh"

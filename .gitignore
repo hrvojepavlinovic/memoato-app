@@ -21,3 +21,6 @@ deploy/current
 # Don't ignore example dotenv files.
 !.env.example
 !.env.*.example
+
+# Local migration/runtime artifacts collected from other hosts.
+.local/

@@ -1,0 +1,21 @@
+[Unit]
+Description=Memoato Web
+After=network.target memoato-api.service
+
+[Service]
+Type=simple
+User=memoato
+Group=memoato
+WorkingDirectory=/srv/apps/memoato/app
+Environment=WEB_PORT=5050
+Environment=MEMOATO_RELEASE_DIR=/srv/apps/memoato/current
+ExecStart=/usr/bin/bash /srv/apps/memoato/app/scripts/run_web_prod.sh
+Restart=always
+RestartSec=5
+MemoryHigh=512M
+MemoryMax=1G
+CPUQuota=100%
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

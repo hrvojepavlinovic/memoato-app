@@ -1,0 +1,21 @@
+hetzner-app.memoato.com {
+  encode gzip zstd
+  reverse_proxy 127.0.0.1:5050
+}
+
+hetzner-api.memoato.com {
+  encode gzip zstd
+  reverse_proxy 127.0.0.1:5051
+}
+
+# Final cutover shape:
+#
+# app.memoato.com {
+#   encode gzip zstd
+#   reverse_proxy 127.0.0.1:5050
+# }
+#
+# api.memoato.com {
+#   encode gzip zstd
+#   reverse_proxy 127.0.0.1:5051
+# }
