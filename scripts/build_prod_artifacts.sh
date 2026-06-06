@@ -23,7 +23,7 @@ fi
 
 # The Wasp build now relies on the repo-level Vite config and its devDependencies.
 if [[ -f package-lock.json ]]; then
-  npm ci
+  npm ci --include=dev
 else
   npm install --include=dev
 fi
