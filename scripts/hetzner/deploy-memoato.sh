@@ -8,12 +8,18 @@ CURRENT_LINK="${APP_ROOT}/current"
 SHARED_DIR="${APP_ROOT}/shared"
 SERVER_ENV="${SHARED_DIR}/.env.server"
 CLIENT_ENV="${SHARED_DIR}/.env.client"
+SITE_ROOT="${MEMOATO_SITE_ROOT:-/srv/apps/memoato-site}"
+SITE_RELEASES_DIR="${SITE_ROOT}/releases"
+SITE_CURRENT_LINK="${SITE_ROOT}/current"
 API_SERVICE="${MEMOATO_API_SERVICE:-memoato-api}"
 WEB_SERVICE="${MEMOATO_WEB_SERVICE:-memoato-web}"
 KEEP_RELEASES="${KEEP_RELEASES:-3}"
 export MEMOATO_RELEASES_TO_KEEP="${KEEP_RELEASES}"
 export MEMOATO_RELEASES_DIR="${RELEASES_DIR}"
 export MEMOATO_CURRENT_LINK="${CURRENT_LINK}"
+export MEMOATO_SITE_RELEASES_TO_KEEP="${MEMOATO_SITE_RELEASES_TO_KEEP:-${KEEP_RELEASES}}"
+export MEMOATO_SITE_RELEASES_DIR="${SITE_RELEASES_DIR}"
+export MEMOATO_SITE_CURRENT_LINK="${SITE_CURRENT_LINK}"
 
 log_failure_tail() {
   local step="$1"
@@ -65,8 +71,10 @@ ln -sfn "${SERVER_ENV}" "${REPO_DIR}/.env.server"
 ln -sfn "${CLIENT_ENV}" "${REPO_DIR}/.env.client"
 echo "Linked shared environment files"
 
-run_quiet_step "Build" ./scripts/build_prod_artifacts.sh
-run_quiet_step "Publish" ./scripts/publish_release.sh
+run_quiet_step "Build app" ./scripts/build_prod_artifacts.sh
+run_quiet_step "Publish app" ./scripts/publish_release.sh
+run_quiet_step "Build landing" ./scripts/build_memoato_site.sh
+run_quiet_step "Publish landing" ./scripts/publish_memoato_site.sh
 
 sudo systemctl restart "${API_SERVICE}" "${WEB_SERVICE}"
 sudo systemctl is-active --quiet "${API_SERVICE}"

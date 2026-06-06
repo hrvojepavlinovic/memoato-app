@@ -104,9 +104,34 @@ cloudflared tunnel --config deploy/cloudflared-memoato.yml --no-autoupdate run <
 
 ## Landing (memoato.com)
 
-The landing site is deployed via Cloudflare Pages “Connect to Git” from `apps/memoato-site/` (Astro).
+The landing site lives in `apps/memoato-site/` (Astro).
 
 - Handover: `docs/LANDING_HANDOVER.md`
+- Build locally: `./scripts/build_memoato_site.sh`
+- Publish on Hetzner: `./scripts/publish_memoato_site.sh`
+
+Hetzner target shape:
+
+- static files served by Caddy from `/srv/apps/memoato-site/current`
+- release history in `/srv/apps/memoato-site/releases`
+- same-origin `GET /api/totals` handled at Caddy and proxied to the Memoato API as `POST /operations/get-public-totals`
+
+Example Caddy block:
+
+```caddyfile
+memoato.com, www.memoato.com {
+  encode gzip zstd
+
+  handle = /api/totals {
+    rewrite * /operations/get-public-totals
+    method POST
+    reverse_proxy 127.0.0.1:5051
+  }
+
+  root * /srv/apps/memoato-site/current
+  file_server
+}
+```
 
 ## Auth button color (Wasp default is yellow)
 

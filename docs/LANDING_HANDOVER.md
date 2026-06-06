@@ -1,7 +1,7 @@
 # memoato.com landing (handover)
 
 ## What it is
-Static marketing site (Astro) served from Cloudflare Pages.
+Static marketing site (Astro), originally served from Cloudflare Pages.
 
 - Code: `apps/memoato-site/`
 - Live domain: `memoato.com`
@@ -22,12 +22,14 @@ Static marketing site (Astro) served from Cloudflare Pages.
 - `/open-source`
 
 ## Live stats
-The home page fetches totals (users/categories/entries) from a same-origin Pages Function:
+The home page fetches totals (users/categories/entries) from a same-origin endpoint:
 
 - Browser → `GET /api/totals`
-- Pages Function → `POST https://api.memoato.com/operations/get-public-totals`
+- Origin handler → `POST https://api.memoato.com/operations/get-public-totals`
 
-Implementation: `apps/memoato-site/functions/api/totals.ts`.
+Implementation history:
+- Cloudflare Pages version: `apps/memoato-site/functions/api/totals.ts`
+- Hetzner version: Caddy can handle `/api/totals` by rewriting the URI to `/operations/get-public-totals` and changing the method to `POST` before proxying to the API origin.
 
 ## Analytics (Databuddy)
 Landing analytics is **client-side only** via `<script>` in `apps/memoato-site/src/layouts/BaseLayout.astro`.
@@ -45,7 +47,9 @@ Env var:
   - Mobile: `1080×1350` (4:5)
   - Keep under ~300KB per image where possible.
 
-## Deployment (Cloudflare Pages)
+## Deployment
+
+### Cloudflare Pages (original)
 Deployed via Cloudflare Pages “Connect to Git” on push to `main`.
 
 Build settings:
@@ -56,6 +60,20 @@ Build settings:
 Pages environment variables:
 - `PUBLIC_DATABUDDY_CLIENT_ID` (dedicated Databuddy project for `memoato.com`)
 - `MEMOATO_API_ORIGIN` (optional; defaults to `https://api.memoato.com`)
+
+### Hetzner (current target)
+
+The repo now supports building and publishing the landing from the main Hetzner deploy flow:
+
+- build: `scripts/build_memoato_site.sh`
+- publish: `scripts/publish_memoato_site.sh`
+- release path on server:
+  - `/srv/apps/memoato-site/releases/<timestamp>`
+  - `/srv/apps/memoato-site/current`
+
+Expected Caddy shape:
+- `memoato.com` and `www.memoato.com` serve static files from `/srv/apps/memoato-site/current`
+- `GET /api/totals` is rewritten to `POST /operations/get-public-totals` and proxied to `127.0.0.1:5051`
 
 ## SEO + LLM discoverability
 - `apps/memoato-site/public/robots.txt`

@@ -38,7 +38,8 @@ ln -sfn "${repo_root}/node_modules" "${release_dir}/node_modules"
 # Atomically repoint deploy/current to the new release.
 rm -f "${tmp_link}"
 ln -s "${release_dir}" "${tmp_link}"
-mv -Tf "${tmp_link}" "${current_link}"
+rm -f "${current_link}"
+mv -f "${tmp_link}" "${current_link}"
 
 echo "Published release: ${release_dir}"
 

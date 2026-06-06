@@ -8,6 +8,19 @@ hetzner-api.memoato.com {
   reverse_proxy 127.0.0.1:5051
 }
 
+memoato.com, www.memoato.com {
+  encode gzip zstd
+
+  handle = /api/totals {
+    rewrite * /operations/get-public-totals
+    method POST
+    reverse_proxy 127.0.0.1:5051
+  }
+
+  root * /srv/apps/memoato-site/current
+  file_server
+}
+
 # Final cutover shape:
 #
 # app.memoato.com {
