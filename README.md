@@ -5,7 +5,7 @@ Fast, minimal habit tracking for ADHD brains: quick input, clear progress, fewer
 - Product spec: `docs/PRODUCT_SPEC.md`
 - Import plan (JSON export): `docs/IMPORT_PLAN.md`
 - Dev setup (Postgres socket + Wasp): `docs/DEV_SETUP.md`
-- Deploy (PM2 + Cloudflare Tunnel): `docs/DEPLOY.md`
+- Deploy (Hetzner + systemd + Caddy): `docs/DEPLOY.md`
 - Architecture: `docs/ARCHITECTURE.md`
 - Self-hosting: `docs/SELF_HOSTING.md`
 - Landing handover (Astro + Cloudflare Pages): `docs/LANDING_HANDOVER.md`
@@ -50,7 +50,7 @@ To improve your Wasp development experience, we recommend installing the [Wasp e
 ## Deployment
 
 - Production deployment is documented in `docs/DEPLOY.md`.
-- The deploy script is `scripts/deploy_prod.sh` (builds, runs Prisma migrations, publishes a release, restarts PM2).
+- The current production path deploys to Hetzner via `.github/workflows/deploy-hetzner.yml` and the server-side `scripts/hetzner/deploy-memoato.sh`.
 
 ## Analytics (Databuddy)
 
