@@ -5,8 +5,8 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
 
 build_dir="${repo_root}/.wasp/build"
-releases_dir="${repo_root}/deploy/releases"
-current_link="${repo_root}/deploy/current"
+releases_dir="${MEMOATO_RELEASES_DIR:-${repo_root}/deploy/releases}"
+current_link="${MEMOATO_CURRENT_LINK:-${repo_root}/deploy/current}"
 keep_count="${MEMOATO_RELEASES_TO_KEEP:-3}"
 
 if [[ ! -d "${build_dir}/server" || ! -d "${build_dir}/web-app" ]]; then
@@ -18,7 +18,8 @@ mkdir -p "${releases_dir}"
 
 ts="$(date -u +%Y%m%d%H%M%S)"
 release_dir="${releases_dir}/${ts}"
-tmp_link="${repo_root}/deploy/.current_tmp"
+tmp_link_dir="$(dirname "${current_link}")"
+tmp_link="${tmp_link_dir}/.current_tmp"
 
 mkdir -p "${release_dir}"
 

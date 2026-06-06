@@ -36,7 +36,10 @@ ln -sfn "${SERVER_ENV}" "${REPO_DIR}/.env.server"
 ln -sfn "${CLIENT_ENV}" "${REPO_DIR}/.env.client"
 
 MEMOATO_RELEASES_TO_KEEP="${KEEP_RELEASES}" ./scripts/build_prod_artifacts.sh
-MEMOATO_RELEASES_TO_KEEP="${KEEP_RELEASES}" ./scripts/publish_release.sh
+MEMOATO_RELEASES_TO_KEEP="${KEEP_RELEASES}" \
+MEMOATO_RELEASES_DIR="${RELEASES_DIR}" \
+MEMOATO_CURRENT_LINK="${CURRENT_LINK}" \
+./scripts/publish_release.sh
 
 sudo systemctl restart "${API_SERVICE}" "${WEB_SERVICE}"
 sudo systemctl --no-pager --full status "${API_SERVICE}" "${WEB_SERVICE}" | sed -n '1,20p'
