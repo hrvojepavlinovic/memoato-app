@@ -14,4 +14,6 @@ if [[ -f "${DOTENV_CONFIG_PATH}" ]]; then
   set +a
 fi
 
-exec npm --prefix "${MEMOATO_RELEASE_DIR}/server" run start-production
+# Migrations already run during the deploy pipeline before the release is
+# published, so the runtime only needs to start the bundled server.
+exec npm --prefix "${MEMOATO_RELEASE_DIR}/server" run start
