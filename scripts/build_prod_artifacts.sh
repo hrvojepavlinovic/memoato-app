@@ -21,6 +21,13 @@ if [[ -f .env.server ]]; then
   set +a
 fi
 
+# The Wasp build now relies on the repo-level Vite config and its devDependencies.
+if [[ -f package-lock.json ]]; then
+  npm ci
+else
+  npm install --include=dev
+fi
+
 wasp build
 node scripts/patch_wasp_email_templates.mjs
 node scripts/patch_wasp_verify_email_autologin.mjs
