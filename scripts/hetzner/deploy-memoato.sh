@@ -77,6 +77,6 @@ run_quiet_step "Build landing" ./scripts/build_memoato_site.sh
 run_quiet_step "Publish landing" ./scripts/publish_memoato_site.sh
 
 sudo systemctl restart "${API_SERVICE}" "${WEB_SERVICE}"
-sudo systemctl is-active --quiet "${API_SERVICE}"
-sudo systemctl is-active --quiet "${WEB_SERVICE}"
+systemctl is-active --quiet "${API_SERVICE}"
+systemctl is-active --quiet "${WEB_SERVICE}"
 echo "Services active: ${API_SERVICE}, ${WEB_SERVICE}"
