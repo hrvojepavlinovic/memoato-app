@@ -29,6 +29,12 @@ echo "Updating current symlink at ${current_link}"
 # Copy build output into an immutable release directory.
 rsync -a --delete "${build_dir}/" "${release_dir}/"
 
+# The bundled Wasp server can still resolve some runtime dependencies from the
+# repo root (for example app-level auth/validation packages). Expose the root
+# node_modules one level above the generated server package so Node's normal
+# resolution can find them.
+ln -sfn "${repo_root}/node_modules" "${release_dir}/node_modules"
+
 # Atomically repoint deploy/current to the new release.
 rm -f "${tmp_link}"
 ln -s "${release_dir}" "${tmp_link}"
