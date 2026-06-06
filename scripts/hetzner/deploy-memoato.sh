@@ -11,6 +11,9 @@ CLIENT_ENV="${SHARED_DIR}/.env.client"
 API_SERVICE="${MEMOATO_API_SERVICE:-memoato-api}"
 WEB_SERVICE="${MEMOATO_WEB_SERVICE:-memoato-web}"
 KEEP_RELEASES="${KEEP_RELEASES:-3}"
+export MEMOATO_RELEASES_TO_KEEP="${KEEP_RELEASES}"
+export MEMOATO_RELEASES_DIR="${RELEASES_DIR}"
+export MEMOATO_CURRENT_LINK="${CURRENT_LINK}"
 
 export NVM_DIR="${HOME}/.nvm"
 . "${NVM_DIR}/nvm.sh"
@@ -35,10 +38,7 @@ git reset --hard origin/main
 ln -sfn "${SERVER_ENV}" "${REPO_DIR}/.env.server"
 ln -sfn "${CLIENT_ENV}" "${REPO_DIR}/.env.client"
 
-MEMOATO_RELEASES_TO_KEEP="${KEEP_RELEASES}" ./scripts/build_prod_artifacts.sh
-MEMOATO_RELEASES_TO_KEEP="${KEEP_RELEASES}" \
-MEMOATO_RELEASES_DIR="${RELEASES_DIR}" \
-MEMOATO_CURRENT_LINK="${CURRENT_LINK}" \
+./scripts/build_prod_artifacts.sh
 ./scripts/publish_release.sh
 
 sudo systemctl restart "${API_SERVICE}" "${WEB_SERVICE}"

@@ -23,6 +23,9 @@ tmp_link="${tmp_link_dir}/.current_tmp"
 
 mkdir -p "${release_dir}"
 
+echo "Publishing release into ${release_dir}"
+echo "Updating current symlink at ${current_link}"
+
 # Copy build output into an immutable release directory.
 rsync -a --delete "${build_dir}/" "${release_dir}/"
 
