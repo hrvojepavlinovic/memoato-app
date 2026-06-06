@@ -1,0 +1,53 @@
+name: Deploy Memoato To Hetzner
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: memoato-hetzner-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start ssh-agent
+        env:
+          HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+        run: |
+          test -n "${HETZNER_SSH_KEY}"
+          eval "$(ssh-agent -s)"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${HETZNER_SSH_KEY}" > ~/.ssh/memoato_hetzner_key
+          chmod 600 ~/.ssh/memoato_hetzner_key
+          ssh-add ~/.ssh/memoato_hetzner_key
+
+      - name: Trust Hetzner host key
+        env:
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+          HETZNER_PORT: ${{ secrets.HETZNER_PORT }}
+        run: |
+          test -n "${HETZNER_HOST}"
+          ssh-keyscan -p "${HETZNER_PORT:-22}" -H "${HETZNER_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on Hetzner
+        env:
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+          HETZNER_PORT: ${{ secrets.HETZNER_PORT }}
+          HETZNER_USER: ${{ secrets.HETZNER_USER }}
+          MEMOATO_SERVER_PATH: ${{ secrets.MEMOATO_SERVER_PATH }}
+        run: |
+          test -n "${HETZNER_HOST}"
+          test -n "${HETZNER_USER}"
+          server_path="${MEMOATO_SERVER_PATH:-/srv/apps/memoato/app}"
+          ssh -p "${HETZNER_PORT:-22}" "${HETZNER_USER}@${HETZNER_HOST}" "cd '${server_path}' && git fetch origin && git checkout main && git reset --hard origin/main && ./scripts/deploy_hetzner.sh"

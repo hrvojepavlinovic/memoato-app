@@ -93,3 +93,41 @@ Helpful repo-side references:
 - `deploy/memoato-api.service.example`
 - `deploy/memoato-web.service.example`
 - `deploy/Caddyfile.memoato.example`
+- `.github/workflows/deploy-hetzner.yml`
+- `scripts/deploy_hetzner.sh`
+
+## GitHub Actions Deploy Model
+
+The repo now includes a minimal production deploy workflow:
+
+- Trigger: push to `main` or manual `workflow_dispatch`
+- Action runner role: SSH into Hetzner and trigger a server-side deploy
+- Build location: Hetzner, not GitHub Actions
+- Secrets stay server-side in `/srv/apps/memoato/shared/`
+
+Expected GitHub repository secrets:
+
+- `HETZNER_HOST`
+- `HETZNER_PORT` (optional, defaults to `22`)
+- `HETZNER_USER`
+- `HETZNER_SSH_KEY`
+- `MEMOATO_SERVER_PATH` (optional, defaults to `/srv/apps/memoato/app`)
+
+Expected server-side layout for the deploy script:
+
+- app checkout: `/srv/apps/memoato/app`
+- shared env files:
+  - `/srv/apps/memoato/shared/.env.server`
+  - `/srv/apps/memoato/shared/.env.client`
+
+Server-side deploy flow:
+
+1. GitHub Actions SSHes to Hetzner
+2. Hetzner checkout fetches and hard-resets to `origin/main`
+3. `scripts/deploy_hetzner.sh` links shared env files into the checkout
+4. Build runs on Hetzner
+5. New release is published
+6. Old releases are pruned
+7. `memoato-api` and `memoato-web` are restarted via `systemd`
+
+The deploy user needs permission to restart those two services, usually through a narrow `sudoers` rule.

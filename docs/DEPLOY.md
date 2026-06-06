@@ -74,6 +74,7 @@ Hetzner target notes:
 - Example systemd units live in `deploy/memoato-web.service.example` and `deploy/memoato-api.service.example`.
 - Example Caddy routes live in `deploy/Caddyfile.memoato.example`.
 - Hetzner migration notes live in `docs/HETZNER_MIGRATION.md`.
+- GitHub Actions deploy entrypoint lives in `.github/workflows/deploy-hetzner.yml`.
 
 ## Non-breaking deployments
 
