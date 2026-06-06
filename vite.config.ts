@@ -1,4 +1,8 @@
-export default {
+import { wasp } from 'wasp/client/vite'
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  plugins: [wasp()],
   server: {
     open: true,
   },
@@ -10,4 +14,4 @@ export default {
       '127.0.0.1',
     ],
   },
-}
+})
