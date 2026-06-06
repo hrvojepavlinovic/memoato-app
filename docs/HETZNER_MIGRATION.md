@@ -94,24 +94,23 @@ Helpful repo-side references:
 - `deploy/memoato-web.service.example`
 - `deploy/Caddyfile.memoato.example`
 - `.github/workflows/deploy-hetzner.yml`
-- `scripts/deploy_hetzner.sh`
+- `scripts/hetzner/deploy-memoato.sh`
+- `scripts/hetzner/list-memoato-releases.sh`
+- `scripts/hetzner/rollback-memoato-release.sh`
 
 ## GitHub Actions Deploy Model
 
-The repo now includes a minimal production deploy workflow:
+The repo now follows the same deploy pattern as MAYIC:
 
 - Trigger: push to `main` or manual `workflow_dispatch`
-- Action runner role: SSH into Hetzner and trigger a server-side deploy
+- GitHub Actions only opens SSH and triggers the remote deploy user
+- The actual deploy logic lives entirely on Hetzner
 - Build location: Hetzner, not GitHub Actions
 - Secrets stay server-side in `/srv/apps/memoato/shared/`
 
-Expected GitHub repository secrets:
+Expected GitHub repository secret:
 
-- `HETZNER_HOST`
-- `HETZNER_PORT` (optional, defaults to `22`)
-- `HETZNER_USER`
-- `HETZNER_SSH_KEY`
-- `MEMOATO_SERVER_PATH` (optional, defaults to `/srv/apps/memoato/app`)
+- `HETZNER_DEPLOY_KEY`
 
 Expected server-side layout for the deploy script:
 
@@ -119,15 +118,20 @@ Expected server-side layout for the deploy script:
 - shared env files:
   - `/srv/apps/memoato/shared/.env.server`
   - `/srv/apps/memoato/shared/.env.client`
+- deploy user home: `/home/deploy`
 
 Server-side deploy flow:
 
-1. GitHub Actions SSHes to Hetzner
-2. Hetzner checkout fetches and hard-resets to `origin/main`
-3. `scripts/deploy_hetzner.sh` links shared env files into the checkout
-4. Build runs on Hetzner
-5. New release is published
-6. Old releases are pruned
-7. `memoato-api` and `memoato-web` are restarted via `systemd`
+1. GitHub Actions SSHes to `deploy@91.98.33.74`
+2. The deploy key is restricted with a forced command
+3. That forced command runs `scripts/hetzner/deploy-memoato.sh`
+4. Hetzner checkout fetches and hard-resets to `origin/main`
+5. Shared env files are linked into the checkout
+6. Build runs on Hetzner
+7. New release is published
+8. Old releases are pruned
+9. `memoato-api` and `memoato-web` are restarted via `systemd`
 
 The deploy user needs permission to restart those two services, usually through a narrow `sudoers` rule.
+
+This is intentionally close to MAYIC so one production deploy pattern is reused across apps.

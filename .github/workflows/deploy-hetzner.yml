@@ -1,4 +1,4 @@
-name: Deploy Memoato To Hetzner
+name: Deploy to Hetzner
 
 on:
   push:
@@ -7,47 +7,27 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: memoato-hetzner-deploy
+  group: deploy-hetzner-production
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Start ssh-agent
-        env:
-          HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+      - name: Configure SSH key
+        shell: bash
         run: |
-          test -n "${HETZNER_SSH_KEY}"
-          eval "$(ssh-agent -s)"
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "${HETZNER_SSH_KEY}" > ~/.ssh/memoato_hetzner_key
-          chmod 600 ~/.ssh/memoato_hetzner_key
-          ssh-add ~/.ssh/memoato_hetzner_key
+          install -m 700 -d ~/.ssh
+          cat > ~/.ssh/id_ed25519 <<'EOF'
+          ${{ secrets.HETZNER_DEPLOY_KEY }}
+          EOF
+          chmod 600 ~/.ssh/id_ed25519
+          cat > ~/.ssh/known_hosts <<'EOF'
+          91.98.33.74 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJtEQGEnJjXGo63dmaqcN//112Rw6zIaMyX7uMsKdvHq
+          EOF
 
-      - name: Trust Hetzner host key
-        env:
-          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
-          HETZNER_PORT: ${{ secrets.HETZNER_PORT }}
+      - name: Trigger remote deploy
+        shell: bash
         run: |
-          test -n "${HETZNER_HOST}"
-          ssh-keyscan -p "${HETZNER_PORT:-22}" -H "${HETZNER_HOST}" >> ~/.ssh/known_hosts
-
-      - name: Deploy on Hetzner
-        env:
-          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
-          HETZNER_PORT: ${{ secrets.HETZNER_PORT }}
-          HETZNER_USER: ${{ secrets.HETZNER_USER }}
-          MEMOATO_SERVER_PATH: ${{ secrets.MEMOATO_SERVER_PATH }}
-        run: |
-          test -n "${HETZNER_HOST}"
-          test -n "${HETZNER_USER}"
-          server_path="${MEMOATO_SERVER_PATH:-/srv/apps/memoato/app}"
-          ssh -p "${HETZNER_PORT:-22}" "${HETZNER_USER}@${HETZNER_HOST}" "cd '${server_path}' && git fetch origin && git checkout main && git reset --hard origin/main && ./scripts/deploy_hetzner.sh"
+          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes -o IdentitiesOnly=yes -T deploy@91.98.33.74
