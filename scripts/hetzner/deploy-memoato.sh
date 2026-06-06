@@ -15,6 +15,7 @@ KEEP_RELEASES="${KEEP_RELEASES:-3}"
 export NVM_DIR="${HOME}/.nvm"
 . "${NVM_DIR}/nvm.sh"
 nvm use 24 >/dev/null
+export PATH="${HOME}/.local/bin:${PATH}"
 
 if [[ ! -f "${SERVER_ENV}" ]]; then
   echo "Missing server env file: ${SERVER_ENV}" >&2
