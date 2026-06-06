@@ -21,6 +21,11 @@ if [[ -f .env.server ]]; then
   set +a
 fi
 
+# Wasp's compile phase needs repo-level devDependencies even in production deploys.
+original_node_env="${NODE_ENV-}"
+export NODE_ENV=development
+export NPM_CONFIG_INCLUDE=dev
+
 # The Wasp build now relies on the repo-level Vite config and its devDependencies.
 if [[ -f package-lock.json ]]; then
   npm ci --include=dev
@@ -29,6 +34,14 @@ else
 fi
 
 wasp build
+
+if [[ -n "${original_node_env}" ]]; then
+  export NODE_ENV="${original_node_env}"
+else
+  unset NODE_ENV
+fi
+unset NPM_CONFIG_INCLUDE
+
 node scripts/patch_wasp_email_templates.mjs
 node scripts/patch_wasp_verify_email_autologin.mjs
 node scripts/patch_wasp_email_login_allow_unverified.mjs
