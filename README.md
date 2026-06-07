@@ -63,7 +63,7 @@ Quick prod sanity checks:
 
 ## Landing (memoato.com)
 
-The landing site lives in `apps/memoato-site/` (Astro). It was originally deployed via Cloudflare Pages, but the Hetzner deployment flow can now build and publish it alongside the main app/API.
+The landing site lives in `apps/memoato-site/` (Astro). It was originally deployed via Cloudflare Pages, but the Hetzner deployment flow can now build and publish it alongside the main app/API. Current production landing origin is Hetzner.
 
 ## Contributing
 
