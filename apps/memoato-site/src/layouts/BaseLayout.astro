@@ -65,7 +65,7 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
     {ogImage ? <meta property="og:image" content={ogImage} /> : null}
     {ogImage ? <meta property="og:image:width" content="1200" /> : null}
     {ogImage ? <meta property="og:image:height" content="630" /> : null}
-    {ogImage ? <meta property="og:image:alt" content="memoato: minimal habit tracking" /> : null}
+    {ogImage ? <meta property="og:image:alt" content="memoato: useful memory from messy life logs" /> : null}
 
     <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
     <meta name="twitter:site" content="@memoatoo" />
@@ -73,7 +73,7 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
     {description ? <meta name="twitter:description" content={description} /> : null}
     {canonical ? <meta name="twitter:url" content={canonical} /> : null}
     {ogImage ? <meta name="twitter:image" content={ogImage} /> : null}
-    {ogImage ? <meta name="twitter:image:alt" content="memoato: minimal habit tracking" /> : null}
+    {ogImage ? <meta name="twitter:image:alt" content="memoato: useful memory from messy life logs" /> : null}
 
     <script type="application/ld+json" set:html={baseJsonLdString} />
 
@@ -141,7 +141,7 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
             <span>memoato</span>
           </a>
           <div style="margin-top: 0.75rem">
-            Minimal habit tracking for ADHD brains: fast input, clear progress, fewer decisions.
+            Low-friction life logging: raw notes, structured facts, useful recall.
           </div>
           <div class="footer-actions">
             <a class="btn primary sm" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">

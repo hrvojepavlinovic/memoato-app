@@ -7,9 +7,9 @@ const softwareJsonLd = {
   "@type": "SoftwareApplication",
   name: "memoato",
   operatingSystem: "Web",
-  applicationCategory: "HealthApplication",
+  applicationCategory: "ProductivityApplication",
   url: "https://app.memoato.com",
-  description: "A fast, minimal habit tracker for ADHD brains: quick input, clear progress, fewer decisions.",
+  description: "A low-friction life logger that turns messy notes into useful personal memory.",
   publisher: { "@id": "https://memoato.com/#organization" },
   isAccessibleForFree: true,
 };
@@ -17,27 +17,60 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
 ---
 
 <BaseLayout
-  title="memoato: minimal habit tracking"
-  description="A fast, minimal habit tracker for ADHD brains: quick input, clear progress, fewer decisions."
+  title="memoato: useful memory from messy life logs"
+  description="Type what happened. Memoato turns raw life notes into structured memory, searchable facts, and useful recall."
   canonicalPath="/"
 >
   <script slot="head" type="application/ld+json" set:html={softwareJsonLdString} />
 
-  <section class="container hero">
-    <div class="pill">Minimal · Timeline · Privacy</div>
-    <h1 class="h1" style="margin-top: 1rem">Track what matters.</h1>
-    <p class="lead">
-      memoato is a lightweight tracker for people who want results without overhead.
-      <br />
-      Log quickly, see progress at a glance, and review your day in a simple timeline.
-    </p>
-    <div class="hero-actions">
-      <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
-        Open app
-      </a>
-      <a class="btn" href="/help">How it works</a>
-      <a class="btn" href="/blog/why-memoato">Read the story</a>
+  <section class="container hero memory-hero">
+    <div class="hero-copy">
+      <div class="pill">Raw notes · Structured facts · Useful recall</div>
+      <h1 class="h1" style="margin-top: 1rem">Type what happened. Remember what matters.</h1>
+      <p class="lead">
+        memoato is a low-friction life logger that turns messy everyday notes into useful memory.
+        Log health, training, family, money, errands, and context in plain text.
+      </p>
+      <div class="hero-actions">
+        <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
+          Open app
+        </a>
+        <a class="btn" href="/help">How it works</a>
+        <a class="btn" href="/blog/why-memoato">Read the story</a>
+      </div>
     </div>
+
+    <div class="memory-demo" aria-label="Memoato logging example">
+      <div class="demo-label">Plain text log</div>
+      <div class="demo-input">10 biceps curlsa, bolia me vanjski desni lakat</div>
+
+      <div class="demo-arrow" aria-hidden="true">↓</div>
+
+      <div class="demo-label">Memoato understands</div>
+      <div class="fact-list">
+        <div class="fact-row">
+          <span class="fact-kicker">Exercise</span>
+          <span> biceps curl · 10 reps · 10 kg assumed</span>
+        </div>
+        <div class="fact-row">
+          <span class="fact-kicker">Pain</span>
+          <span> outer right elbow · training context</span>
+        </div>
+        <div class="fact-row">
+          <span class="fact-kicker">Inference</span>
+          <span> weight copied from recent curls</span>
+        </div>
+      </div>
+
+      <div class="recall-box">
+        <div class="demo-label">Later you can ask</div>
+        <div>When did my right elbow hurt?</div>
+        <div>How many curls did I do this month?</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section memory-stats-section">
     <StatsRow />
   </section>
 
@@ -45,9 +78,9 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
     <div class="container">
       <div class="value-surface">
         <div class="value-header">
-          <div class="h2">Built for low friction (and ADHD brains)</div>
+          <div class="h2">A memory system, not another habit app</div>
           <div class="muted" style="max-width: 70ch">
-            Log fast, reduce decision fatigue, and keep the feedback loop visible.
+            Keep the input simple. Let the system do the sorting, labeling, and recall.
           </div>
         </div>
 
@@ -67,8 +100,8 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
               </svg>
             </div>
             <div>
-              <div class="feature-title">Fast capture</div>
-              <div class="muted">Minimal steps, consistent UI, no setup tax.</div>
+              <div class="feature-title">Raw log first</div>
+              <div class="muted">Write the thing naturally. The original note is always preserved.</div>
             </div>
           </div>
 
@@ -90,8 +123,8 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
               </svg>
             </div>
             <div>
-              <div class="feature-title">Templates and sane defaults</div>
-              <div class="muted">Start from a useful baseline, not a blank page.</div>
+              <div class="feature-title">Facts from text</div>
+              <div class="muted">Exercise, symptoms, temperature, money, duration, distance, and context become structured data.</div>
             </div>
           </div>
 
@@ -111,8 +144,8 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
               </svg>
             </div>
             <div>
-              <div class="feature-title">Daily timeline</div>
-              <div class="muted">Review your day by category without digging.</div>
+              <div class="feature-title">Learns your defaults</div>
+              <div class="muted">If curls are usually 10 kg, Memoato can assume that and show it clearly.</div>
             </div>
           </div>
 
@@ -132,8 +165,8 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
               </svg>
             </div>
             <div>
-              <div class="feature-title">Readable charts</div>
-              <div class="muted">Progress that’s obvious at a glance.</div>
+              <div class="feature-title">Useful recall</div>
+              <div class="muted">Ask what happened, when it happened, and what patterns show up over time.</div>
             </div>
           </div>
 
@@ -153,8 +186,8 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
               </svg>
             </div>
             <div>
-              <div class="feature-title">Forgiving workflow</div>
-              <div class="muted">Miss a day? No punishment. Just keep going.</div>
+              <div class="feature-title">Forgiving review</div>
+              <div class="muted">Correct assumptions when needed. Skip the form when the guess is right.</div>
             </div>
           </div>
 
@@ -174,8 +207,8 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
               </svg>
             </div>
             <div>
-              <div class="feature-title">Privacy options</div>
-              <div class="muted">Cloud sync, encrypted cloud, or local-only on device.</div>
+              <div class="feature-title">Connects later</div>
+              <div class="muted">Todoist, calendar, mail, Obsidian, and wearable exports can become sources.</div>
             </div>
           </div>
         </div>
@@ -195,26 +228,26 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
 
   <section class="section" style="padding-top: 2.5rem">
     <div class="container">
-      <div class="h2" style="text-align: left">Use cases</div>
+      <div class="h2" style="text-align: left">What it remembers</div>
       <div class="muted usecases-subtitle">
-        A few short pages to help you decide if memoato is the right fit.
+        Messy real-life notes become timelines, totals, symptoms, and context you can actually use.
       </div>
 
       <div class="usecase-grid">
-        <a class="card card-link" href="/adhd">
-          <div class="card-kicker">ADHD-friendly</div>
-          <div class="card-title">Reduce friction and decisions</div>
-          <div class="card-body">What “ADHD-friendly” means in practice.</div>
+        <a class="card card-link" href="/minimal-habit-tracker">
+          <div class="card-kicker">Training</div>
+          <div class="card-title">Sets, weights, pain, and patterns</div>
+          <div class="card-body">Log reps and notes in one sentence. See what changed before something hurt.</div>
           <div class="card-cta">
             <span>Read</span>
             <span aria-hidden="true">→</span>
           </div>
         </a>
 
-        <a class="card card-link" href="/minimal-habit-tracker">
-          <div class="card-kicker">Minimal</div>
-          <div class="card-title">Track what matters</div>
-          <div class="card-body">Fast logging, clear feedback, and a daily timeline.</div>
+        <a class="card card-link" href="/adhd">
+          <div class="card-kicker">Family and health</div>
+          <div class="card-title">Symptoms, temperatures, and episodes</div>
+          <div class="card-body">Remember who was sick, when it started, and how often it repeats.</div>
           <div class="card-cta">
             <span>Read</span>
             <span aria-hidden="true">→</span>
@@ -222,9 +255,9 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
         </a>
 
         <a class="card card-link" href="/privacy-first">
-          <div class="card-kicker">Privacy-first</div>
-          <div class="card-title">Choose your storage mode</div>
-          <div class="card-body">Cloud sync, encrypted cloud, or local-only on device.</div>
+          <div class="card-kicker">Life admin</div>
+          <div class="card-title">Purchases, cars, errands, and reminders</div>
+          <div class="card-body">Turn small logs into a searchable history of what you bought, fixed, paid, or promised.</div>
           <div class="card-cta">
             <span>Read</span>
             <span aria-hidden="true">→</span>
@@ -238,16 +271,16 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
     <div class="container">
       <div class="card donate-card">
         <div>
-          <div class="h2">Support development</div>
-          <div class="muted">memoato is free and open-source. If it helps you, consider supporting development.</div>
+          <div class="h2">Early, open, and changing fast</div>
+          <div class="muted">memoato is being rebuilt around raw logging, structured memory, and useful recall.</div>
         </div>
         <a
           class="btn accent"
-          href="https://buymeacoffee.com/0xhp10"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="https://app.memoato.com"
+          rel="noreferrer"
+          referrerpolicy="no-referrer"
         >
-          Support memoato
+          Try memoato
         </a>
       </div>
     </div>

@@ -366,9 +366,120 @@ a:hover:not(.btn):not(.icon-btn) {
   text-align: center;
 }
 
+.memory-hero {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+  text-align: left;
+}
+
+.hero-copy {
+  min-width: 0;
+}
+
 .hero .lead {
   margin-left: auto;
   margin-right: auto;
+}
+
+.memory-hero .lead {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.memory-hero .hero-actions {
+  justify-content: flex-start;
+}
+
+.memory-demo {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+  padding: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 250, 250, 0.96)),
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.18), transparent 34%);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+}
+
+.demo-label {
+  color: rgba(10, 10, 10, 0.58);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.demo-input {
+  margin-top: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 0.95rem;
+  background: #ffffff;
+  color: rgba(10, 10, 10, 0.92);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.demo-arrow {
+  padding: 0.75rem 0;
+  color: rgba(10, 10, 10, 0.42);
+  font-weight: 900;
+  text-align: center;
+}
+
+.fact-list {
+  margin-top: 0.55rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fact-row {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(10, 10, 10, 0.82);
+  line-height: 1.45;
+}
+
+.fact-kicker {
+  display: inline-block;
+  min-width: 5.7rem;
+  color: rgba(10, 10, 10, 0.96);
+  font-weight: 800;
+}
+
+.recall-box {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.45rem;
+  border-left: 3px solid var(--accent);
+  padding-left: 0.85rem;
+  color: rgba(10, 10, 10, 0.78);
+}
+
+.memory-stats-section {
+  padding: 0 0 2.5rem 0;
+}
+
+@media (min-width: 900px) {
+  .memory-hero {
+    grid-template-columns: minmax(0, 1.03fr) minmax(360px, 0.97fr);
+    padding-top: 5.5rem;
+  }
+}
+
+@media (max-width: 899px) {
+  .memory-hero {
+    text-align: center;
+  }
+  .memory-hero .lead {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .memory-hero .hero-actions {
+    justify-content: center;
+  }
 }
 
 .hero-grid {
