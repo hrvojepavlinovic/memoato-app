@@ -1,0 +1,37 @@
+export type MemoryFactKind = "movement" | "energy" | "context" | "note";
+
+export type MemoryFact = {
+  kind: MemoryFactKind;
+  label: string;
+  canonical?: string;
+  categoryCandidates?: string[];
+  amount?: number;
+  unit?: string;
+  durationMinutes?: number;
+  sets?: number;
+  reps?: number;
+  confidence: number;
+  note?: string;
+};
+
+export type MemoryExtraction = {
+  parser: "deterministic" | "openrouter" | "hybrid";
+  parserVersion: string;
+  facts: MemoryFact[];
+  unknowns: string[];
+};
+
+export type CreateRawEntryRequest = {
+  text: string;
+  occurredAt?: string;
+  source?: string;
+  tags?: string[];
+};
+
+export type CategoryLite = {
+  id: string;
+  title: string;
+  slug: string | null;
+  unit: string | null;
+};
+

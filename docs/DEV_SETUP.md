@@ -50,3 +50,57 @@ For production, use your `WASP_WEB_CLIENT_URL` and `WASP_SERVER_URL` equivalents
 
 - `https://app.memoato.com`
 - `https://api.memoato.com/auth/google/callback`
+
+## Raw-entry MCP ingest (optional)
+
+Memoato can accept private raw life-log entries from a local MCP server or automation.
+
+Server env:
+
+```bash
+MEMOATO_MCP_TOKEN="generate-a-long-random-token"
+MEMOATO_MCP_USER_EMAIL="you@example.com"
+```
+
+Use exactly one user selector when possible:
+
+- `MEMOATO_MCP_USER_ID`
+- `MEMOATO_MCP_USER_EMAIL`
+- `MEMOATO_MCP_USERNAME`
+
+Optional AI fallback via OpenRouter:
+
+```bash
+OPENROUTER_API_KEY="..."
+MEMOATO_AI_MODEL="google/gemini-3.1-flash-lite"
+MEMOATO_AI_FALLBACK_MODEL="openai/gpt-4.1-mini"
+```
+
+Do not commit real values. The API endpoint is:
+
+```http
+POST /api/raw-entry
+Authorization: Bearer <MEMOATO_MCP_TOKEN>
+Content-Type: application/json
+```
+
+Payload:
+
+```json
+{
+  "text": "Odradia sobnu biciklu 10 min, 2x10 listove i 2x2 zgibove",
+  "occurredAt": "2026-06-08T15:17:00+02:00",
+  "source": "mcp"
+}
+```
+
+The server always stores the raw note first. It only creates derived category events when a parsed fact confidently matches an existing category.
+
+Local MCP server:
+
+```bash
+cd tools/memoato-mcp
+npm install
+npm run build
+MEMOATO_API_ORIGIN="https://api.memoato.com" MEMOATO_MCP_TOKEN="..." node dist/server.js
+```
