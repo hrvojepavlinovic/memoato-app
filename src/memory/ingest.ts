@@ -181,7 +181,7 @@ export async function createRawMemoryEntry(args: {
     select: { id: true },
   });
 
-  const derivedEvents = [];
+  const derivedEvents: Array<{ id: string; categoryId: string | null; amount: number | null; duration: number | null }> = [];
   for (const fact of extraction.facts) {
     if (fact.kind !== "movement") continue;
     const category = matchCategory(fact, categories);
@@ -228,4 +228,3 @@ export async function createRawMemoryEntry(args: {
     extraction,
   };
 }
-
