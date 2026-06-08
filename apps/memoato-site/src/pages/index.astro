@@ -42,30 +42,32 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
 
     <div class="memory-demo" aria-label="Memoato logging example">
       <div class="demo-label">Plain text log</div>
-      <div class="demo-input">10 biceps curlsa, bolia me vanjski desni lakat</div>
+      <div class="demo-input">
+        Mia had a 101.3°F fever at 7am. Gave her acetaminophen. She ate toast and slept for two hours.
+      </div>
 
       <div class="demo-arrow" aria-hidden="true">↓</div>
 
       <div class="demo-label">Memoato understands</div>
       <div class="fact-list">
         <div class="fact-row">
-          <span class="fact-kicker">Exercise</span>
-          <span> biceps curl · 10 reps · 10 kg assumed</span>
+          <span class="fact-kicker">Health</span>
+          <span>fever · 101.3°F · Mia · 7am</span>
         </div>
         <div class="fact-row">
-          <span class="fact-kicker">Pain</span>
-          <span> outer right elbow · training context</span>
+          <span class="fact-kicker">Care</span>
+          <span>acetaminophen given · food tolerated</span>
         </div>
         <div class="fact-row">
-          <span class="fact-kicker">Inference</span>
-          <span> weight copied from recent curls</span>
+          <span class="fact-kicker">Timeline</span>
+          <span>sleep episode · about two hours</span>
         </div>
       </div>
 
       <div class="recall-box">
         <div class="demo-label">Later you can ask</div>
-        <div>When did my right elbow hurt?</div>
-        <div>How many curls did I do this month?</div>
+        <div>When did Mia's fever start?</div>
+        <div>What did we give her, and did it help?</div>
       </div>
     </div>
   </section>

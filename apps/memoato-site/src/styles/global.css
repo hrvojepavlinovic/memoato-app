@@ -65,6 +65,7 @@ a:hover:not(.btn):not(.icon-btn) {
   max-width: 1024px;
   margin: 0 auto;
   padding: 0 1rem;
+  min-width: 0;
 }
 
 @media (min-width: 640px) {
@@ -307,6 +308,7 @@ a:hover:not(.btn):not(.icon-btn) {
   max-width: 1024px;
   padding: 1rem 1rem;
   gap: 1rem;
+  min-width: 0;
 }
 
 @media (min-width: 640px) {
@@ -320,6 +322,7 @@ a:hover:not(.btn):not(.icon-btn) {
   display: inline-flex;
   align-items: center;
   gap: 1rem;
+  min-width: 0;
 }
 
 .brand {
@@ -392,6 +395,9 @@ a:hover:not(.btn):not(.icon-btn) {
 }
 
 .memory-demo {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 16px;
   padding: 1rem;
@@ -418,6 +424,7 @@ a:hover:not(.btn):not(.icon-btn) {
   color: rgba(10, 10, 10, 0.92);
   font-weight: 700;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .demo-arrow {
@@ -434,17 +441,19 @@ a:hover:not(.btn):not(.icon-btn) {
 }
 
 .fact-row {
+  display: grid;
+  grid-template-columns: 6.2rem minmax(0, 1fr);
+  gap: 0.35rem;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
   padding: 0.7rem 0.8rem;
   background: rgba(255, 255, 255, 0.72);
   color: rgba(10, 10, 10, 0.82);
   line-height: 1.45;
+  min-width: 0;
 }
 
 .fact-kicker {
-  display: inline-block;
-  min-width: 5.7rem;
   color: rgba(10, 10, 10, 0.96);
   font-weight: 800;
 }
@@ -472,6 +481,7 @@ a:hover:not(.btn):not(.icon-btn) {
 @media (max-width: 899px) {
   .memory-hero {
     text-align: center;
+    padding-top: 3.25rem;
   }
   .memory-hero .lead {
     margin-left: auto;
@@ -479,6 +489,105 @@ a:hover:not(.btn):not(.icon-btn) {
   }
   .memory-hero .hero-actions {
     justify-content: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar-inner {
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .brand {
+    gap: 0.55rem;
+    font-size: 1rem;
+  }
+
+  .logo {
+    width: 30px;
+    height: 30px;
+  }
+
+  .header-actions {
+    gap: 0.5rem;
+  }
+
+  .header-actions .icon-btn {
+    display: none;
+  }
+
+  .header-actions .btn.primary {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .hero {
+    padding-top: 3rem;
+    padding-bottom: 1.75rem;
+  }
+
+  .h1 {
+    font-size: clamp(2rem, 12vw, 2.55rem);
+    line-height: 1.02;
+  }
+
+  .lead {
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .pill {
+    max-width: 100%;
+    justify-content: center;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .memory-demo {
+    border-radius: 14px;
+    padding: 0.7rem;
+  }
+
+  .demo-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.07em;
+  }
+
+  .demo-input {
+    padding: 0.75rem;
+    font-size: 0.98rem;
+    font-weight: 650;
+    line-height: 1.42;
+  }
+
+  .demo-arrow {
+    padding: 0.5rem 0;
+  }
+
+  .fact-list {
+    gap: 0.4rem;
+  }
+
+  .fact-row {
+    grid-template-columns: 4.7rem minmax(0, 1fr);
+    padding: 0.62rem 0.7rem;
+    gap: 0.25rem;
+    text-align: left;
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+
+  .fact-kicker {
+    font-size: 0.92rem;
+  }
+
+  .recall-box {
+    margin-top: 0.7rem;
+    gap: 0.35rem;
+    padding-left: 0.7rem;
+    text-align: left;
+    font-size: 0.95rem;
   }
 }
 
