@@ -15,4 +15,14 @@ export type ProfileData = {
   hasEmailAuth: boolean;
   hasGoogleAuth: boolean;
   needsEmailVerification: boolean;
+  apiKeys: Array<{
+    id: string;
+    name: string;
+    tokenPrefix: string;
+    scope: string;
+    expiresAt: Date | null;
+    revokedAt: Date | null;
+    lastUsedAt: Date | null;
+    createdAt: Date;
+  }>;
 };

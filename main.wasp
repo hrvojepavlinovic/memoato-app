@@ -219,7 +219,7 @@ query getSudoOverview {
 
 query getProfile {
   fn: import { getProfile } from "@src/profile/queries",
-  entities: [User]
+  entities: [User, ApiKey]
 }
 
 query getDayEvents {
@@ -320,6 +320,16 @@ action rotatePublicStatsToken {
 action setPublicStatsCategories {
   fn: import { setPublicStatsCategories } from "@src/profile/actions",
   entities: [User, Category]
+}
+
+action createApiKey {
+  fn: import { createApiKey } from "@src/profile/actions",
+  entities: [User, ApiKey]
+}
+
+action revokeApiKey {
+  fn: import { revokeApiKey } from "@src/profile/actions",
+  entities: [User, ApiKey]
 }
 
 action requestEmailChange {

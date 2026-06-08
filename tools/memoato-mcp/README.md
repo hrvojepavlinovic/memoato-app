@@ -9,6 +9,9 @@ MEMOATO_API_ORIGIN="https://api.memoato.com"
 MEMOATO_MCP_TOKEN="..."
 ```
 
+Create `MEMOATO_MCP_TOKEN` in Memoato: Profile -> API keys -> Create key.
+The app stores only a hash, so copy the token when it is shown.
+
 Run:
 
 ```bash
@@ -18,4 +21,3 @@ MEMOATO_API_ORIGIN="https://api.memoato.com" MEMOATO_MCP_TOKEN="..." node dist/s
 ```
 
 The token must match `MEMOATO_MCP_TOKEN` configured on the Memoato API server.
-

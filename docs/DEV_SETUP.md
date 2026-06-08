@@ -55,14 +55,23 @@ For production, use your `WASP_WEB_CLIENT_URL` and `WASP_SERVER_URL` equivalents
 
 Memoato can accept private raw life-log entries from a local MCP server or automation.
 
-Server env:
+Recommended auth:
+
+1. Sign in to Memoato.
+2. Open Profile.
+3. Create an API key under API keys.
+4. Copy the key once and use it as `MEMOATO_MCP_TOKEN` in the local MCP server.
+
+API keys are stored as hashes, are scoped to `raw_entry:write`, and can be revoked or given an expiry.
+
+Legacy server env bootstrap is still supported:
 
 ```bash
 MEMOATO_MCP_TOKEN="generate-a-long-random-token"
 MEMOATO_MCP_USER_EMAIL="you@example.com"
 ```
 
-Use exactly one user selector when possible:
+Use exactly one user selector when using the legacy server env token:
 
 - `MEMOATO_MCP_USER_ID`
 - `MEMOATO_MCP_USER_EMAIL`

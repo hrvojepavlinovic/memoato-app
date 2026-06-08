@@ -4,11 +4,14 @@ import { HttpError, prisma } from "wasp/server";
 import { emailSender } from "wasp/server/email";
 import { config as waspServerConfig } from "wasp/server";
 import { randomBytes } from "node:crypto";
+import { generateApiKeyToken, getApiKeyPrefix, hashApiKeyToken, RAW_ENTRY_WRITE_SCOPE } from "../memory/apiKeys";
 import type {
   ConfirmAccountDeletion,
   ConfirmEmailChange,
+  CreateApiKey,
   RequestAccountDeletion,
   RequestEmailChange,
+  RevokeApiKey,
   SendPasswordResetForCurrentUser,
   SetActiveKcalRollupMode,
   SetHomeCategoryLayout,
@@ -95,6 +98,21 @@ function parseProviderData(providerData: string): Record<string, unknown> {
 function generatePublicToken(): string {
   // 32 bytes => 43 chars base64url.
   return randomBytes(32).toString("base64url");
+}
+
+function normalizeApiKeyName(raw: unknown): string {
+  const name = String(raw ?? "").trim().replace(/\s+/g, " ");
+  if (!name) return "MCP key";
+  return name.slice(0, 80);
+}
+
+function normalizeApiKeyExpiry(raw: unknown): Date | null {
+  if (raw == null || raw === "") return null;
+  if (typeof raw !== "string") throw new HttpError(400, "Invalid expiry.");
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) throw new HttpError(400, "Invalid expiry.");
+  if (d.getTime() <= Date.now()) throw new HttpError(400, "Expiry must be in the future.");
+  return d;
 }
 
 async function updateUserWithFreshPublicToken(args: {
@@ -360,6 +378,65 @@ export const setPublicStatsCategories: SetPublicStatsCategories<{ categoryIds: s
     where: { id: userId },
     data: { publicStatsCategoryIds: ownedIds as any },
   });
+  return { success: true };
+};
+
+export const createApiKey: CreateApiKey<
+  { name?: string | null; expiresAt?: string | null },
+  {
+    id: string;
+    name: string;
+    token: string;
+    tokenPrefix: string;
+    scope: string;
+    expiresAt: Date | null;
+    createdAt: Date;
+  }
+> = async (args, context) => {
+  const { userId } = requireAuth(context);
+  const activeCount = await prisma.apiKey.count({
+    where: { userId, revokedAt: null },
+  });
+  if (activeCount >= 10) {
+    throw new HttpError(400, "Revoke an existing API key before creating another.");
+  }
+
+  const token = generateApiKeyToken();
+  const created = await prisma.apiKey.create({
+    data: {
+      userId,
+      name: normalizeApiKeyName(args.name),
+      tokenHash: hashApiKeyToken(token),
+      tokenPrefix: getApiKeyPrefix(token),
+      scope: RAW_ENTRY_WRITE_SCOPE,
+      expiresAt: normalizeApiKeyExpiry(args.expiresAt),
+    },
+    select: {
+      id: true,
+      name: true,
+      tokenPrefix: true,
+      scope: true,
+      expiresAt: true,
+      createdAt: true,
+    },
+  });
+
+  return {
+    ...created,
+    token,
+  };
+};
+
+export const revokeApiKey: RevokeApiKey<{ id: string }, { success: true }> = async (args, context) => {
+  const { userId } = requireAuth(context);
+  const id = String(args.id ?? "").trim();
+  if (!id) throw new HttpError(400, "Missing API key id.");
+
+  await prisma.apiKey.updateMany({
+    where: { id, userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+
   return { success: true };
 };
 

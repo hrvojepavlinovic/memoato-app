@@ -3,28 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { logout } from "wasp/client/auth";
 import {
   createCategory,
+  createApiKey,
   createEvent,
   deleteCategory,
   ensureDefaultCategories,
   exportMyData,
   getCategories,
   getCategoryEvents,
-	  getProfile,
-	  requestAccountDeletion,
-	  requestEmailChange,
-	  rotatePublicStatsToken,
-	  sendPasswordResetForCurrentUser,
-	  setActiveKcalRollupMode,
-	  setHomeCategoryLayout,
-	  setNextUpEnabled,
-	  setPublicStatsCategories,
-	  setPublicStatsEnabled,
-	  setQuickLogFabSide,
-	  updateCategory,
-	  updateEvent,
-	  updateProfile,
-	  useQuery,
-	} from "wasp/client/operations";
+  getProfile,
+  requestAccountDeletion,
+  requestEmailChange,
+  revokeApiKey,
+  rotatePublicStatsToken,
+  sendPasswordResetForCurrentUser,
+  setActiveKcalRollupMode,
+  setHomeCategoryLayout,
+  setNextUpEnabled,
+  setPublicStatsCategories,
+  setPublicStatsEnabled,
+  setQuickLogFabSide,
+  updateCategory,
+  updateEvent,
+  updateProfile,
+  useQuery,
+} from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import type { PrivacyMode } from "../privacy/types";
@@ -66,6 +68,19 @@ function toIsoDate(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+function formatDateTime(value: Date | string | null | undefined): string {
+  if (!value) return "Never";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "Unknown";
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 async function pageAllCategoryEvents(
   categoryId: string,
   fetcher: (args: { categoryId: string; take: number; before?: string }) => Promise<CategoryEventItem[]>,
@@ -94,6 +109,9 @@ export function ProfilePage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [apiKeyName, setApiKeyName] = useState("ChatGPT MCP");
+  const [apiKeyExpiresAt, setApiKeyExpiresAt] = useState("");
+  const [createdApiKeyToken, setCreatedApiKeyToken] = useState<string | null>(null);
 
   const [pendingMode, setPendingMode] = useState<PrivacyMode>("cloud");
   const [passphrase, setPassphrase] = useState("");
@@ -258,6 +276,44 @@ export function ProfilePage() {
       setMessage("Export downloaded.");
     } catch (e: any) {
       setMessage(e?.message ?? "Failed to export data.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onCreateApiKey() {
+    setMessage(null);
+    setBusy("apiKeyCreate");
+    setCreatedApiKeyToken(null);
+    try {
+      const created = await createApiKey({
+        name: apiKeyName,
+        expiresAt: apiKeyExpiresAt ? new Date(apiKeyExpiresAt).toISOString() : null,
+      });
+      setCreatedApiKeyToken(created.token);
+      setMessage("API key created. Copy it now; it will not be shown again.");
+      setApiKeyName("ChatGPT MCP");
+      setApiKeyExpiresAt("");
+      await q.refetch();
+    } catch (e: any) {
+      setMessage(e?.message ?? "Failed to create API key.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onRevokeApiKey(id: string) {
+    const ok = window.confirm("Revoke this API key? Clients using it will stop working.");
+    if (!ok) return;
+
+    setMessage(null);
+    setBusy(`apiKeyRevoke:${id}`);
+    try {
+      await revokeApiKey({ id });
+      setMessage("API key revoked.");
+      await q.refetch();
+    } catch (e: any) {
+      setMessage(e?.message ?? "Failed to revoke API key.");
     } finally {
       setBusy(null);
     }
@@ -981,6 +1037,136 @@ export function ProfilePage() {
 	            </div>
 	          </div>
 	        </div>
+
+        <div className="card p-4">
+          <div className="mb-3 text-sm font-semibold">API keys</div>
+          {privacy.mode === "local" ? (
+            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+              Available in Cloud mode.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                Create revocable keys for MCP clients and automations. Keys can only write raw entries.
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_220px_auto] sm:items-end">
+                <label className="flex flex-col gap-1">
+                  <span className="label">Name</span>
+                  <input
+                    value={apiKeyName}
+                    onChange={(e) => setApiKeyName(e.target.value)}
+                    className={inputClassName}
+                    placeholder="ChatGPT MCP"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="label">Expires at optional</span>
+                  <input
+                    type="datetime-local"
+                    value={apiKeyExpiresAt}
+                    onChange={(e) => setApiKeyExpiresAt(e.target.value)}
+                    className={inputClassName}
+                  />
+                </label>
+                <Button
+                  variant="ghost"
+                  onClick={onCreateApiKey}
+                  disabled={busy === "apiKeyCreate" || q.isLoading || !q.data}
+                  className="h-10 w-full sm:w-auto"
+                >
+                  Create key
+                </Button>
+              </div>
+
+              {createdApiKeyToken ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                  <div className="font-semibold">Copy this key now</div>
+                  <div className="mt-1 text-amber-900/80">
+                    Memoato stores only a hash. This token will not be shown again.
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <input
+                      value={createdApiKeyToken}
+                      readOnly
+                      className={inputClassName}
+                      onFocus={(e) => e.currentTarget.select()}
+                    />
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(createdApiKeyToken);
+                          setMessage("API key copied.");
+                        } catch {
+                          window.prompt("Copy API key:", createdApiKeyToken);
+                        }
+                      }}
+                      className="h-10 w-full sm:w-auto"
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-2">
+                {(q.data?.apiKeys ?? []).length === 0 ? (
+                  <div className="text-sm text-neutral-500 dark:text-neutral-400">No API keys yet.</div>
+                ) : (
+                  (q.data?.apiKeys ?? []).map((key) => {
+                    const revoked = !!key.revokedAt;
+                    const expired = key.expiresAt ? new Date(key.expiresAt).getTime() <= Date.now() : false;
+                    const active = !revoked && !expired;
+                    return (
+                      <div
+                        key={key.id}
+                        className="rounded-lg border border-neutral-200 bg-white px-3 py-3 dark:border-neutral-800 dark:bg-neutral-950"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                                {key.name}
+                              </div>
+                              <span
+                                className={[
+                                  "rounded-full px-2 py-0.5 text-xs font-semibold",
+                                  active
+                                    ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200"
+                                    : "bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300",
+                                ].join(" ")}
+                              >
+                                {active ? "Active" : revoked ? "Revoked" : "Expired"}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                              {key.tokenPrefix} · {key.scope}
+                            </div>
+                            <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                              Created {formatDateTime(key.createdAt)} · Last used {formatDateTime(key.lastUsedAt)}
+                              {key.expiresAt ? ` · Expires ${formatDateTime(key.expiresAt)}` : ""}
+                            </div>
+                          </div>
+                          {active ? (
+                            <Button
+                              variant="ghost"
+                              onClick={() => onRevokeApiKey(key.id)}
+                              disabled={busy === `apiKeyRevoke:${key.id}`}
+                              className="h-10 w-full sm:w-auto"
+                            >
+                              Revoke
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="card p-4">
           <div className="mb-3 text-sm font-semibold">Public stats</div>

@@ -85,6 +85,22 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
       ? (publicStatsCategoryIdsRaw as string[])
       : [];
 
+  const apiKeys = await prisma.apiKey.findMany({
+    where: { userId: context.user.id },
+    select: {
+      id: true,
+      name: true,
+      tokenPrefix: true,
+      scope: true,
+      expiresAt: true,
+      revokedAt: true,
+      lastUsedAt: true,
+      createdAt: true,
+    },
+    orderBy: [{ createdAt: "desc" }],
+    take: 20,
+  });
+
   return {
     username: user.username,
     firstName: user.firstName,
@@ -103,5 +119,6 @@ export const getProfile: GetProfile<void, ProfileData> = async (_args, context) 
     hasEmailAuth,
     hasGoogleAuth,
     needsEmailVerification,
+    apiKeys,
   };
 };

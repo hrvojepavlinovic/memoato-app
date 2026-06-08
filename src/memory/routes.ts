@@ -1,5 +1,5 @@
 import { prisma } from "wasp/server";
-import { createRawMemoryEntry, isAuthorizedRawEntryRequest } from "./ingest";
+import { authenticateRawEntryRequest, createRawMemoryEntry } from "./ingest";
 
 function setJson(res: any): void {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -35,14 +35,15 @@ export function addMemoryIngestRoutes(app: any): void {
   app.post("/api/raw-entry", async (req: any, res: any) => {
     setJson(res);
 
-    if (!isAuthorizedRawEntryRequest(req)) {
+    const auth = await authenticateRawEntryRequest(prisma, req);
+    if (!auth) {
       res.status(401).end(JSON.stringify({ error: "unauthorized" }));
       return;
     }
 
     try {
       const body = await readJsonBody(req);
-      const result = await createRawMemoryEntry({ prisma, body });
+      const result = await createRawMemoryEntry({ prisma, body, userId: auth.userId, apiKeyId: auth.apiKeyId });
       res.status(201).end(JSON.stringify(result));
     } catch (error) {
       const status = statusForError(error);

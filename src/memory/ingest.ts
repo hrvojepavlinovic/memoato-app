@@ -1,6 +1,7 @@
 import type { CategoryLite, CreateRawEntryRequest, MemoryExtraction, MemoryFact } from "./types";
 import { extractDeterministicMemoryFacts } from "./extract";
 import { extractWithOpenRouter, isOpenRouterExtractorConfigured } from "./openRouterExtractor";
+import { hashApiKeyToken, scopeAllowsRawEntryWrite } from "./apiKeys";
 
 type PrismaLike = any;
 
@@ -57,6 +58,44 @@ export function isAuthorizedRawEntryRequest(req: any): boolean {
   const header = String(req?.headers?.authorization ?? req?.headers?.Authorization ?? "").trim();
   const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
   return token.length > 0 && token === configuredToken;
+}
+
+function getBearerToken(req: any): string | null {
+  const header = String(req?.headers?.authorization ?? req?.headers?.Authorization ?? "").trim();
+  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+  return token.length > 0 ? token : null;
+}
+
+export async function authenticateRawEntryRequest(
+  prisma: PrismaLike,
+  req: any,
+): Promise<{ userId: string; apiKeyId: string | null } | null> {
+  const token = getBearerToken(req);
+  if (!token) return null;
+
+  const apiKey = await prisma.apiKey.findUnique({
+    where: { tokenHash: hashApiKeyToken(token) },
+    select: { id: true, userId: true, scope: true, expiresAt: true, revokedAt: true },
+  });
+
+  if (apiKey) {
+    const now = new Date();
+    if (apiKey.revokedAt) return null;
+    if (apiKey.expiresAt && new Date(apiKey.expiresAt).getTime() <= now.getTime()) return null;
+    if (!scopeAllowsRawEntryWrite(apiKey.scope)) return null;
+
+    await prisma.apiKey.update({ where: { id: apiKey.id }, data: { lastUsedAt: now } });
+    return { userId: apiKey.userId, apiKeyId: apiKey.id };
+  }
+
+  // Legacy bootstrap path. Prefer database-backed ApiKey records for real use.
+  if (isAuthorizedRawEntryRequest(req)) {
+    const user = await findIngestUser(prisma);
+    if (!user) return null;
+    return { userId: user.id, apiKeyId: null };
+  }
+
+  return null;
 }
 
 async function findIngestUser(prisma: PrismaLike) {
@@ -127,6 +166,7 @@ function dataForDerivedEvent(args: {
   fact: MemoryFact;
   category: CategoryLite;
   request: CreateRawEntryRequest;
+  apiKeyId?: string | null;
 }) {
   return {
     source: "memoato-memory",
@@ -139,20 +179,23 @@ function dataForDerivedEvent(args: {
       slug: args.category.slug,
     },
     tags: args.request.tags ?? [],
+    apiKeyId: args.apiKeyId ?? null,
   };
 }
 
 export async function createRawMemoryEntry(args: {
   prisma: PrismaLike;
   body: unknown;
+  userId?: string;
+  apiKeyId?: string | null;
 }) {
   const request = parseCreateRawEntryRequest(args.body);
-  const user = await findIngestUser(args.prisma);
-  if (!user) throw new Error("ingest_user_not_configured");
+  const userId = args.userId ?? (await findIngestUser(args.prisma))?.id;
+  if (!userId) throw new Error("ingest_user_not_configured");
 
   const occurredAt = parseOccurredAt(request.occurredAt);
   const occurredOn = occurredOnFromDate(occurredAt);
-  const categories = await listCategories(args.prisma, user.id);
+  const categories = await listCategories(args.prisma, userId);
 
   const deterministic = extractDeterministicMemoryFacts(request.text);
   const aiExtraction =
@@ -163,7 +206,7 @@ export async function createRawMemoryEntry(args: {
 
   const rawEntry = await args.prisma.event.create({
     data: {
-      userId: user.id,
+      userId,
       source: request.source || API_SOURCE,
       kind: "NOTE",
       rawText: request.text,
@@ -174,6 +217,7 @@ export async function createRawMemoryEntry(args: {
         memoatoMemory: {
           source: request.source || API_SOURCE,
           tags: request.tags ?? [],
+          apiKeyId: args.apiKeyId ?? null,
           extraction,
         },
       },
@@ -190,7 +234,7 @@ export async function createRawMemoryEntry(args: {
     const amount = typeof fact.amount === "number" && Number.isFinite(fact.amount) ? fact.amount : 1;
     const ev = await args.prisma.event.create({
       data: {
-        userId: user.id,
+        userId,
         source: request.source || API_SOURCE,
         kind: "SESSION",
         categoryId: category.id,
@@ -199,7 +243,7 @@ export async function createRawMemoryEntry(args: {
         duration: fact.durationMinutes ? Math.round(fact.durationMinutes) : null,
         occurredAt,
         occurredOn,
-        data: dataForDerivedEvent({ rawEntryId: rawEntry.id, fact, category, request }),
+        data: dataForDerivedEvent({ rawEntryId: rawEntry.id, fact, category, request, apiKeyId: args.apiKeyId ?? null }),
       },
       select: { id: true, categoryId: true, amount: true, duration: true },
     });
@@ -214,6 +258,7 @@ export async function createRawMemoryEntry(args: {
           memoatoMemory: {
             source: request.source || API_SOURCE,
             tags: request.tags ?? [],
+            apiKeyId: args.apiKeyId ?? null,
             extraction,
             derivedEventIds: derivedEvents.map((ev) => ev.id),
           },
