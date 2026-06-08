@@ -676,6 +676,12 @@ a:hover:not(.btn):not(.icon-btn) {
 }
 
 @media (max-width: 420px) {
+  .stats-row {
+    gap: 0.75rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
   .stat {
     padding: 0.75rem 0.5rem;
   }

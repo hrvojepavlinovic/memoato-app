@@ -43,7 +43,7 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
     <div class="memory-demo" aria-label="Memoato logging example">
       <div class="demo-label">Plain text log</div>
       <div class="demo-input">
-        Ran 5 km before work in 28 minutes. Left knee felt tight after 3 km. Slept 6 hours and had two coffees.
+        Low energy today. Skipped gym, but walked 20 minutes after lunch. Slept badly again. Big client call at 9am.
       </div>
 
       <div class="demo-arrow" aria-hidden="true">↓</div>
@@ -51,23 +51,23 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
       <div class="demo-label">Memoato understands</div>
       <div class="fact-list">
         <div class="fact-row">
-          <span class="fact-kicker">Run</span>
-          <span>5 km · 28 minutes · before work</span>
+          <span class="fact-kicker">Energy</span>
+          <span>low · today</span>
         </div>
         <div class="fact-row">
-          <span class="fact-kicker">Body</span>
-          <span>left knee tightness · after 3 km</span>
+          <span class="fact-kicker">Movement</span>
+          <span>gym skipped · 20 min walk · after lunch</span>
         </div>
         <div class="fact-row">
           <span class="fact-kicker">Context</span>
-          <span>6h sleep · 2 coffees</span>
+          <span>bad sleep again · client call at 9am</span>
         </div>
       </div>
 
       <div class="recall-box">
         <div class="demo-label">Later you can ask</div>
-        <div>When does my knee usually get tight?</div>
-        <div>Do bad runs happen after short sleep?</div>
+        <div>What usually happens before low-energy days?</div>
+        <div>Do client-call mornings affect my sleep or training?</div>
       </div>
     </div>
   </section>
