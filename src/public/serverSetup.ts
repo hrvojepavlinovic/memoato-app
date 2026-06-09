@@ -1,6 +1,7 @@
 import type { ServerSetupFn } from "wasp/server";
 import { prisma } from "wasp/server";
 import { addMemoryIngestRoutes } from "../memory/routes";
+import { addMcpRoutes } from "../memory/mcp";
 
 function setCors(res: any): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -319,4 +320,5 @@ function addPublicStatsRoutes(app: any): void {
 export const setupPublicStatsRoutes: ServerSetupFn = async ({ app }) => {
   addPublicStatsRoutes(app as any);
   addMemoryIngestRoutes(app as any);
+  addMcpRoutes(app as any);
 };
