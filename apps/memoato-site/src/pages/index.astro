@@ -46,7 +46,6 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
           <div class="demo-label">Plain text log</div>
           <div class="demo-caption">from app, chat, or MCP</div>
         </div>
-        <div class="demo-chip">note preserved</div>
       </div>
 
       <div class="demo-input">
@@ -80,6 +79,77 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
         <div>
           <div class="mcp-title">ChatGPT and automations can log directly.</div>
           <div class="mcp-copy">Scoped API keys let clients write raw entries without exposing your account.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section mcp-setup-section">
+    <div class="container">
+      <div class="mcp-setup">
+        <div class="mcp-setup-copy">
+          <div class="card-kicker">MCP setup</div>
+          <div class="h2">Connect Claude or Codex in minutes</div>
+          <p class="muted">
+            Install the local MCP bridge, create a scoped Memoato API key, then paste one config into your AI client.
+          </p>
+          <div class="mcp-steps">
+            <a href="https://app.memoato.com/profile" rel="noreferrer" referrerpolicy="no-referrer">
+              1. Create API key
+            </a>
+            <span>2. Run installer</span>
+            <span>3. Add Claude or Codex</span>
+          </div>
+        </div>
+
+        <div class="mcp-terminal" data-mcp-tabs aria-label="Memoato MCP setup terminal">
+          <div class="mcp-terminal-top">
+            <div class="terminal-dots" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="terminal-tabs" role="tablist" aria-label="MCP setup snippets">
+              <button class="terminal-tab is-active" type="button" data-mcp-tab="install">Install</button>
+              <button class="terminal-tab" type="button" data-mcp-tab="codex">Codex</button>
+              <button class="terminal-tab" type="button" data-mcp-tab="claude">Claude</button>
+            </div>
+          </div>
+
+          <div class="terminal-panel is-active" data-mcp-panel="install">
+            <div class="terminal-title">One command install</div>
+            <pre><code>{`curl -fsSL https://raw.githubusercontent.com/hrvojepavlinovic/memoato-app/main/tools/memoato-mcp/install.sh | bash`}</code></pre>
+            <div class="terminal-hint">
+              Installs the MCP bridge to <code>~/.memoato/bin/memoato-mcp</code>. Requires git, Node, and npm.
+            </div>
+          </div>
+
+          <div class="terminal-panel" data-mcp-panel="codex">
+            <div class="terminal-title">Add to Codex</div>
+            <pre><code>{`codex mcp add memoato \\
+  --env MEMOATO_MCP_TOKEN=memoato_live_... \\
+  -- "$HOME/.memoato/bin/memoato-mcp"`}</code></pre>
+            <div class="terminal-hint">
+              Replace <code>memoato_live_...</code> with the key from <a href="https://app.memoato.com/profile" rel="noreferrer" referrerpolicy="no-referrer">Profile -> API keys</a>.
+            </div>
+          </div>
+
+          <div class="terminal-panel" data-mcp-panel="claude">
+            <div class="terminal-title">Claude Desktop config</div>
+            <pre><code>{`{
+  "mcpServers": {
+    "memoato": {
+      "command": "/Users/YOU/.memoato/bin/memoato-mcp",
+      "env": {
+        "MEMOATO_MCP_TOKEN": "memoato_live_..."
+      }
+    }
+  }
+}`}</code></pre>
+            <div class="terminal-hint">
+              Use the absolute path printed by the installer. Then restart Claude Desktop.
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -238,77 +308,6 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
           <a class="btn" href="/changelog">Changelog</a>
           <a class="btn" href="/blog/why-memoato">Why memoato</a>
           <a class="btn" href="/blog/timeline">Timeline</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" style="padding-top: 0">
-    <div class="container">
-      <div class="mcp-setup">
-        <div class="mcp-setup-copy">
-          <div class="card-kicker">MCP setup</div>
-          <div class="h2">Connect Claude or Codex in minutes</div>
-          <p class="muted">
-            Install the local MCP bridge, create a scoped Memoato API key, then paste one config into your AI client.
-          </p>
-          <div class="mcp-steps">
-            <a href="https://app.memoato.com/profile" rel="noreferrer" referrerpolicy="no-referrer">
-              1. Create API key
-            </a>
-            <span>2. Run installer</span>
-            <span>3. Add Claude or Codex</span>
-          </div>
-        </div>
-
-        <div class="mcp-terminal" data-mcp-tabs aria-label="Memoato MCP setup terminal">
-          <div class="mcp-terminal-top">
-            <div class="terminal-dots" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <div class="terminal-tabs" role="tablist" aria-label="MCP setup snippets">
-              <button class="terminal-tab is-active" type="button" data-mcp-tab="install">Install</button>
-              <button class="terminal-tab" type="button" data-mcp-tab="codex">Codex</button>
-              <button class="terminal-tab" type="button" data-mcp-tab="claude">Claude</button>
-            </div>
-          </div>
-
-          <div class="terminal-panel is-active" data-mcp-panel="install">
-            <div class="terminal-title">One command install</div>
-            <pre><code>{`curl -fsSL https://raw.githubusercontent.com/hrvojepavlinovic/memoato-app/main/tools/memoato-mcp/install.sh | bash`}</code></pre>
-            <div class="terminal-hint">
-              Installs the MCP bridge to <code>~/.memoato/bin/memoato-mcp</code>. Requires git, Node, and npm.
-            </div>
-          </div>
-
-          <div class="terminal-panel" data-mcp-panel="codex">
-            <div class="terminal-title">Add to Codex</div>
-            <pre><code>{`codex mcp add memoato \\
-  --env MEMOATO_MCP_TOKEN=memoato_live_... \\
-  -- "$HOME/.memoato/bin/memoato-mcp"`}</code></pre>
-            <div class="terminal-hint">
-              Replace <code>memoato_live_...</code> with the key from <a href="https://app.memoato.com/profile" rel="noreferrer" referrerpolicy="no-referrer">Profile -> API keys</a>.
-            </div>
-          </div>
-
-          <div class="terminal-panel" data-mcp-panel="claude">
-            <div class="terminal-title">Claude Desktop config</div>
-            <pre><code>{`{
-  "mcpServers": {
-    "memoato": {
-      "command": "/Users/YOU/.memoato/bin/memoato-mcp",
-      "env": {
-        "MEMOATO_MCP_TOKEN": "memoato_live_..."
-      }
-    }
-  }
-}`}</code></pre>
-            <div class="terminal-hint">
-              Use the absolute path printed by the installer. Then restart Claude Desktop.
-            </div>
-          </div>
         </div>
       </div>
     </div>
