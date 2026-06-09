@@ -12,15 +12,38 @@ MEMOATO_MCP_TOKEN="..."
 Create `MEMOATO_MCP_TOKEN` in Memoato: Profile -> API keys -> Create key.
 The app stores only a hash, so copy the token when it is shown.
 
-Run:
+Install:
 
 ```bash
-npm install
-npm run build
-MEMOATO_API_ORIGIN="https://api.memoato.com" MEMOATO_MCP_TOKEN="..." node dist/server.js
+curl -fsSL https://raw.githubusercontent.com/hrvojepavlinovic/memoato-app/main/tools/memoato-mcp/install.sh | bash
 ```
 
 The token is a user API key. Memoato stores only its hash and derives the destination account from that key.
+
+Codex:
+
+```bash
+codex mcp add memoato \
+  --env MEMOATO_API_ORIGIN=https://api.memoato.com \
+  --env MEMOATO_MCP_TOKEN=memoato_live_... \
+  -- "$HOME/.memoato/bin/memoato-mcp"
+```
+
+Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "memoato": {
+      "command": "/Users/YOU/.memoato/bin/memoato-mcp",
+      "env": {
+        "MEMOATO_API_ORIGIN": "https://api.memoato.com",
+        "MEMOATO_MCP_TOKEN": "memoato_live_..."
+      }
+    }
+  }
+}
+```
 
 Tools:
 

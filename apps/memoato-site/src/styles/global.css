@@ -573,7 +573,8 @@ a:hover:not(.btn):not(.icon-btn) {
   margin-top: 1rem;
 }
 
-.mcp-steps span {
+.mcp-steps span,
+.mcp-steps a {
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 999px;
   padding: 0.38rem 0.65rem;
@@ -581,44 +582,109 @@ a:hover:not(.btn):not(.icon-btn) {
   color: rgba(10, 10, 10, 0.68);
   font-size: 0.82rem;
   font-weight: 700;
+  text-decoration: none;
 }
 
-.mcp-snippets {
-  display: grid;
-  gap: 0.8rem;
-  min-width: 0;
+.mcp-steps a {
+  border-color: rgba(239, 68, 68, 0.22);
+  background: rgba(239, 68, 68, 0.08);
+  color: rgba(127, 29, 29, 0.92);
 }
 
-.snippet-card {
+.mcp-steps a:hover {
+  text-decoration: none;
+}
+
+.mcp-terminal {
   min-width: 0;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 16px;
+  border-radius: 18px;
   background: #0d0d0d;
   color: #f5f5f5;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.16);
 }
 
-.snippet-head {
+.mcp-terminal-top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.65rem 0.8rem;
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 0.76rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.terminal-dots span {
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.terminal-dots span:nth-child(1) {
+  background: rgba(239, 68, 68, 0.85);
+}
+
+.terminal-dots span:nth-child(2) {
+  background: rgba(245, 158, 11, 0.85);
+}
+
+.terminal-dots span:nth-child(3) {
+  background: rgba(34, 197, 94, 0.85);
+}
+
+.terminal-tabs {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+}
+
+.terminal-tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.38rem 0.65rem;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.58);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.snippet-head span:first-child {
+.terminal-tab.is-active {
+  background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
 }
 
-.snippet-card pre {
+.terminal-panel {
+  display: none;
+}
+
+.terminal-panel.is-active {
+  display: block;
+}
+
+.terminal-title {
+  padding: 0.8rem 0.9rem 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.terminal-panel pre {
   margin: 0;
   overflow-x: auto;
-  padding: 0.85rem;
+  padding: 0.85rem 0.9rem;
   color: rgba(255, 255, 255, 0.88);
   font-size: 0.78rem;
   line-height: 1.5;
@@ -626,12 +692,32 @@ a:hover:not(.btn):not(.icon-btn) {
   overflow-wrap: anywhere;
 }
 
-.snippet-card code {
+.terminal-panel code {
   font-family:
     "SFMono-Regular",
     Consolas,
     "Liberation Mono",
     monospace;
+}
+
+.terminal-hint {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 0.9rem;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.terminal-hint code {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.terminal-hint a {
+  color: #ffffff;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.32);
+  text-underline-offset: 0.18em;
 }
 
 @media (min-width: 900px) {
@@ -787,15 +873,20 @@ a:hover:not(.btn):not(.icon-btn) {
     display: grid;
   }
 
-  .snippet-head {
+  .mcp-terminal-top {
     align-items: flex-start;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.55rem;
   }
 
-  .snippet-card pre {
+  .terminal-panel pre {
     font-size: 0.72rem;
     padding: 0.75rem;
+  }
+
+  .terminal-hint {
+    font-size: 0.78rem;
+    padding: 0.7rem 0.75rem;
   }
 }
 
