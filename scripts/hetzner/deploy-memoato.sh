@@ -45,9 +45,6 @@ run_quiet_step() {
   echo "${step} ok"
 }
 
-export NVM_DIR="${HOME}/.nvm"
-. "${NVM_DIR}/nvm.sh"
-nvm use 24 >/dev/null
 export PATH="${HOME}/.local/bin:${PATH}"
 
 if [[ ! -f "${SERVER_ENV}" ]]; then
