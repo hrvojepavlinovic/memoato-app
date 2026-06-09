@@ -280,7 +280,16 @@ export async function summarizeMemoryMetric(args: {
   const unit = Array.from(unitCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   const matchedEntries = [
     ...sessionMatches.map(eventToResult),
-    ...rawFactMatches.map(({ event, fact }: any) => ({ ...eventToResult(event), facts: [fact], matchedVia: "rawTextFallback" })),
+    ...rawFactMatches.map(({ event, fact }: any) => ({
+      ...eventToResult(event),
+      amount: typeof fact.amount === "number" && Number.isFinite(fact.amount) ? fact.amount : null,
+      duration:
+        typeof fact.durationMinutes === "number" && Number.isFinite(fact.durationMinutes)
+          ? Math.round(fact.durationMinutes)
+          : null,
+      facts: [fact],
+      matchedVia: "rawTextFallback",
+    })),
   ].sort((a: any, b: any) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
 
   return {
