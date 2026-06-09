@@ -2,6 +2,20 @@ import { describe, expect, it } from "vitest";
 import { extractDeterministicMemoryFacts } from "./extract";
 
 describe("extractDeterministicMemoryFacts", () => {
+  it("extracts compact body weight logs", () => {
+    const result = extractDeterministicMemoryFacts("89.4kg");
+
+    expect(result.facts).toEqual([
+      expect.objectContaining({
+        kind: "metric",
+        canonical: "Weight",
+        amount: 89.4,
+        unit: "kg",
+      }),
+    ]);
+    expect(result.unknowns).toEqual([]);
+  });
+
   it("extracts a compact training session from Croatian raw text", () => {
     const result = extractDeterministicMemoryFacts("Odradia sobnu biciklu 10 min, 2x10 listove i 2x2 zgibove");
 
@@ -29,4 +43,3 @@ describe("extractDeterministicMemoryFacts", () => {
     ]);
   });
 });
-

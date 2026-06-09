@@ -1,4 +1,4 @@
-export type MemoryFactKind = "movement" | "energy" | "context" | "note";
+export type MemoryFactKind = "movement" | "metric" | "energy" | "context" | "note";
 
 export type MemoryFact = {
   kind: MemoryFactKind;
@@ -34,4 +34,3 @@ export type CategoryLite = {
   slug: string | null;
   unit: string | null;
 };
-

@@ -17,6 +17,23 @@ function findDurationMinutes(text: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function parsePositiveNumber(input: string | undefined): number | null {
+  if (!input) return null;
+  const n = Number(input.replace(",", "."));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function findBodyWeightKg(text: string, lower: string): number | null {
+  const compact = /^\s*(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|kgs|kilogram|kilograms|kilograma)\s*$/i.exec(text);
+  if (compact) return parsePositiveNumber(compact[1]);
+
+  const hasWeightHint = includesAny(lower, ["weight", "body weight", "tezina", "težina", "kilaza", "kilaža", "vaga"]);
+  if (!hasWeightHint) return null;
+
+  const hinted = /(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|kgs|kilogram|kilograms|kilograma)/i.exec(text);
+  return parsePositiveNumber(hinted?.[1]);
+}
+
 function findSetsReps(text: string, aliases: string[]): { sets: number; reps: number } | null {
   for (const alias of aliases) {
     const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -33,6 +50,19 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
   const text = cleanText(rawText);
   const lower = text.toLowerCase();
   const facts: MemoryFact[] = [];
+
+  const bodyWeightKg = findBodyWeightKg(text, lower);
+  if (bodyWeightKg != null) {
+    facts.push({
+      kind: "metric",
+      label: "body weight",
+      canonical: "Weight",
+      categoryCandidates: ["Weight", "Tezina", "Težina", "Vaga"],
+      amount: bodyWeightKg,
+      unit: "kg",
+      confidence: 0.98,
+    });
+  }
 
   if (includesAny(lower, ["sobna bicikla", "sobnu biciklu", "indoor bike", "stationary bike"])) {
     const durationMinutes = findDurationMinutes(text);
@@ -112,4 +142,3 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
     unknowns: facts.length === 0 ? [text] : [],
   };
 }
-
