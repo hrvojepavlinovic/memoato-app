@@ -1,3 +1,5 @@
+import { extractDeterministicMemoryFacts } from "./extract";
+
 type PrismaLike = any;
 
 const DEFAULT_TAKE = 20;
@@ -169,6 +171,27 @@ function eventToResult(event: any) {
   };
 }
 
+function hasDerivedEvents(event: any): boolean {
+  const ids = event?.data?.memoatoMemory?.derivedEventIds;
+  return Array.isArray(ids) && ids.length > 0;
+}
+
+function factsMatchingMetric(rawText: string | null | undefined, terms: string[]): any[] {
+  if (!rawText) return [];
+  const extraction = extractDeterministicMemoryFacts(rawText);
+  return extraction.facts.filter((fact) => {
+    const haystack = normalize([
+      fact.kind,
+      fact.label,
+      fact.canonical,
+      fact.unit,
+      fact.note,
+      ...(Array.isArray(fact.categoryCandidates) ? fact.categoryCandidates : []),
+    ].join(" "));
+    return terms.every((term) => haystack.includes(term));
+  });
+}
+
 export async function searchMemoryEntries(args: {
   prisma: PrismaLike;
   userId: string;
@@ -208,44 +231,68 @@ export async function summarizeMemoryMetric(args: {
   const range = parseRange({ from: body.from, to: body.to, period: body.period ?? "last_30_days" });
 
   const events = await args.prisma.event.findMany({
-    where: {
-      ...eventWhere(args.userId, range),
-      kind: "SESSION",
-    },
+    where: eventWhere(args.userId, range),
     include: { category: { select: { id: true, title: true, slug: true, unit: true } } },
     orderBy: [{ occurredAt: "asc" }],
     take: MAX_SCAN,
   });
 
-  const matches = events.filter((event: any) => matchesQuery(event, terms));
-  const amounts = matches
-    .map((event: any) => (typeof event.amount === "number" && Number.isFinite(event.amount) ? event.amount : null))
-    .filter((n: number | null): n is number => n != null);
-  const total = amounts.reduce((sum: number, n: number) => sum + n, 0);
-  const durationMinutes = matches.reduce((sum: number, event: any) => {
-    const n = typeof event.duration === "number" && Number.isFinite(event.duration) ? event.duration : 0;
+  const sessionMatches = events.filter((event: any) => event.kind === "SESSION" && matchesQuery(event, terms));
+  const rawFactMatches = events.flatMap((event: any) => {
+    if (event.kind !== "NOTE" || hasDerivedEvents(event)) return [];
+    return factsMatchingMetric(event.rawText, terms).map((fact) => ({ event, fact }));
+  });
+
+  const sessionTotal = sessionMatches.reduce((sum: number, event: any) => {
+    const n = typeof event.amount === "number" && Number.isFinite(event.amount) ? event.amount : 0;
     return sum + n;
   }, 0);
+  const rawFactTotal = rawFactMatches.reduce((sum: number, item: any) => {
+    const n = typeof item.fact.amount === "number" && Number.isFinite(item.fact.amount) ? item.fact.amount : 0;
+    return sum + n;
+  }, 0);
+  const total = sessionTotal + rawFactTotal;
+  const durationMinutes =
+    sessionMatches.reduce((sum: number, event: any) => {
+      const n = typeof event.duration === "number" && Number.isFinite(event.duration) ? event.duration : 0;
+      return sum + n;
+    }, 0) +
+    rawFactMatches.reduce((sum: number, item: any) => {
+      const n =
+        typeof item.fact.durationMinutes === "number" && Number.isFinite(item.fact.durationMinutes)
+          ? item.fact.durationMinutes
+          : 0;
+      return sum + n;
+    }, 0);
 
   const unitCounts = new Map<string, number>();
-  for (const event of matches) {
+  for (const event of sessionMatches) {
     const fact = factFromData(event.data);
     const unit = cleanText(fact?.unit ?? event.category?.unit);
     if (!unit) continue;
     unitCounts.set(unit, (unitCounts.get(unit) ?? 0) + 1);
   }
+  for (const item of rawFactMatches) {
+    const unit = cleanText(item.fact.unit);
+    if (!unit) continue;
+    unitCounts.set(unit, (unitCounts.get(unit) ?? 0) + 1);
+  }
   const unit = Array.from(unitCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const matchedEntries = [
+    ...sessionMatches.map(eventToResult),
+    ...rawFactMatches.map(({ event, fact }: any) => ({ ...eventToResult(event), facts: [fact], matchedVia: "rawTextFallback" })),
+  ].sort((a: any, b: any) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
 
   return {
     metric,
     from: range.from?.toISOString() ?? null,
     to: range.to?.toISOString() ?? null,
-    count: matches.length,
+    count: matchedEntries.length,
     total,
     unit,
     durationMinutes,
-    firstOccurredAt: matches[0]?.occurredAt ?? null,
-    lastOccurredAt: matches[matches.length - 1]?.occurredAt ?? null,
-    entries: matches.slice(-20).map(eventToResult),
+    firstOccurredAt: matchedEntries[0]?.occurredAt ?? null,
+    lastOccurredAt: matchedEntries[matchedEntries.length - 1]?.occurredAt ?? null,
+    entries: matchedEntries.slice(-20),
   };
 }
