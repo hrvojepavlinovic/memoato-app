@@ -430,19 +430,6 @@ a:hover:not(.btn):not(.icon-btn) {
   font-weight: 600;
 }
 
-.demo-chip {
-  flex: 0 0 auto;
-  border: 1px solid rgba(239, 68, 68, 0.22);
-  border-radius: 999px;
-  padding: 0.32rem 0.6rem;
-  background: rgba(239, 68, 68, 0.08);
-  color: rgba(127, 29, 29, 0.92);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
 .demo-input {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 14px;
@@ -535,6 +522,10 @@ a:hover:not(.btn):not(.icon-btn) {
   color: rgba(10, 10, 10, 0.62);
   font-size: 0.92rem;
   line-height: 1.4;
+}
+
+.mcp-setup-section {
+  padding: 0 0 2rem 0;
 }
 
 .memory-stats-section {
@@ -807,11 +798,6 @@ a:hover:not(.btn):not(.icon-btn) {
   .demo-card-top {
     align-items: flex-start;
     padding-bottom: 0.65rem;
-  }
-
-  .demo-chip {
-    font-size: 0.64rem;
-    padding: 0.28rem 0.48rem;
   }
 
   .demo-label {
