@@ -9,6 +9,7 @@ import type {
   ConfirmAccountDeletion,
   ConfirmEmailChange,
   CreateApiKey,
+  DeleteApiKey,
   RequestAccountDeletion,
   RequestEmailChange,
   RevokeApiKey,
@@ -436,6 +437,21 @@ export const revokeApiKey: RevokeApiKey<{ id: string }, { success: true }> = asy
     where: { id, userId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+
+  return { success: true };
+};
+
+export const deleteApiKey: DeleteApiKey<{ id: string }, { success: true }> = async (args, context) => {
+  const { userId } = requireAuth(context);
+  const id = String(args.id ?? "").trim();
+  if (!id) throw new HttpError(400, "Missing API key id.");
+
+  const result = await prisma.apiKey.deleteMany({
+    where: { id, userId, revokedAt: { not: null } },
+  });
+  if (result.count === 0) {
+    throw new HttpError(400, "Only revoked API keys can be deleted.");
+  }
 
   return { success: true };
 };

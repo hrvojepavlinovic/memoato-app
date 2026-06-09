@@ -332,6 +332,11 @@ action revokeApiKey {
   entities: [User, ApiKey]
 }
 
+action deleteApiKey {
+  fn: import { deleteApiKey } from "@src/profile/actions",
+  entities: [User, ApiKey]
+}
+
 action requestEmailChange {
   fn: import { requestEmailChange } from "@src/profile/actions",
   entities: [User]

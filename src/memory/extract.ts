@@ -46,6 +46,18 @@ function findSetsReps(text: string, aliases: string[]): { sets: number; reps: nu
   return null;
 }
 
+function findSingleReps(text: string, aliases: string[]): number | null {
+  for (const alias of aliases) {
+    const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const before = new RegExp(`(\\d+)\\s*(?:reps?|x)?\\s*(?:\\w+\\s+){0,2}${escaped}`, "i").exec(text);
+    if (before) return Number(before[1]);
+
+    const after = new RegExp(`${escaped}[^\\d]{0,32}(\\d+)\\s*(?:reps?)?`, "i").exec(text);
+    if (after) return Number(after[1]);
+  }
+  return null;
+}
+
 export function extractDeterministicMemoryFacts(rawText: string): MemoryExtraction {
   const text = cleanText(rawText);
   const lower = text.toLowerCase();
@@ -75,6 +87,39 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
       unit: durationMinutes ? "min" : undefined,
       durationMinutes: durationMinutes ?? undefined,
       confidence: durationMinutes ? 0.98 : 0.86,
+    });
+  }
+
+  if (includesAny(lower, ["football", "nogomet", "cage", "cardio"])) {
+    const durationMinutes = findDurationMinutes(text);
+    facts.push({
+      kind: "movement",
+      label: lower.includes("cardio") && !lower.includes("football") && !lower.includes("nogomet") ? "cardio" : "football",
+      canonical: lower.includes("cardio") && !lower.includes("football") && !lower.includes("nogomet") ? "Cardio" : "Football",
+      categoryCandidates: ["Football", "Nogomet", "Cardio"],
+      amount: durationMinutes ?? undefined,
+      unit: durationMinutes ? "min" : undefined,
+      durationMinutes: durationMinutes ?? undefined,
+      confidence: durationMinutes ? 0.92 : 0.84,
+      note: lower.includes("cage") ? "cage football/cardio context" : undefined,
+    });
+  }
+
+  const curlAliases = ["dumbbell biceps curl", "biceps curls", "biceps curl", "curlsa", "curls"];
+  if (includesAny(lower, curlAliases)) {
+    const reps = findSingleReps(text, curlAliases);
+    const kg = /(\d+(?:[.,]\d+)?)\s*(?:kg|kgs|kilograma)/i.exec(text)?.[1];
+    const weightKg = parsePositiveNumber(kg);
+    facts.push({
+      kind: "movement",
+      label: "biceps curl",
+      canonical: "Biceps curls",
+      categoryCandidates: ["Biceps curls", "Biceps curl", "Dumbbell biceps curl"],
+      reps: reps ?? undefined,
+      amount: reps ?? undefined,
+      unit: reps ? "reps" : undefined,
+      confidence: reps ? 0.94 : 0.84,
+      note: weightKg ? `${weightKg} kg` : undefined,
     });
   }
 
