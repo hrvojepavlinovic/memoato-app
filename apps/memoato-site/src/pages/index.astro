@@ -117,11 +117,12 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
           </div>
 
           <div class="terminal-panel is-active" data-mcp-panel="codex">
-            <div class="terminal-title">Add to Codex CLI</div>
-            <pre><code>{`export MEMOATO_MCP_TOKEN=memoato_live_...
-codex mcp add memoato \\
-  --url https://api.memoato.com/mcp \\
-  --bearer-token-env-var MEMOATO_MCP_TOKEN`}</code></pre>
+            <div class="terminal-title">Add to Codex config</div>
+            <pre><code>{`cat >> ~/.codex/config.toml <<'EOF'
+[mcp_servers.memoato]
+url = "https://api.memoato.com/mcp"
+http_headers = { Authorization = "Bearer memoato_live_..." }
+EOF`}</code></pre>
           </div>
 
           <div class="terminal-panel" data-mcp-panel="claude">
