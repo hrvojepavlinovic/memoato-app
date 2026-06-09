@@ -40,6 +40,20 @@ describe("extractDeterministicMemoryFacts", () => {
     ]);
   });
 
+  it("does not treat old football injury context as a football session", () => {
+    const result = extractDeterministicMemoryFacts(
+      "pull-up 2 reps - mild other-side right elbow pain, more like old football impact pain",
+    );
+
+    expect(result.facts).toEqual([
+      expect.objectContaining({
+        canonical: "Pull ups",
+        amount: 2,
+        unit: "reps",
+      }),
+    ]);
+  });
+
   it("extracts a compact training session from Croatian raw text", () => {
     const result = extractDeterministicMemoryFacts("Odradia sobnu biciklu 10 min, 2x10 listove i 2x2 zgibove");
 
