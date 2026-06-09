@@ -117,12 +117,13 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
           </div>
 
           <div class="terminal-panel is-active" data-mcp-panel="codex">
-            <div class="terminal-title">Add to Codex config</div>
-            <pre><code>{`cat >> ~/.codex/config.toml <<'EOF'
-[mcp_servers.memoato]
+            <div class="terminal-title">Paste into ~/.codex/config.toml</div>
+            <pre><code>{`[mcp_servers.memoato]
 url = "https://api.memoato.com/mcp"
-http_headers = { Authorization = "Bearer memoato_live_..." }
-EOF`}</code></pre>
+http_headers = { Authorization = "Bearer memoato_live_..." }`}</code></pre>
+            <div class="terminal-hint">
+              Replace <code>memoato_live_...</code> with your API key from <a href="https://app.memoato.com/profile" rel="noreferrer" referrerpolicy="no-referrer">Profile -> API keys</a>.
+            </div>
           </div>
 
           <div class="terminal-panel" data-mcp-panel="claude">
