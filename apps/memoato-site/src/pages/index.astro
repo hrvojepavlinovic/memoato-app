@@ -25,7 +25,7 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
 
   <section class="container hero memory-hero">
     <div class="hero-copy">
-      <div class="pill">Raw notes · Structured facts · Useful recall</div>
+      <div class="pill">Raw notes · Structured facts · MCP-ready</div>
       <h1 class="h1" style="margin-top: 1rem">Type what happened. Remember what matters.</h1>
       <p class="lead">
         memoato is a low-friction life logger that turns messy everyday notes into useful memory.
@@ -41,12 +41,23 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
     </div>
 
     <div class="memory-demo" aria-label="Memoato logging example">
-      <div class="demo-label">Plain text log</div>
+      <div class="demo-card-top">
+        <div>
+          <div class="demo-label">Plain text log</div>
+          <div class="demo-caption">from app, chat, or MCP</div>
+        </div>
+        <div class="demo-chip">raw saved first</div>
+      </div>
+
       <div class="demo-input">
         Low energy today. Skipped gym, but walked 20 minutes after lunch. Slept badly again. Big client call at 9am.
       </div>
 
-      <div class="demo-arrow" aria-hidden="true">↓</div>
+      <div class="demo-route" aria-hidden="true">
+        <span></span>
+        <strong>memoato parses context</strong>
+        <span></span>
+      </div>
 
       <div class="demo-label">Memoato understands</div>
       <div class="fact-list">
@@ -64,16 +75,20 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
         </div>
       </div>
 
-      <div class="recall-box">
-        <div class="demo-label">Later you can ask</div>
-        <div>What usually happens before low-energy days?</div>
-        <div>Do client-call mornings affect my sleep or training?</div>
+      <div class="mcp-box">
+        <div class="mcp-mark">MCP</div>
+        <div>
+          <div class="mcp-title">ChatGPT and automations can log directly.</div>
+          <div class="mcp-copy">Scoped API keys let clients write raw entries without exposing your account.</div>
+        </div>
       </div>
     </div>
   </section>
 
   <section class="section memory-stats-section">
-    <StatsRow />
+    <div class="container">
+      <StatsRow />
+    </div>
   </section>
 
   <section class="section" style="padding-top: 2.5rem">
@@ -167,8 +182,8 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
               </svg>
             </div>
             <div>
-              <div class="feature-title">Useful recall</div>
-              <div class="muted">Ask what happened, when it happened, and what patterns show up over time.</div>
+              <div class="feature-title">MCP support</div>
+              <div class="muted">Let ChatGPT or small automations send raw entries through scoped, revocable API keys.</div>
             </div>
           </div>
 
