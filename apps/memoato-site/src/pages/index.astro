@@ -118,23 +118,16 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
 
           <div class="terminal-panel is-active" data-mcp-panel="codex">
             <div class="terminal-title">Add to Codex CLI</div>
-            <pre><code>{`open https://app.memoato.com/profile
-read -s -p "Paste Memoato API key: " MEMOATO_MCP_TOKEN; echo
-export MEMOATO_MCP_TOKEN
+            <pre><code>{`export MEMOATO_MCP_TOKEN=memoato_live_...
 codex mcp add memoato \\
   --url https://api.memoato.com/mcp \\
   --bearer-token-env-var MEMOATO_MCP_TOKEN`}</code></pre>
-            <div class="terminal-hint">
-              For future shells, keep <code>MEMOATO_MCP_TOKEN</code> in your password manager, shell env, or launch config.
-            </div>
           </div>
 
           <div class="terminal-panel" data-mcp-panel="claude">
             <div class="terminal-title">Add to Claude Code</div>
-            <pre><code>{`open https://app.memoato.com/profile
-read -s -p "Paste Memoato API key: " MEMOATO_MCP_TOKEN; echo
-claude mcp add --transport http memoato https://api.memoato.com/mcp \\
-  --header "Authorization: Bearer $MEMOATO_MCP_TOKEN"`}</code></pre>
+            <pre><code>{`claude mcp add --transport http memoato https://api.memoato.com/mcp \\
+  --header "Authorization: Bearer memoato_live_..."`}</code></pre>
             <div class="terminal-hint">
               The hosted endpoint exposes create, search, and summary tools. No local Memoato install required.
             </div>
