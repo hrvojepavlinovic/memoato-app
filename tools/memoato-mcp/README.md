@@ -5,7 +5,6 @@ Local MCP server for writing and reading raw life-log entries in Memoato.
 Required environment:
 
 ```bash
-MEMOATO_API_ORIGIN="https://api.memoato.com"
 MEMOATO_MCP_TOKEN="..."
 ```
 
@@ -24,7 +23,6 @@ Codex:
 
 ```bash
 codex mcp add memoato \
-  --env MEMOATO_API_ORIGIN=https://api.memoato.com \
   --env MEMOATO_MCP_TOKEN=memoato_live_... \
   -- "$HOME/.memoato/bin/memoato-mcp"
 ```
@@ -37,7 +35,6 @@ Claude Desktop:
     "memoato": {
       "command": "/Users/YOU/.memoato/bin/memoato-mcp",
       "env": {
-        "MEMOATO_API_ORIGIN": "https://api.memoato.com",
         "MEMOATO_MCP_TOKEN": "memoato_live_..."
       }
     }
@@ -50,3 +47,5 @@ Tools:
 - `memoato_create_entry`: write a raw entry.
 - `memoato_search_entries`: search raw entries, categories, tags, and parsed facts.
 - `memoato_summarize_metric`: summarize a metric/activity over a date range.
+
+Advanced: set `MEMOATO_API_ORIGIN` only if you run a self-hosted Memoato API.
