@@ -18,24 +18,29 @@ async function postRawEntry(args: {
   source?: string;
   tags?: string[];
 }) {
+  return postMemoatoJson("/api/raw-entry", {
+    text: args.text,
+    occurredAt: args.occurredAt,
+    source: args.source || "mcp",
+    tags: args.tags ?? [],
+  });
+}
+
+async function postMemoatoJson(path: string, payload: unknown) {
   const token = env("MEMOATO_MCP_TOKEN");
   if (!token) {
     throw new Error("MEMOATO_MCP_TOKEN is not configured.");
   }
 
-  const res = await fetch(`${apiOrigin()}/api/raw-entry`, {
+  const res = await fetch(`${apiOrigin()}${path}`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
       "Accept": "application/json",
+      "User-Agent": "Memoato MCP/0.1",
     },
-    body: JSON.stringify({
-      text: args.text,
-      occurredAt: args.occurredAt,
-      source: args.source || "mcp",
-      tags: args.tags ?? [],
-    }),
+    body: JSON.stringify(payload),
   });
 
   const bodyText = await res.text();
@@ -47,7 +52,7 @@ async function postRawEntry(args: {
   }
 
   if (!res.ok) {
-    throw new Error(`Memoato raw-entry request failed (${res.status}): ${bodyText}`);
+    throw new Error(`Memoato request failed (${res.status}): ${bodyText}`);
   }
 
   return body;
@@ -82,6 +87,57 @@ server.tool(
   },
 );
 
+server.tool(
+  "memoato_search_entries",
+  "Search Memoato entries and parsed facts. Use this to answer recall questions such as when something happened, when pain appeared, or when a person/activity was mentioned.",
+  {
+    query: z.string().min(1).max(200).describe("Search text, e.g. padel, elbow, Stela, biceps curls."),
+    from: z.string().optional().describe("Optional ISO start timestamp/date."),
+    to: z.string().optional().describe("Optional ISO end timestamp/date."),
+    period: z
+      .enum(["today", "yesterday", "this_week", "last_week", "this_month", "last_month", "last_7_days", "last_30_days"])
+      .optional()
+      .describe("Optional date preset. Ignored where explicit from/to is more specific."),
+    take: z.number().int().min(1).max(50).optional().describe("Maximum entries to return. Default 20."),
+  },
+  async ({ query, from, to, period, take }) => {
+    const result = await postMemoatoJson("/api/memory/search", { query, from, to, period, take });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  },
+);
+
+server.tool(
+  "memoato_summarize_metric",
+  "Summarize a Memoato metric/activity over a date range. Use this for questions like how many push-ups last month or total pull-ups this week.",
+  {
+    metric: z.string().min(1).max(120).describe("Metric/activity/category to summarize, e.g. push ups, pull ups, weight, football."),
+    from: z.string().optional().describe("Optional ISO start timestamp/date."),
+    to: z.string().optional().describe("Optional ISO end timestamp/date."),
+    period: z
+      .enum(["today", "yesterday", "this_week", "last_week", "this_month", "last_month", "last_7_days", "last_30_days"])
+      .optional()
+      .describe("Date preset. Defaults to last_30_days if from/to are omitted."),
+  },
+  async ({ metric, from, to, period }) => {
+    const result = await postMemoatoJson("/api/memory/summary", { metric, from, to, period });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  },
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -91,4 +147,3 @@ main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-
