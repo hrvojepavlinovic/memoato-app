@@ -105,6 +105,54 @@ const tools = [
   },
 ];
 
+const codexInstallerScript =
+  [
+    "#!/usr/bin/env bash",
+    "set -euo pipefail",
+    "",
+    'config_dir="${CODEX_HOME:-${HOME}/.codex}"',
+    'config_file="${config_dir}/config.toml"',
+    'mcp_url="${MEMOATO_MCP_URL:-https://api.memoato.com/mcp}"',
+    'token="${MEMOATO_MCP_TOKEN:-}"',
+    "",
+    'if [[ -z "${token}" ]]; then',
+    "  if [[ ! -r /dev/tty ]]; then",
+    '    echo "Memoato API key is required. Run with MEMOATO_MCP_TOKEN=memoato_live_... or use an interactive terminal." >&2',
+    "    exit 1",
+    "  fi",
+    '  printf "Paste Memoato API key: " > /dev/tty',
+    "  IFS= read -r -s token < /dev/tty",
+    '  printf "\\n" > /dev/tty',
+    "fi",
+    "",
+    'if [[ ! "${token}" =~ ^memoato_live_[A-Za-z0-9_-]+$ ]]; then',
+    '  echo "That does not look like a Memoato API key." >&2',
+    "  exit 1",
+    "fi",
+    "",
+    'mkdir -p "${config_dir}"',
+    'touch "${config_file}"',
+    'tmp_file="$(mktemp)"',
+    "",
+    "awk '",
+    "  /^\\[mcp_servers\\.memoato\\]$/ { skip = 1; next }",
+    "  /^\\[/ && skip { skip = 0 }",
+    "  !skip { print }",
+    '\' "${config_file}" > "${tmp_file}"',
+    "",
+    "{",
+    '  cat "${tmp_file}"',
+    '  printf "\\n[mcp_servers.memoato]\\n"',
+    '  printf "url = \\"%s\\"\\n" "${mcp_url}"',
+    '  printf "http_headers = { Authorization = \\"Bearer %s\\" }\\n" "${token}"',
+    '} > "${config_file}"',
+    "",
+    'rm -f "${tmp_file}"',
+    "",
+    'echo "Memoato MCP added to ${config_file}"',
+    'echo "Restart Codex to load the new MCP server."',
+  ].join("\n") + "\n";
+
 function setMcpHeaders(res: any): void {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
@@ -213,6 +261,12 @@ async function handleRpcRequest(auth: AuthContext, request: JsonRpcRequest): Pro
 }
 
 export function addMcpRoutes(app: any): void {
+  app.get("/mcp-codex", (_req: any, res: any) => {
+    res.setHeader("Content-Type", "text/x-shellscript; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.status(200).end(codexInstallerScript);
+  });
+
   app.options("/mcp", (_req: any, res: any) => {
     setMcpHeaders(res);
     res.status(204).end();
