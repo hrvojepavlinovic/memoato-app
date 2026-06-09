@@ -11,6 +11,7 @@ This is a living list of what to do next. Keep it short and reorder often.
 
 - Home: add “Quick log” (one-tap, keyboard-first) so time-to-log is ~10s on mobile.
 - Improve onboarding activation (log-first flow, infer metrics, suggest goals at the right moment, explain Notes).
+- Add chat logging concept spike: Telegram and/or WhatsApp mode where the user generates a pairing code/API key, links a phone/chat identity to their Memoato account, then logs raw entries by message.
 - Improve “predict next log” (recency + time-of-day heuristic, no AI required).
 - Add parsing for common units and hints (ml, kg, kcal, min, km) so natural logs become structured data over time.
 - Add alias memory so text like `water` or `bike` matches existing categories.
