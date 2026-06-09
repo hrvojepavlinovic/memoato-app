@@ -46,7 +46,7 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
           <div class="demo-label">Plain text log</div>
           <div class="demo-caption">from app, chat, or MCP</div>
         </div>
-        <div class="demo-chip">raw saved first</div>
+        <div class="demo-chip">note preserved</div>
       </div>
 
       <div class="demo-input">
@@ -238,6 +238,68 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
           <a class="btn" href="/changelog">Changelog</a>
           <a class="btn" href="/blog/why-memoato">Why memoato</a>
           <a class="btn" href="/blog/timeline">Timeline</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top: 0">
+    <div class="container">
+      <div class="mcp-setup">
+        <div class="mcp-setup-copy">
+          <div class="card-kicker">MCP setup</div>
+          <div class="h2">Let Claude or Codex log to Memoato</div>
+          <p class="muted">
+            Create an API key in Memoato Profile settings, build the open-source MCP server, then paste the config into your AI client.
+          </p>
+          <div class="mcp-steps">
+            <span>1. Profile -> API keys -> Create key</span>
+            <span>2. Build the MCP server locally</span>
+            <span>3. Paste one client config</span>
+          </div>
+        </div>
+
+        <div class="mcp-snippets" aria-label="Memoato MCP setup snippets">
+          <div class="snippet-card">
+            <div class="snippet-head">
+              <span>Build once</span>
+              <span>Terminal</span>
+            </div>
+            <pre><code>{`git clone https://github.com/hrvojepavlinovic/memoato-app.git
+cd memoato-app/tools/memoato-mcp
+npm install
+npm run build`}</code></pre>
+          </div>
+
+          <div class="snippet-card">
+            <div class="snippet-head">
+              <span>Claude Desktop</span>
+              <span>claude_desktop_config.json</span>
+            </div>
+            <pre><code>{`{
+  "mcpServers": {
+    "memoato": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/memoato-app/tools/memoato-mcp/dist/server.js"],
+      "env": {
+        "MEMOATO_API_ORIGIN": "https://api.memoato.com",
+        "MEMOATO_MCP_TOKEN": "memoato_live_..."
+      }
+    }
+  }
+}`}</code></pre>
+          </div>
+
+          <div class="snippet-card">
+            <div class="snippet-head">
+              <span>Codex</span>
+              <span>CLI</span>
+            </div>
+            <pre><code>{`codex mcp add memoato \
+  --env MEMOATO_API_ORIGIN=https://api.memoato.com \
+  --env MEMOATO_MCP_TOKEN=memoato_live_... \
+  -- node /ABSOLUTE/PATH/memoato-app/tools/memoato-mcp/dist/server.js`}</code></pre>
+          </div>
         </div>
       </div>
     </div>

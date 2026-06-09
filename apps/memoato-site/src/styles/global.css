@@ -541,10 +541,109 @@ a:hover:not(.btn):not(.icon-btn) {
   padding: 0 0 2.5rem 0;
 }
 
+.mcp-setup {
+  display: grid;
+  gap: 1.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 24px;
+  padding: 1.25rem;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(239, 68, 68, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 250, 250, 0.98));
+}
+
+.mcp-setup-copy {
+  min-width: 0;
+}
+
+.mcp-setup-copy .h2 {
+  margin-top: 0.35rem;
+  text-align: left;
+}
+
+.mcp-setup-copy .muted {
+  margin-top: 0.5rem;
+  max-width: 58ch;
+}
+
+.mcp-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.mcp-steps span {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  padding: 0.38rem 0.65rem;
+  background: rgba(255, 255, 255, 0.7);
+  color: rgba(10, 10, 10, 0.68);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.mcp-snippets {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.snippet-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  background: #0d0d0d;
+  color: #f5f5f5;
+}
+
+.snippet-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.65rem 0.8rem;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.snippet-head span:first-child {
+  color: #ffffff;
+}
+
+.snippet-card pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: 0.85rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.snippet-card code {
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
+}
+
 @media (min-width: 900px) {
   .memory-hero {
     grid-template-columns: minmax(0, 1.03fr) minmax(360px, 0.97fr);
     padding-top: 5.5rem;
+  }
+
+  .mcp-setup {
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+    align-items: start;
+    padding: 1.5rem;
   }
 }
 
@@ -677,6 +776,26 @@ a:hover:not(.btn):not(.icon-btn) {
     height: 2.25rem;
     border-radius: 10px;
     font-size: 0.68rem;
+  }
+
+  .mcp-setup {
+    border-radius: 18px;
+    padding: 0.9rem;
+  }
+
+  .mcp-steps {
+    display: grid;
+  }
+
+  .snippet-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .snippet-card pre {
+    font-size: 0.72rem;
+    padding: 0.75rem;
   }
 }
 

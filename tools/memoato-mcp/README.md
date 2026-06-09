@@ -20,4 +20,4 @@ npm run build
 MEMOATO_API_ORIGIN="https://api.memoato.com" MEMOATO_MCP_TOKEN="..." node dist/server.js
 ```
 
-The token must match `MEMOATO_MCP_TOKEN` configured on the Memoato API server.
+The token is a user API key. Memoato stores only its hash and derives the destination account from that key.
