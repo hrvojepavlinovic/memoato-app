@@ -90,8 +90,12 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
     });
   }
 
-  if (includesAny(lower, ["football", "nogomet", "cage", "cardio"])) {
-    const durationMinutes = findDurationMinutes(text);
+  const durationMinutes = findDurationMinutes(text);
+  const hasFootballActivity =
+    includesAny(lower, ["football", "nogomet"]) &&
+    (durationMinutes != null || includesAny(lower, ["cage", "played", "igra", "balun", "cardio"]));
+  const hasCardioActivity = lower.includes("cardio") && durationMinutes != null;
+  if (hasFootballActivity || hasCardioActivity) {
     facts.push({
       kind: "movement",
       label: lower.includes("cardio") && !lower.includes("football") && !lower.includes("nogomet") ? "cardio" : "football",
@@ -126,6 +130,7 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
   const calfAliases = ["listove", "listovi", "list", "calf raises", "calf raise"];
   if (includesAny(lower, calfAliases)) {
     const sr = findSetsReps(text, calfAliases);
+    const reps = sr ? sr.sets * sr.reps : findSingleReps(text, calfAliases);
     facts.push({
       kind: "movement",
       label: "calf raises",
@@ -133,15 +138,16 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
       categoryCandidates: ["Calf raises", "Calf raise", "Listovi"],
       sets: sr?.sets,
       reps: sr?.reps,
-      amount: sr ? sr.sets * sr.reps : undefined,
-      unit: "reps",
-      confidence: sr ? 0.97 : 0.84,
+      amount: reps ?? undefined,
+      unit: reps ? "reps" : undefined,
+      confidence: reps ? 0.97 : 0.84,
     });
   }
 
-  const pullUpAliases = ["zgibove", "zgibovi", "zgiba", "zgib", "pull ups", "pull-ups", "pull up"];
+  const pullUpAliases = ["zgibove", "zgibovi", "zgiba", "zgib", "pull ups", "pull-ups", "pull up", "pull-up"];
   if (includesAny(lower, pullUpAliases)) {
     const sr = findSetsReps(text, pullUpAliases);
+    const reps = sr ? sr.sets * sr.reps : findSingleReps(text, pullUpAliases);
     facts.push({
       kind: "movement",
       label: "pull ups",
@@ -149,15 +155,16 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
       categoryCandidates: ["Pull ups", "Pull-ups", "Zgibovi"],
       sets: sr?.sets,
       reps: sr?.reps,
-      amount: sr ? sr.sets * sr.reps : undefined,
-      unit: "reps",
-      confidence: sr ? 0.98 : 0.86,
+      amount: reps ?? undefined,
+      unit: reps ? "reps" : undefined,
+      confidence: reps ? 0.98 : 0.86,
     });
   }
 
   const pushUpAliases = ["sklekove", "sklekovi", "sklek", "push ups", "push-ups", "push up"];
   if (includesAny(lower, pushUpAliases)) {
     const sr = findSetsReps(text, pushUpAliases);
+    const reps = sr ? sr.sets * sr.reps : findSingleReps(text, pushUpAliases);
     facts.push({
       kind: "movement",
       label: "push ups",
@@ -165,9 +172,9 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
       categoryCandidates: ["Push ups", "Push-ups", "Sklekovi"],
       sets: sr?.sets,
       reps: sr?.reps,
-      amount: sr ? sr.sets * sr.reps : undefined,
-      unit: "reps",
-      confidence: sr ? 0.97 : 0.84,
+      amount: reps ?? undefined,
+      unit: reps ? "reps" : undefined,
+      confidence: reps ? 0.97 : 0.84,
     });
   }
 
