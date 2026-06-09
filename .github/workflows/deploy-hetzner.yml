@@ -30,4 +30,10 @@ jobs:
       - name: Trigger remote deploy
         shell: bash
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes -o IdentitiesOnly=yes -T deploy@91.98.33.74
+          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes -o IdentitiesOnly=yes -T deploy@91.98.33.74 <<'EOF'
+          set -euo pipefail
+          cd /srv/apps/memoato/app
+          git fetch --quiet origin main
+          git reset --hard --quiet origin/main
+          ./scripts/hetzner/deploy-memoato.sh
+          EOF
