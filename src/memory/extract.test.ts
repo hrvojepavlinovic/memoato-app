@@ -16,6 +16,30 @@ describe("extractDeterministicMemoryFacts", () => {
     expect(result.unknowns).toEqual([]);
   });
 
+  it("extracts imported strength and football raw logs", () => {
+    const curls = extractDeterministicMemoryFacts(
+      "dumbbell biceps curl 10 kg, 10 reps - outer right elbow tendon pain with palms up",
+    );
+    expect(curls.facts).toEqual([
+      expect.objectContaining({
+        canonical: "Biceps curls",
+        amount: 10,
+        unit: "reps",
+        note: "10 kg",
+      }),
+    ]);
+
+    const football = extractDeterministicMemoryFacts("cage football/cardio with Stela ~60 min - played a lot with the ball");
+    expect(football.facts).toEqual([
+      expect.objectContaining({
+        canonical: "Football",
+        amount: 60,
+        durationMinutes: 60,
+        unit: "min",
+      }),
+    ]);
+  });
+
   it("extracts a compact training session from Croatian raw text", () => {
     const result = extractDeterministicMemoryFacts("Odradia sobnu biciklu 10 min, 2x10 listove i 2x2 zgibove");
 

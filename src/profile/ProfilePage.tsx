@@ -5,6 +5,7 @@ import {
   createCategory,
   createApiKey,
   createEvent,
+  deleteApiKey,
   deleteCategory,
   ensureDefaultCategories,
   exportMyData,
@@ -110,6 +111,7 @@ export function ProfilePage() {
   const [lastName, setLastName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [apiKeyName, setApiKeyName] = useState("ChatGPT MCP");
+  const [apiKeyHasExpiry, setApiKeyHasExpiry] = useState(false);
   const [apiKeyExpiresAt, setApiKeyExpiresAt] = useState("");
   const [createdApiKeyToken, setCreatedApiKeyToken] = useState<string | null>(null);
 
@@ -288,11 +290,12 @@ export function ProfilePage() {
     try {
       const created = await createApiKey({
         name: apiKeyName,
-        expiresAt: apiKeyExpiresAt ? new Date(apiKeyExpiresAt).toISOString() : null,
+        expiresAt: apiKeyHasExpiry && apiKeyExpiresAt ? new Date(apiKeyExpiresAt).toISOString() : null,
       });
       setCreatedApiKeyToken(created.token);
       setMessage("API key created. Copy it now; it will not be shown again.");
       setApiKeyName("ChatGPT MCP");
+      setApiKeyHasExpiry(false);
       setApiKeyExpiresAt("");
       await q.refetch();
     } catch (e: any) {
@@ -314,6 +317,23 @@ export function ProfilePage() {
       await q.refetch();
     } catch (e: any) {
       setMessage(e?.message ?? "Failed to revoke API key.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function onDeleteApiKey(id: string) {
+    const ok = window.confirm("Delete this revoked API key from the list?");
+    if (!ok) return;
+
+    setMessage(null);
+    setBusy(`apiKeyDelete:${id}`);
+    try {
+      await deleteApiKey({ id });
+      setMessage("API key deleted.");
+      await q.refetch();
+    } catch (e: any) {
+      setMessage(e?.message ?? "Failed to delete API key.");
     } finally {
       setBusy(null);
     }
@@ -1050,7 +1070,7 @@ export function ProfilePage() {
                 Create revocable keys for MCP clients and automations. Keys can only write raw entries.
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_220px_auto] sm:items-end">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                 <label className="flex flex-col gap-1">
                   <span className="label">Name</span>
                   <input
@@ -1058,15 +1078,6 @@ export function ProfilePage() {
                     onChange={(e) => setApiKeyName(e.target.value)}
                     className={inputClassName}
                     placeholder="ChatGPT MCP"
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="label">Expires at optional</span>
-                  <input
-                    type="datetime-local"
-                    value={apiKeyExpiresAt}
-                    onChange={(e) => setApiKeyExpiresAt(e.target.value)}
-                    className={inputClassName}
                   />
                 </label>
                 <Button
@@ -1077,6 +1088,53 @@ export function ProfilePage() {
                 >
                   Create key
                 </Button>
+              </div>
+
+              <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3 dark:border-neutral-800 dark:bg-neutral-950/60">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setApiKeyHasExpiry((v) => !v);
+                    if (apiKeyHasExpiry) setApiKeyExpiresAt("");
+                  }}
+                  className="flex w-full items-center justify-between gap-3 text-left"
+                  aria-pressed={apiKeyHasExpiry}
+                >
+                  <span>
+                    <span className="block text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                      Expire this key
+                    </span>
+                    <span className="mt-0.5 block text-sm text-neutral-500 dark:text-neutral-400">
+                      Optional. Leave off for a permanent key you can revoke later.
+                    </span>
+                  </span>
+                  <span
+                    className={[
+                      "relative inline-flex h-6 w-11 shrink-0 rounded-full border transition-colors",
+                      apiKeyHasExpiry
+                        ? "border-neutral-950 bg-neutral-950 dark:border-white dark:bg-white"
+                        : "border-neutral-300 bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-800",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform dark:bg-neutral-950",
+                        apiKeyHasExpiry ? "translate-x-5" : "translate-x-0.5",
+                      ].join(" ")}
+                    />
+                  </span>
+                </button>
+                {apiKeyHasExpiry ? (
+                  <label className="mt-3 flex flex-col gap-1">
+                    <span className="label">Expires at</span>
+                    <input
+                      type="datetime-local"
+                      value={apiKeyExpiresAt}
+                      onChange={(e) => setApiKeyExpiresAt(e.target.value)}
+                      className={inputClassName}
+                    />
+                  </label>
+                ) : null}
               </div>
 
               {createdApiKeyToken ? (
@@ -1148,16 +1206,28 @@ export function ProfilePage() {
                               {key.expiresAt ? ` · Expires ${formatDateTime(key.expiresAt)}` : ""}
                             </div>
                           </div>
-                          {active ? (
-                            <Button
-                              variant="ghost"
-                              onClick={() => onRevokeApiKey(key.id)}
-                              disabled={busy === `apiKeyRevoke:${key.id}`}
-                              className="h-10 w-full sm:w-auto"
-                            >
-                              Revoke
-                            </Button>
-                          ) : null}
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            {active ? (
+                              <Button
+                                variant="ghost"
+                                onClick={() => onRevokeApiKey(key.id)}
+                                disabled={busy === `apiKeyRevoke:${key.id}`}
+                                className="h-10 w-full sm:w-auto"
+                              >
+                                Revoke
+                              </Button>
+                            ) : null}
+                            {revoked ? (
+                              <Button
+                                variant="ghost"
+                                onClick={() => onDeleteApiKey(key.id)}
+                                disabled={busy === `apiKeyDelete:${key.id}`}
+                                className="h-10 w-full sm:w-auto"
+                              >
+                                Delete
+                              </Button>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     );
