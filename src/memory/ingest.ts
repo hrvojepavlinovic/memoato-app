@@ -128,6 +128,39 @@ async function listCategories(prisma: PrismaLike, userId: string): Promise<Categ
   });
 }
 
+async function ensureNotesCategory(prisma: PrismaLike, userId: string, categories: CategoryLite[]): Promise<CategoryLite> {
+  const fromCache = categories.find((category) => normalizeKey(category.slug ?? category.title) === "notes");
+  if (fromCache) return fromCache;
+
+  const existing = await prisma.category.findFirst({
+    where: { userId, slug: "notes", sourceArchivedAt: null },
+    select: { id: true, title: true, slug: true, unit: true, isSystem: true },
+  });
+  if (existing) {
+    if (!existing.isSystem) {
+      await prisma.category.update({ where: { id: existing.id }, data: { isSystem: true } });
+    }
+    return { id: existing.id, title: existing.title, slug: existing.slug, unit: existing.unit };
+  }
+
+  return prisma.category.create({
+    data: {
+      userId,
+      source: "memoato",
+      title: "Notes",
+      slug: "notes",
+      categoryType: "NUMBER",
+      chartType: "bar",
+      period: "day",
+      accentHex: "#0A0A0A",
+      kind: "note",
+      type: "Simple",
+      isSystem: true,
+    },
+    select: { id: true, title: true, slug: true, unit: true },
+  });
+}
+
 function mergeExtractions(primary: MemoryExtraction, fallback: MemoryExtraction | null): MemoryExtraction {
   if (!fallback || fallback.facts.length === 0) return primary;
   if (primary.facts.length === 0) return { ...fallback, parser: "hybrid" };
@@ -244,6 +277,33 @@ export async function createRawMemoryEntry(args: {
         occurredAt,
         occurredOn,
         data: dataForDerivedEvent({ rawEntryId: rawEntry.id, fact, category, request, apiKeyId: args.apiKeyId ?? null }),
+      },
+      select: { id: true, categoryId: true, amount: true, duration: true },
+    });
+    derivedEvents.push(ev);
+  }
+
+  if (derivedEvents.length === 0) {
+    const notes = await ensureNotesCategory(args.prisma, userId, categories);
+    const ev = await args.prisma.event.create({
+      data: {
+        userId,
+        source: request.source || API_SOURCE,
+        kind: "SESSION",
+        categoryId: notes.id,
+        rawText: request.text,
+        amount: 1,
+        occurredAt,
+        occurredOn,
+        data: {
+          source: "memoato-memory",
+          rawEntryId: rawEntry.id,
+          rawText: request.text,
+          note: request.text,
+          tags: request.tags ?? [],
+          apiKeyId: args.apiKeyId ?? null,
+          fallback: "notes",
+        },
       },
       select: { id: true, categoryId: true, amount: true, duration: true },
     });
