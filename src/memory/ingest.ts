@@ -46,7 +46,7 @@ function parseClientLabels(input: unknown): MemoryFact[] {
   if (!Array.isArray(input)) return [];
   return input
     .filter((value) => value && typeof value === "object" && !Array.isArray(value))
-    .map((value) => {
+    .map((value): MemoryFact | null => {
       const raw = value as Record<string, unknown>;
       const kindRaw = String(raw.kind ?? "").trim().toLowerCase();
       const kind: MemoryFact["kind"] =
@@ -60,21 +60,26 @@ function parseClientLabels(input: unknown): MemoryFact[] {
         ? raw.setValues.filter((n): n is number => typeof n === "number" && Number.isFinite(n) && n > 0).slice(0, 30)
         : undefined;
       const confidence = parseNumber(raw.confidence);
-      return {
+      const fact: MemoryFact = {
         kind,
         label,
-        categoryId: typeof raw.categoryId === "string" && raw.categoryId.trim() ? raw.categoryId.trim() : undefined,
-        canonical: typeof raw.canonical === "string" && raw.canonical.trim() ? raw.canonical.trim() : undefined,
-        categoryCandidates: categoryCandidates.length > 0 ? categoryCandidates : undefined,
-        amount: parseNumber(raw.amount),
-        unit: typeof raw.unit === "string" && raw.unit.trim() ? raw.unit.trim() : undefined,
-        durationMinutes: parseNumber(raw.durationMinutes),
-        sets: parseNumber(raw.sets),
-        reps: parseNumber(raw.reps),
-        setValues,
         confidence: confidence == null ? 0.9 : Math.max(0, Math.min(1, confidence)),
-        note: typeof raw.note === "string" && raw.note.trim() ? raw.note.trim() : undefined,
-      } satisfies MemoryFact;
+      };
+      if (typeof raw.categoryId === "string" && raw.categoryId.trim()) fact.categoryId = raw.categoryId.trim();
+      if (typeof raw.canonical === "string" && raw.canonical.trim()) fact.canonical = raw.canonical.trim();
+      if (categoryCandidates.length > 0) fact.categoryCandidates = categoryCandidates;
+      const amount = parseNumber(raw.amount);
+      if (amount != null) fact.amount = amount;
+      if (typeof raw.unit === "string" && raw.unit.trim()) fact.unit = raw.unit.trim();
+      const durationMinutes = parseNumber(raw.durationMinutes);
+      if (durationMinutes != null) fact.durationMinutes = durationMinutes;
+      const sets = parseNumber(raw.sets);
+      if (sets != null) fact.sets = sets;
+      const reps = parseNumber(raw.reps);
+      if (reps != null) fact.reps = reps;
+      if (setValues && setValues.length > 0) fact.setValues = setValues;
+      if (typeof raw.note === "string" && raw.note.trim()) fact.note = raw.note.trim();
+      return fact;
     })
     .filter((fact): fact is MemoryFact => !!fact)
     .slice(0, 30);
