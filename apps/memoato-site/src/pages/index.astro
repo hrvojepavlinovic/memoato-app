@@ -93,6 +93,29 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
           <p class="muted">
             Add the hosted MCP endpoint, create a scoped Memoato API key, then paste it into your AI client setup. Codex also gets a local Memoato skill.
           </p>
+          <div class="mcp-flow" aria-label="How Memoato MCP logging works">
+            <div class="mcp-flow-item">
+              <span>1</span>
+              <div>
+                <strong>Read your categories</strong>
+                <p>The agent can fetch your labels, units, and fields before it writes anything.</p>
+              </div>
+            </div>
+            <div class="mcp-flow-item">
+              <span>2</span>
+              <div>
+                <strong>Label the raw log</strong>
+                <p>It keeps your exact text, then attaches confident labels like Weight, Pull ups, or Football.</p>
+              </div>
+            </div>
+            <div class="mcp-flow-item">
+              <span>3</span>
+              <div>
+                <strong>Create missing metrics</strong>
+                <p>If no category fits, Memoato can create a new one with the right unit instead of losing the note.</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="mcp-terminal" data-mcp-tabs aria-label="Memoato MCP setup terminal">
