@@ -44,8 +44,9 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
       <div class="demo-card-top">
         <div>
           <div class="demo-label">Plain text log</div>
-          <div class="demo-caption">from app, chat, or MCP</div>
+          <div class="demo-caption">app, chat, MCP, or agent</div>
         </div>
+        <div class="demo-status">raw saved first</div>
       </div>
 
       <div class="demo-input">
@@ -62,23 +63,43 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
       <div class="fact-list">
         <div class="fact-row">
           <span class="fact-kicker">Energy</span>
-          <span>low · today</span>
+          <span>low</span>
+          <small>today</small>
         </div>
         <div class="fact-row">
           <span class="fact-kicker">Movement</span>
-          <span>gym skipped · 20 min walk · after lunch</span>
+          <span>20 min walk</span>
+          <small>gym skipped · after lunch</small>
         </div>
         <div class="fact-row">
           <span class="fact-kicker">Context</span>
-          <span>bad sleep again · client call at 9am</span>
+          <span>bad sleep again</span>
+          <small>client call at 9am</small>
         </div>
       </div>
 
-      <div class="mcp-box">
-        <div class="mcp-mark">MCP</div>
-        <div>
-          <div class="mcp-title">ChatGPT and automations can log directly.</div>
-          <div class="mcp-copy">Scoped API keys let clients read category metadata, create labeled raw entries, search memory, and summarize metrics.</div>
+      <div class="agent-box">
+        <div class="agent-box-header">
+          <div>
+            <div class="demo-label">Agent-ready memory</div>
+            <div class="agent-title">AI agents can log and retrieve context safely.</div>
+          </div>
+        </div>
+        <div class="agent-grid">
+          <div class="agent-chip-card">
+            <div class="agent-mark">MCP</div>
+            <div>
+              <strong>Hosted MCP endpoint</strong>
+              <span>Scoped keys let agents create raw entries, search memory, and summarize metrics.</span>
+            </div>
+          </div>
+          <div class="agent-chip-card">
+            <div class="agent-mark light">SKILL</div>
+            <div>
+              <strong>Memoato skill</strong>
+              <span>Agent instructions list categories first, then attach confident labels to the raw log.</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -269,7 +290,7 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
             </div>
             <div>
               <div class="feature-title">MCP support</div>
-              <div class="muted">Let ChatGPT or small automations send raw entries through scoped, revocable API keys.</div>
+              <div class="muted">Let AI agents or small automations send raw entries through scoped, revocable API keys.</div>
             </div>
           </div>
 
