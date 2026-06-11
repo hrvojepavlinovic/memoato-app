@@ -242,6 +242,11 @@ action createEvent {
   entities: [Event, Category]
 }
 
+action createRawLog {
+  fn: import { createRawLog } from "@src/focus/actions",
+  entities: [Event, Category]
+}
+
 action updateEvent {
   fn: import { updateEvent } from "@src/focus/actions",
   entities: [Event, Category]
