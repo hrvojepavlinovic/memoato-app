@@ -80,4 +80,17 @@ describe("extractDeterministicMemoryFacts", () => {
       }),
     ]);
   });
+
+  it("extracts pull-up set lists without losing individual set values", () => {
+    const result = extractDeterministicMemoryFacts("Zgibovi 2 2 3");
+
+    expect(result.facts).toEqual([
+      expect.objectContaining({
+        canonical: "Pull ups",
+        setValues: [2, 2, 3],
+        amount: 7,
+        unit: "reps",
+      }),
+    ]);
+  });
 });

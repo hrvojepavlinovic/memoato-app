@@ -175,6 +175,10 @@ function mergeExtractions(primary: MemoryExtraction, fallback: MemoryExtraction 
   };
 }
 
+function isCategorizedFact(fact: MemoryFact): boolean {
+  return fact.kind === "movement" || fact.kind === "metric";
+}
+
 function matchCategory(fact: MemoryFact, categories: CategoryLite[]): CategoryLite | null {
   if (fact.confidence < MIN_AUTO_MATCH_CONFIDENCE) return null;
 
@@ -192,6 +196,85 @@ function matchCategory(fact: MemoryFact, categories: CategoryLite[]): CategoryLi
   }
 
   return null;
+}
+
+function categoryTitleForFact(fact: MemoryFact): string {
+  const raw = String(fact.canonical || fact.label || "Untitled").trim();
+  if (!raw) return "Untitled";
+  return raw
+    .split(/\s+/)
+    .map((part) => (part.length > 0 ? `${part[0].toUpperCase()}${part.slice(1)}` : part))
+    .join(" ");
+}
+
+function categoryUnitForFact(fact: MemoryFact): string | null {
+  const unit = String(fact.unit ?? "").trim();
+  return unit || null;
+}
+
+async function findOrCreateCategoryForFact(
+  prisma: PrismaLike,
+  userId: string,
+  fact: MemoryFact,
+  categories: CategoryLite[],
+): Promise<CategoryLite | null> {
+  const matched = matchCategory(fact, categories);
+  if (matched) return matched;
+
+  if (!isCategorizedFact(fact) || fact.confidence < MIN_AUTO_MATCH_CONFIDENCE) return null;
+
+  const title = categoryTitleForFact(fact);
+  const slug = normalizeKey(title);
+  if (!slug) return null;
+
+  const existing = await prisma.category.findFirst({
+    where: { userId, slug, sourceArchivedAt: null },
+    select: { id: true, title: true, slug: true, unit: true },
+  });
+  if (existing) {
+    const category = { id: existing.id, title: existing.title, slug: existing.slug, unit: existing.unit };
+    categories.push(category);
+    return category;
+  }
+
+  const created = await prisma.category.create({
+    data: {
+      userId,
+      source: "memoato",
+      title,
+      slug,
+      unit: categoryUnitForFact(fact),
+      categoryType: "NUMBER",
+      chartType: "bar",
+      period: "day",
+      accentHex: "#0A0A0A",
+      kind: fact.kind,
+      type: "Simple",
+    },
+    select: { id: true, title: true, slug: true, unit: true },
+  });
+
+  categories.push(created);
+  return created;
+}
+
+function factsForDerivedEvents(fact: MemoryFact): MemoryFact[] {
+  const setValues = Array.isArray(fact.setValues)
+    ? fact.setValues.filter((value) => Number.isFinite(value) && value > 0)
+    : [];
+
+  if (setValues.length > 0) {
+    return setValues.map((amount, index) => ({
+      ...fact,
+      amount,
+      reps: amount,
+      setIndex: index + 1,
+      setCount: setValues.length,
+      setValues: undefined,
+    }));
+  }
+
+  return [fact];
 }
 
 function dataForDerivedEvent(args: {
@@ -216,6 +299,183 @@ function dataForDerivedEvent(args: {
   };
 }
 
+function memoatoMemoryData(args: {
+  existing?: any;
+  request: CreateRawEntryRequest;
+  apiKeyId?: string | null;
+  processingStatus: "queued" | "processing" | "complete" | "failed";
+  extraction?: MemoryExtraction | null;
+  derivedEventIds?: string[];
+  processingError?: string | null;
+}) {
+  const previous = args.existing && typeof args.existing === "object" ? args.existing.memoatoMemory ?? {} : {};
+  return {
+    memoatoMemory: {
+      ...previous,
+      source: args.request.source || previous.source || API_SOURCE,
+      tags: args.request.tags ?? previous.tags ?? [],
+      apiKeyId: args.apiKeyId ?? previous.apiKeyId ?? null,
+      processingStatus: args.processingStatus,
+      ...(args.extraction ? { extraction: args.extraction } : {}),
+      ...(args.derivedEventIds ? { derivedEventIds: args.derivedEventIds } : {}),
+      ...(args.processingError ? { processingError: args.processingError } : { processingError: null }),
+    },
+  };
+}
+
+function requestFromRawEntry(rawEntry: any): CreateRawEntryRequest {
+  const memory = rawEntry?.data?.memoatoMemory;
+  return {
+    text: String(rawEntry.rawText ?? ""),
+    occurredAt: rawEntry.occurredAt instanceof Date ? rawEntry.occurredAt.toISOString() : undefined,
+    source: typeof memory?.source === "string" ? memory.source : rawEntry.source,
+    tags: Array.isArray(memory?.tags) ? memory.tags.filter((tag: unknown): tag is string => typeof tag === "string") : [],
+  };
+}
+
+export async function processRawMemoryEntry(args: { prisma: PrismaLike; rawEntryId: string }) {
+  const rawEntry = await args.prisma.event.findUnique({
+    where: { id: args.rawEntryId },
+    select: {
+      id: true,
+      userId: true,
+      source: true,
+      kind: true,
+      rawText: true,
+      occurredAt: true,
+      occurredOn: true,
+      data: true,
+    },
+  });
+
+  if (!rawEntry || rawEntry.kind !== "NOTE" || !rawEntry.userId || !rawEntry.rawText) {
+    throw new Error("raw_entry_not_found");
+  }
+
+  const request = requestFromRawEntry(rawEntry);
+  const apiKeyId = rawEntry?.data?.memoatoMemory?.apiKeyId ?? null;
+
+  try {
+    await args.prisma.event.update({
+      where: { id: rawEntry.id },
+      data: { data: memoatoMemoryData({ existing: rawEntry.data, request, apiKeyId, processingStatus: "processing" }) },
+    });
+
+    await args.prisma.event.deleteMany({
+      where: {
+        userId: rawEntry.userId,
+        kind: "SESSION",
+        data: { path: ["rawEntryId"], equals: rawEntry.id },
+      },
+    });
+
+    const categories = await listCategories(args.prisma, rawEntry.userId);
+    const deterministic = extractDeterministicMemoryFacts(request.text);
+    const aiExtraction = isOpenRouterExtractorConfigured()
+      ? await extractWithOpenRouter({ rawText: request.text, categories })
+      : null;
+    const extraction = mergeExtractions(deterministic, aiExtraction);
+    const derivedEvents: Array<{ id: string; categoryId: string | null; amount: number | null; duration: number | null }> = [];
+
+    for (const fact of extraction.facts) {
+      if (!isCategorizedFact(fact)) continue;
+
+      const category = await findOrCreateCategoryForFact(args.prisma, rawEntry.userId, fact, categories);
+      if (!category) continue;
+
+      for (const eventFact of factsForDerivedEvents(fact)) {
+        const amount = typeof eventFact.amount === "number" && Number.isFinite(eventFact.amount) ? eventFact.amount : 1;
+        const ev = await args.prisma.event.create({
+          data: {
+            userId: rawEntry.userId,
+            source: request.source || API_SOURCE,
+            kind: "SESSION",
+            categoryId: category.id,
+            rawText: request.text,
+            amount,
+            duration: eventFact.durationMinutes ? Math.round(eventFact.durationMinutes) : null,
+            occurredAt: eventFact.setIndex ? new Date(rawEntry.occurredAt.getTime() + (eventFact.setIndex - 1) * 1000) : rawEntry.occurredAt,
+            occurredOn: rawEntry.occurredOn,
+            data: dataForDerivedEvent({ rawEntryId: rawEntry.id, fact: eventFact, category, request, apiKeyId }),
+          },
+          select: { id: true, categoryId: true, amount: true, duration: true },
+        });
+        derivedEvents.push(ev);
+      }
+    }
+
+    if (derivedEvents.length === 0) {
+      const notes = await ensureNotesCategory(args.prisma, rawEntry.userId, categories);
+      const ev = await args.prisma.event.create({
+        data: {
+          userId: rawEntry.userId,
+          source: request.source || API_SOURCE,
+          kind: "SESSION",
+          categoryId: notes.id,
+          rawText: request.text,
+          amount: 1,
+          occurredAt: rawEntry.occurredAt,
+          occurredOn: rawEntry.occurredOn,
+          data: {
+            source: "memoato-memory",
+            rawEntryId: rawEntry.id,
+            rawText: request.text,
+            note: request.text,
+            tags: request.tags ?? [],
+            apiKeyId,
+            fallback: "notes",
+          },
+        },
+        select: { id: true, categoryId: true, amount: true, duration: true },
+      });
+      derivedEvents.push(ev);
+    }
+
+    await args.prisma.event.update({
+      where: { id: rawEntry.id },
+      data: {
+        data: memoatoMemoryData({
+          existing: rawEntry.data,
+          request,
+          apiKeyId,
+          processingStatus: "complete",
+          extraction,
+          derivedEventIds: derivedEvents.map((ev) => ev.id),
+        }),
+      },
+    });
+
+    return {
+      rawEntryId: rawEntry.id,
+      processingStatus: "complete",
+      derivedEvents,
+      extraction,
+    };
+  } catch (error) {
+    await args.prisma.event.update({
+      where: { id: rawEntry.id },
+      data: {
+        data: memoatoMemoryData({
+          existing: rawEntry.data,
+          request,
+          apiKeyId,
+          processingStatus: "failed",
+          processingError: error instanceof Error ? error.message : "processing_failed",
+        }),
+      },
+    });
+    throw error;
+  }
+}
+
+function triggerRawMemoryProcessing(prisma: PrismaLike, rawEntryId: string): void {
+  globalThis.setTimeout(() => {
+    processRawMemoryEntry({ prisma, rawEntryId }).catch((error) => {
+      console.error("Memoato raw entry processing failed", { rawEntryId, error });
+    });
+  }, 0);
+}
+
 export async function createRawMemoryEntry(args: {
   prisma: PrismaLike;
   body: unknown;
@@ -228,14 +488,6 @@ export async function createRawMemoryEntry(args: {
 
   const occurredAt = parseOccurredAt(request.occurredAt);
   const occurredOn = occurredOnFromDate(occurredAt);
-  const categories = await listCategories(args.prisma, userId);
-
-  const deterministic = extractDeterministicMemoryFacts(request.text);
-  const aiExtraction =
-    deterministic.facts.length === 0 && isOpenRouterExtractorConfigured()
-      ? await extractWithOpenRouter({ rawText: request.text, categories })
-      : null;
-  const extraction = mergeExtractions(deterministic, aiExtraction);
 
   const rawEntry = await args.prisma.event.create({
     data: {
@@ -251,85 +503,20 @@ export async function createRawMemoryEntry(args: {
           source: request.source || API_SOURCE,
           tags: request.tags ?? [],
           apiKeyId: args.apiKeyId ?? null,
-          extraction,
+          processingStatus: "queued",
+          derivedEventIds: [],
         },
       },
     },
     select: { id: true },
   });
 
-  const derivedEvents: Array<{ id: string; categoryId: string | null; amount: number | null; duration: number | null }> = [];
-  for (const fact of extraction.facts) {
-    if (fact.kind !== "movement" && fact.kind !== "metric") continue;
-    const category = matchCategory(fact, categories);
-    if (!category) continue;
-
-    const amount = typeof fact.amount === "number" && Number.isFinite(fact.amount) ? fact.amount : 1;
-    const ev = await args.prisma.event.create({
-      data: {
-        userId,
-        source: request.source || API_SOURCE,
-        kind: "SESSION",
-        categoryId: category.id,
-        rawText: request.text,
-        amount,
-        duration: fact.durationMinutes ? Math.round(fact.durationMinutes) : null,
-        occurredAt,
-        occurredOn,
-        data: dataForDerivedEvent({ rawEntryId: rawEntry.id, fact, category, request, apiKeyId: args.apiKeyId ?? null }),
-      },
-      select: { id: true, categoryId: true, amount: true, duration: true },
-    });
-    derivedEvents.push(ev);
-  }
-
-  if (derivedEvents.length === 0) {
-    const notes = await ensureNotesCategory(args.prisma, userId, categories);
-    const ev = await args.prisma.event.create({
-      data: {
-        userId,
-        source: request.source || API_SOURCE,
-        kind: "SESSION",
-        categoryId: notes.id,
-        rawText: request.text,
-        amount: 1,
-        occurredAt,
-        occurredOn,
-        data: {
-          source: "memoato-memory",
-          rawEntryId: rawEntry.id,
-          rawText: request.text,
-          note: request.text,
-          tags: request.tags ?? [],
-          apiKeyId: args.apiKeyId ?? null,
-          fallback: "notes",
-        },
-      },
-      select: { id: true, categoryId: true, amount: true, duration: true },
-    });
-    derivedEvents.push(ev);
-  }
-
-  if (derivedEvents.length > 0) {
-    await args.prisma.event.update({
-      where: { id: rawEntry.id },
-      data: {
-        data: {
-          memoatoMemory: {
-            source: request.source || API_SOURCE,
-            tags: request.tags ?? [],
-            apiKeyId: args.apiKeyId ?? null,
-            extraction,
-            derivedEventIds: derivedEvents.map((ev) => ev.id),
-          },
-        },
-      },
-    });
-  }
+  triggerRawMemoryProcessing(args.prisma, rawEntry.id);
 
   return {
     rawEntryId: rawEntry.id,
-    derivedEvents,
-    extraction,
+    processingStatus: "queued",
+    derivedEvents: [],
+    extraction: null,
   };
 }

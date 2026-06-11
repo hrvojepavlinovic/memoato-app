@@ -4,6 +4,7 @@ This is a living list of what to do next. Keep it short and reorder often.
 
 ## P0 (bugs / correctness)
 
+- Add durable retry/worker infrastructure for raw-entry processing; current V1 saves raw first and processes in a background Node tick.
 - After deploy, verify legacy “goal value” categories can be switched to `bar + sum` (e.g. Water intake: two `300ml` entries should show `600ml` for the day).
 - Audit any remaining places that still allow selecting future dates for `occurredAt`.
 
@@ -51,3 +52,4 @@ This is a living list of what to do next. Keep it short and reorder often.
 - Mobile: scaffolded Capacitor wrapper and reminders UI (mobile-only controls hidden on web).
 - PWA: install prompt, install button, updated icons (maskable + rounded).
 - Site: SEO upgrades (sitemap, robots, JSON-LD, `llms.txt`), new intent pages and `/adhd`.
+- Raw ingest: save raw entries before parsing, then asynchronously process deterministic/AI facts, match existing categories, create missing categories with units, and keep unmatched logs visible under Notes.
