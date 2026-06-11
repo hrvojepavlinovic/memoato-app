@@ -21,6 +21,7 @@ This is a living list of what to do next. Keep it short and reorder often.
 
 ## P1 (UX)
 
+- Quick log UI: show processing state after raw submit and refresh categories when async processing finishes.
 - Landing page: add real screenshots (replace placeholders) and tune mobile spacing.
 - Landing page: add a simple FAQ section on the homepage to reduce clicks.
 - App: reduce any remaining layout shift/flicker on auth/profile transitions.
@@ -53,3 +54,4 @@ This is a living list of what to do next. Keep it short and reorder often.
 - PWA: install prompt, install button, updated icons (maskable + rounded).
 - Site: SEO upgrades (sitemap, robots, JSON-LD, `llms.txt`), new intent pages and `/adhd`.
 - Raw ingest: save raw entries before parsing, then asynchronously process deterministic/AI facts, match existing categories, create missing categories with units, and keep unmatched logs visible under Notes.
+- Quick log UI: cloud mode now submits raw text directly to the raw-entry pipeline instead of requiring category/amount prediction on the client.

@@ -1,5 +1,5 @@
 import React from "react";
-import { createCategory, createEvent, getCategoryEvents, queryClientInitialized, useQuery } from "wasp/client/operations";
+import { createCategory, createEvent, createRawLog, getCategoryEvents, queryClientInitialized, useQuery } from "wasp/client/operations";
 import { Button } from "../../shared/components/Button";
 import { Dialog } from "../../shared/components/Dialog";
 import { extractTimeFromText } from "../../shared/lib/extractTimeFromText";
@@ -317,6 +317,17 @@ function parseQuickLogInput(raw: string): ParsedQuickLog {
     hint: parsed.hint,
     quantities: parsed.quantities.map((q) => ({ value: q.value, unit: q.unit })),
     hasExplicitUnit: parsed.hasExplicitUnit,
+  };
+}
+
+function rawFirstParsedInput(raw: string): ParsedQuickLog {
+  return {
+    raw,
+    rawForParsing: raw,
+    annotation: null,
+    hint: "",
+    quantities: [],
+    hasExplicitUnit: false,
   };
 }
 
@@ -803,10 +814,11 @@ export function QuickLogDialog({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const isMobile = useIsMobileSm();
   const [mobileViewport, setMobileViewport] = React.useState<{ height: number; top: number }>({ height: 0, top: 0 });
+  const rawFirstMode = mode === "log" && privacy.mode === "cloud";
 
   const now = new Date();
   const nowMinute = now.getHours() * 60 + now.getMinutes();
-  const parsed = React.useMemo(() => parseQuickLogInput(raw), [raw]);
+  const parsed = React.useMemo(() => (rawFirstMode ? rawFirstParsedInput(raw) : parseQuickLogInput(raw)), [raw, rawFirstMode]);
   const suppressAltSuggestions = React.useMemo(() => looksLikeSentenceThenNumber(raw), [raw]);
   const noteIntent = React.useMemo(() => noteIntentScore(parsed), [parsed]);
   const ranked = React.useMemo(
@@ -1219,6 +1231,24 @@ export function QuickLogDialog({
   }
 
   async function submit(): Promise<void> {
+    if (rawFirstMode) {
+      const rawText = raw.trim();
+      if (!rawText) {
+        window.alert("Write a log first.");
+        return;
+      }
+
+      setSaving(true);
+      try {
+        await createRawLog({ text: rawText });
+        await invalidateHomeStats();
+        onClose();
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     if (!selected) return;
 
     const noteText = raw.trim();
@@ -1367,7 +1397,7 @@ export function QuickLogDialog({
                     {seededNotes ? "Quick note" : "Quick log"}
                   </div>
                   <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                    {seededNotes ? "Write a note." : "Type a number, a category, or a note."}
+                    {rawFirstMode ? "Write what happened. Memoato will sort it out." : seededNotes ? "Write a note." : "Type a number, a category, or a note."}
                   </div>
                 </div>
                 <button
@@ -1386,7 +1416,7 @@ export function QuickLogDialog({
             </div>
 
 		            <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 sm:p-4">
-              {!selected && ranked.length > 0 && !suppressAltSuggestions ? (
+              {!rawFirstMode && !selected && ranked.length > 0 && !suppressAltSuggestions ? (
                 <div className="mt-2 flex justify-end">
                   <button
                     type="button"
@@ -1399,7 +1429,7 @@ export function QuickLogDialog({
                 </div>
               ) : null}
 
-              {selected ? (
+              {!rawFirstMode && selected ? (
                 <div
                   className="mt-3 rounded-xl border bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950"
                   style={{ borderColor: selectedAccent }}
@@ -1505,7 +1535,7 @@ export function QuickLogDialog({
                 </div>
               ) : null}
 
-		            {showPicker && !seededNotes && !suppressAltSuggestions ? (
+		            {!rawFirstMode && showPicker && !seededNotes && !suppressAltSuggestions ? (
 	              <div id="memoato-quicklog-pick" className="pt-3">
 	                <div className="flex items-center justify-between gap-3">
 	                  <div className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Pick category</div>
@@ -1568,7 +1598,7 @@ export function QuickLogDialog({
             </div>
 
             <div className="border-t border-neutral-200 bg-white/90 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:rounded-b-2xl">
-              {selectedFieldsSchema && !seededNotes ? (
+              {!rawFirstMode && selectedFieldsSchema && !seededNotes ? (
                 <div className="mb-2">
                   <div className="flex items-center justify-between">
                     <button
@@ -1625,6 +1655,10 @@ export function QuickLogDialog({
                     value={raw}
                     onChange={(e) => {
                       const nextRaw = e.target.value;
+                      if (rawFirstMode) {
+                        setRaw(nextRaw);
+                        return;
+                      }
                       const extracted = extractTrailingAnnotation(nextRaw);
                       if (extracted.annotation) {
                         setRaw(captureTimeFromRaw(extracted.rawForParsing));
@@ -1649,17 +1683,17 @@ export function QuickLogDialog({
                     }}
                     inputMode="text"
                     autoCapitalize={seededNotes ? "sentences" : "none"}
-                    autoCorrect={seededNotes ? "on" : "off"}
-                    spellCheck={seededNotes}
+                    autoCorrect={seededNotes || rawFirstMode ? "on" : "off"}
+                    spellCheck={seededNotes || rawFirstMode}
                     enterKeyHint="done"
-                    placeholder={seededNotes ? "Write a note…" : "Type a log or a note"}
+                    placeholder={rawFirstMode ? "e.g. Zgibovi 2 2 3, bolia lakat" : seededNotes ? "Write a note…" : "Type a log or a note"}
                     className={[
                       "block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500",
-                      selectedUnit && !selectedIsNotes ? "pr-12" : "",
+                      !rawFirstMode && selectedUnit && !selectedIsNotes ? "pr-12" : "",
                     ].join(" ")}
                     disabled={saving}
                   />
-                  {selectedUnit && !selectedIsNotes ? (
+                  {!rawFirstMode && selectedUnit && !selectedIsNotes ? (
                     <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
                       {selectedUnit}
                     </div>
@@ -1671,12 +1705,12 @@ export function QuickLogDialog({
                     e.preventDefault();
                     submit();
                   }}
-                  disabled={saving || !selectedCategoryId}
+                  disabled={saving || (rawFirstMode ? raw.trim().length === 0 : !selectedCategoryId)}
                 >
                   Add
                 </Button>
               </div>
-              {!seededNotes ? (
+              {!rawFirstMode && !seededNotes ? (
                 <div className="mt-2 min-h-[44px]">
                   {previewCategory && !previewIsNotes ? (
                     <input
@@ -1696,7 +1730,7 @@ export function QuickLogDialog({
                 </div>
               ) : null}
               <div className="mt-2 min-h-[26px]">
-                {capturedTime ? (
+                {!rawFirstMode && capturedTime ? (
                   <button
                     type="button"
                     onClick={() => setCapturedTime(null)}
@@ -1708,7 +1742,7 @@ export function QuickLogDialog({
                   </button>
                 ) : null}
               </div>
-              {!seededNotes && previewCategory && !previewIsNotes && (previewAmount != null || !!auto.capturedLabel) ? (
+              {!rawFirstMode && !seededNotes && previewCategory && !previewIsNotes && (previewAmount != null || !!auto.capturedLabel) ? (
                 <div className="mt-2 truncate text-xs font-medium text-neutral-500 dark:text-neutral-400">
                   {previewAmount != null
                     ? `Logging: ${formatValue(previewAmount)} ${previewTitle ?? previewCategory.title}${previewUnit ? ` ${previewUnit}` : ""}`
@@ -1717,7 +1751,7 @@ export function QuickLogDialog({
                   {capturedTime ? ` · at ${capturedTime.label}` : ""}
                 </div>
               ) : null}
-              {!seededNotes && createSuggestion ? (
+              {!rawFirstMode && !seededNotes && createSuggestion ? (
                 <div className="mt-2">
                   <button
                     type="button"

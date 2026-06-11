@@ -1,9 +1,11 @@
 import { Category, Event } from "wasp/entities";
-import { HttpError } from "wasp/server";
+import { HttpError, prisma } from "wasp/server";
 import { normalizeCategorySchedule, normalizeScheduleTime } from "./schedule";
+import { createRawMemoryEntry } from "../memory/ingest";
 import {
   type CreateEvent,
   type CreateCategory,
+  type CreateRawLog,
   type DeleteCategory,
   type DeleteEvent,
   type EnsureDefaultCategories,
@@ -806,6 +808,32 @@ type CreateEventArgs = {
   noteEnc?: any | null;
   rawText?: string | null;
   scheduledStatus?: "went" | "missed" | "cancelled" | null;
+};
+
+type CreateRawLogArgs = {
+  text: string;
+  occurredAt?: string | null;
+  tags?: string[] | null;
+};
+
+export const createRawLog: CreateRawLog<CreateRawLogArgs, Awaited<ReturnType<typeof createRawMemoryEntry>>> = async (
+  { text, occurredAt, tags },
+  context,
+) => {
+  if (!context.user) {
+    throw new HttpError(401);
+  }
+
+  return createRawMemoryEntry({
+    prisma,
+    userId: context.user.id,
+    body: {
+      text,
+      occurredAt: occurredAt ?? undefined,
+      tags: Array.isArray(tags) ? tags : undefined,
+      source: "app",
+    },
+  });
 };
 
 function parseOccurred(args: { occurredOn?: string; occurredAt?: string | null }): { occurredAt: Date; occurredOn: Date } {
