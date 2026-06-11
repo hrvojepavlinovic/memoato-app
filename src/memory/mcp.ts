@@ -21,11 +21,74 @@ const periodSchema = {
   enum: ["today", "yesterday", "this_week", "last_week", "this_month", "last_month", "last_7_days", "last_30_days"],
 };
 
+const memoatoLoggingSkill = `# Memoato Logging Skill
+
+Memoato is raw-first: preserve what the user said, then attach helpful labels when you are confident.
+
+Before creating a log through MCP:
+1. Call memoato_list_categories unless you recently fetched categories in this same session.
+2. Match the user's wording to existing categories by title, slug, unit, and fields.
+3. If a good category exists, pass a label with categoryId, label/canonical, amount, unit, durationMinutes, or setValues.
+4. If no category exists but the fact is clear, pass a label without categoryId; Memoato may create the category.
+5. Keep the original text in text. Do not replace the user's raw wording with your interpretation.
+6. Use tags only as lightweight context, not as authorization or identity.
+
+Examples:
+- "Zgibovi 2 2 3" with a Pull ups category: text="Zgibovi 2 2 3", labels=[{kind:"movement", categoryId:"...", label:"pull ups", canonical:"Pull ups", unit:"reps", setValues:[2,2,3], confidence:0.98}]
+- "89.85 kg" with a Weight category: labels=[{kind:"metric", categoryId:"...", label:"body weight", canonical:"Weight", amount:89.85, unit:"kg", confidence:0.98}]
+- "Nogomet Karepovac 21:00" with a Football category: use occurredAt for 21:00 if known and labels=[{kind:"movement", categoryId:"...", label:"football", canonical:"Football", amount:1, confidence:0.9, note:"Karepovac"}]
+
+When unsure, send the raw text with no labels. Memoato will still save it and process it asynchronously.`;
+
+const labelSchema = {
+  type: "object",
+  properties: {
+    kind: { type: "string", enum: ["movement", "metric", "energy", "context", "note"] },
+    label: { type: "string", description: "Human-readable fact label, e.g. pull ups, body weight, football." },
+    categoryId: { type: "string", description: "Existing Memoato category id from memoato_list_categories, when confidently matched." },
+    canonical: { type: "string", description: "Canonical category/fact name, e.g. Pull ups or Weight." },
+    categoryCandidates: { type: "array", items: { type: "string" } },
+    amount: { type: "number" },
+    unit: { type: "string", description: "Unit such as reps, kg, min, km, kcal, EUR." },
+    durationMinutes: { type: "number" },
+    sets: { type: "number" },
+    reps: { type: "number" },
+    setValues: { type: "array", items: { type: "number" }, description: "Per-set reps/values, e.g. [2,2,3]." },
+    confidence: { type: "number", minimum: 0, maximum: 1 },
+    note: { type: "string" },
+  },
+  required: ["kind", "label"],
+  additionalProperties: false,
+};
+
 const tools = [
+  {
+    name: "memoato_logging_guide",
+    description:
+      "Return the Memoato logging skill/instructions. Use this before creating entries if the client has not already loaded the Memoato skill.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "memoato_list_categories",
+    description:
+      "List the user's current Memoato categories and units. Call this before creating labeled entries so labels match existing categories and dimensions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Optional text filter for title, slug, unit, or kind." },
+        take: { type: "number", minimum: 1, maximum: 250, description: "Maximum categories to return. Default 150." },
+      },
+      additionalProperties: false,
+    },
+  },
   {
     name: "memoato_create_entry",
     description:
-      "Create a raw Memoato memory entry. Memoato saves the raw entry immediately and processes labels/facts asynchronously. Use this for low-friction life logs such as workouts, symptoms, sleep, errands, money notes, and contextual observations.",
+      "Create a raw Memoato memory entry. Memoato saves the raw entry immediately and processes labels/facts asynchronously. Prefer calling memoato_list_categories first, then pass labels when confidently matched.",
     inputSchema: {
       type: "object",
       properties: {
@@ -43,6 +106,12 @@ const tools = [
           type: "array",
           items: { type: "string" },
           description: "Optional lightweight tags.",
+        },
+        labels: {
+          type: "array",
+          items: labelSchema,
+          description:
+            "Optional client-side labels/facts derived from memoato_list_categories. These reduce backend AI work and guide category matching/creation.",
         },
       },
       required: ["text"],
@@ -105,6 +174,77 @@ const tools = [
   },
 ];
 
+function clampTake(value: unknown, fallback: number, max: number): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(1, Math.min(max, Math.floor(n)));
+}
+
+function normalizeText(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+async function listMcpCategories(userId: string, args: Record<string, unknown>) {
+  const query = normalizeText(args.query);
+  const take = clampTake(args.take, 150, 250);
+  const categories = await prisma.category.findMany({
+    where: { userId, sourceArchivedAt: null },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      unit: true,
+      categoryType: true,
+      chartType: true,
+      period: true,
+      bucketAggregation: true,
+      goalDirection: true,
+      fieldsSchema: true,
+      kind: true,
+      type: true,
+      isSystem: true,
+      sortOrder: true,
+    },
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    take: 500,
+  });
+
+  return categories
+    .filter((category: any) => {
+      if (!query) return true;
+      const haystack = normalizeText([
+        category.title,
+        category.slug,
+        category.unit,
+        category.categoryType,
+        category.chartType,
+        category.kind,
+        JSON.stringify(category.fieldsSchema ?? null),
+      ].join(" "));
+      return haystack.includes(query);
+    })
+    .slice(0, take)
+    .map((category: any) => ({
+      id: category.id,
+      title: category.title,
+      slug: category.slug,
+      unit: category.unit,
+      categoryType: category.categoryType,
+      chartType: category.chartType,
+      period: category.period,
+      bucketAggregation: category.bucketAggregation,
+      goalDirection: category.goalDirection,
+      fieldsSchema: Array.isArray(category.fieldsSchema) ? category.fieldsSchema : null,
+      kind: category.kind,
+      type: category.type,
+      isSystem: category.isSystem,
+    }));
+}
+
 const codexInstallerScript =
   [
     "#!/usr/bin/env bash",
@@ -149,8 +289,20 @@ const codexInstallerScript =
     "",
     'rm -f "${tmp_file}"',
     "",
+    'skill_dir="${config_dir}/skills/memoato"',
+    'mkdir -p "${skill_dir}"',
+    "cat > \"${skill_dir}/SKILL.md\" <<'MEMOATO_SKILL'",
+    "---",
+    "name: memoato",
+    "description: Use when logging to Memoato through MCP, creating raw life/training/health/money notes, searching Memoato memory, or summarizing Memoato metrics. Guides the agent to list Memoato categories first and pass client-side labels when confident.",
+    "---",
+    "",
+    memoatoLoggingSkill,
+    "MEMOATO_SKILL",
+    "",
     'echo "Memoato MCP added to ${config_file}"',
-    'echo "Restart Codex to load the new MCP server."',
+    'echo "Memoato Codex skill installed to ${skill_dir}/SKILL.md"',
+    'echo "Restart Codex to load the new MCP server and skill."',
   ].join("\n") + "\n";
 
 function setMcpHeaders(res: any): void {
@@ -199,6 +351,15 @@ async function callTool(auth: AuthContext, params: unknown): Promise<unknown> {
   const name = params && typeof params === "object" && !Array.isArray(params) ? String((params as any).name ?? "") : "";
   const args = argsObject(params);
 
+  if (name === "memoato_logging_guide") {
+    return { content: [{ type: "text", text: memoatoLoggingSkill }] };
+  }
+
+  if (name === "memoato_list_categories") {
+    const result = await listMcpCategories(auth.userId, args);
+    return { content: [{ type: "text", text: JSON.stringify({ count: result.length, categories: result }, null, 2) }] };
+  }
+
   if (name === "memoato_create_entry") {
     const result = await createRawMemoryEntry({
       prisma,
@@ -208,6 +369,7 @@ async function callTool(auth: AuthContext, params: unknown): Promise<unknown> {
         text: args.text,
         occurredAt: args.occurredAt,
         tags: args.tags,
+        labels: args.labels,
         source: "mcp",
       },
     });

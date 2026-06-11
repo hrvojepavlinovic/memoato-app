@@ -37,6 +37,49 @@ function parseStringArray(input: unknown): string[] {
   return input.filter((v): v is string => typeof v === "string").map((v) => v.trim()).filter(Boolean).slice(0, 20);
 }
 
+function parseNumber(input: unknown): number | undefined {
+  if (typeof input !== "number" || !Number.isFinite(input)) return undefined;
+  return input;
+}
+
+function parseClientLabels(input: unknown): MemoryFact[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .filter((value) => value && typeof value === "object" && !Array.isArray(value))
+    .map((value) => {
+      const raw = value as Record<string, unknown>;
+      const kindRaw = String(raw.kind ?? "").trim().toLowerCase();
+      const kind: MemoryFact["kind"] =
+        kindRaw === "movement" || kindRaw === "metric" || kindRaw === "energy" || kindRaw === "context" || kindRaw === "note"
+          ? kindRaw
+          : "note";
+      const label = String(raw.label ?? raw.canonical ?? "").trim();
+      if (!label) return null;
+      const categoryCandidates = parseStringArray(raw.categoryCandidates);
+      const setValues = Array.isArray(raw.setValues)
+        ? raw.setValues.filter((n): n is number => typeof n === "number" && Number.isFinite(n) && n > 0).slice(0, 30)
+        : undefined;
+      const confidence = parseNumber(raw.confidence);
+      return {
+        kind,
+        label,
+        categoryId: typeof raw.categoryId === "string" && raw.categoryId.trim() ? raw.categoryId.trim() : undefined,
+        canonical: typeof raw.canonical === "string" && raw.canonical.trim() ? raw.canonical.trim() : undefined,
+        categoryCandidates: categoryCandidates.length > 0 ? categoryCandidates : undefined,
+        amount: parseNumber(raw.amount),
+        unit: typeof raw.unit === "string" && raw.unit.trim() ? raw.unit.trim() : undefined,
+        durationMinutes: parseNumber(raw.durationMinutes),
+        sets: parseNumber(raw.sets),
+        reps: parseNumber(raw.reps),
+        setValues,
+        confidence: confidence == null ? 0.9 : Math.max(0, Math.min(1, confidence)),
+        note: typeof raw.note === "string" && raw.note.trim() ? raw.note.trim() : undefined,
+      } satisfies MemoryFact;
+    })
+    .filter((fact): fact is MemoryFact => !!fact)
+    .slice(0, 30);
+}
+
 export function parseCreateRawEntryRequest(body: unknown): CreateRawEntryRequest {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     throw new Error("invalid_body");
@@ -49,6 +92,7 @@ export function parseCreateRawEntryRequest(body: unknown): CreateRawEntryRequest
     occurredAt: typeof (body as any).occurredAt === "string" ? (body as any).occurredAt : undefined,
     source: typeof (body as any).source === "string" ? (body as any).source.trim().slice(0, 80) : undefined,
     tags: parseStringArray((body as any).tags),
+    labels: parseClientLabels((body as any).labels),
   };
 }
 
@@ -181,6 +225,11 @@ function isCategorizedFact(fact: MemoryFact): boolean {
 
 function matchCategory(fact: MemoryFact, categories: CategoryLite[]): CategoryLite | null {
   if (fact.confidence < MIN_AUTO_MATCH_CONFIDENCE) return null;
+
+  if (fact.categoryId) {
+    const byId = categories.find((category) => category.id === fact.categoryId);
+    if (byId) return byId;
+  }
 
   const wanted = [
     fact.canonical,
@@ -330,6 +379,7 @@ function requestFromRawEntry(rawEntry: any): CreateRawEntryRequest {
     occurredAt: rawEntry.occurredAt instanceof Date ? rawEntry.occurredAt.toISOString() : undefined,
     source: typeof memory?.source === "string" ? memory.source : rawEntry.source,
     tags: Array.isArray(memory?.tags) ? memory.tags.filter((tag: unknown): tag is string => typeof tag === "string") : [],
+    labels: Array.isArray(memory?.clientLabels) ? memory.clientLabels : [],
   };
 }
 
@@ -370,11 +420,21 @@ export async function processRawMemoryEntry(args: { prisma: PrismaLike; rawEntry
     });
 
     const categories = await listCategories(args.prisma, rawEntry.userId);
+    const clientExtraction: MemoryExtraction | null =
+      request.labels && request.labels.length > 0
+        ? {
+            parser: "client",
+            parserVersion: "mcp-client-labels-v0",
+            facts: request.labels,
+            unknowns: [],
+          }
+        : null;
     const deterministic = extractDeterministicMemoryFacts(request.text);
-    const aiExtraction = isOpenRouterExtractorConfigured()
+    const baseExtraction = clientExtraction ? mergeExtractions(clientExtraction, deterministic) : deterministic;
+    const aiExtraction = baseExtraction.facts.length === 0 && isOpenRouterExtractorConfigured()
       ? await extractWithOpenRouter({ rawText: request.text, categories })
       : null;
-    const extraction = mergeExtractions(deterministic, aiExtraction);
+    const extraction = mergeExtractions(baseExtraction, aiExtraction);
     const derivedEvents: Array<{ id: string; categoryId: string | null; amount: number | null; duration: number | null }> = [];
 
     for (const fact of extraction.facts) {
@@ -503,6 +563,7 @@ export async function createRawMemoryEntry(args: {
           source: request.source || API_SOURCE,
           tags: request.tags ?? [],
           apiKeyId: args.apiKeyId ?? null,
+          clientLabels: request.labels ?? [],
           processingStatus: "queued",
           derivedEventIds: [],
         },

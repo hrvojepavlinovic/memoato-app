@@ -3,6 +3,7 @@ export type MemoryFactKind = "movement" | "metric" | "energy" | "context" | "not
 export type MemoryFact = {
   kind: MemoryFactKind;
   label: string;
+  categoryId?: string;
   canonical?: string;
   categoryCandidates?: string[];
   amount?: number;
@@ -18,7 +19,7 @@ export type MemoryFact = {
 };
 
 export type MemoryExtraction = {
-  parser: "deterministic" | "openrouter" | "hybrid";
+  parser: "deterministic" | "openrouter" | "client" | "hybrid";
   parserVersion: string;
   facts: MemoryFact[];
   unknowns: string[];
@@ -29,6 +30,7 @@ export type CreateRawEntryRequest = {
   occurredAt?: string;
   source?: string;
   tags?: string[];
+  labels?: MemoryFact[];
 };
 
 export type CategoryLite = {
