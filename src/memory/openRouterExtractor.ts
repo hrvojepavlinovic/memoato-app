@@ -22,7 +22,7 @@ function extractionSchema() {
           additionalProperties: false,
           required: ["kind", "label", "confidence"],
           properties: {
-            kind: { type: "string", enum: ["movement", "energy", "context", "note"] },
+            kind: { type: "string", enum: ["movement", "metric", "energy", "context", "note"] },
             label: { type: "string" },
             canonical: { type: "string" },
             categoryCandidates: { type: "array", items: { type: "string" } },
@@ -31,6 +31,7 @@ function extractionSchema() {
             durationMinutes: { type: "number" },
             sets: { type: "number" },
             reps: { type: "number" },
+            setValues: { type: "array", items: { type: "number" } },
             confidence: { type: "number" },
             note: { type: "string" },
           },
@@ -50,7 +51,7 @@ function normalizeExtraction(value: any): MemoryExtraction {
     facts: facts
       .filter((fact: any) => fact && typeof fact === "object" && typeof fact.label === "string")
       .map((fact: any) => ({
-        kind: ["movement", "energy", "context", "note"].includes(fact.kind) ? fact.kind : "note",
+        kind: ["movement", "metric", "energy", "context", "note"].includes(fact.kind) ? fact.kind : "note",
         label: String(fact.label).trim(),
         canonical: typeof fact.canonical === "string" ? fact.canonical.trim() : undefined,
         categoryCandidates: Array.isArray(fact.categoryCandidates)
@@ -62,6 +63,9 @@ function normalizeExtraction(value: any): MemoryExtraction {
           typeof fact.durationMinutes === "number" && Number.isFinite(fact.durationMinutes) ? fact.durationMinutes : undefined,
         sets: typeof fact.sets === "number" && Number.isFinite(fact.sets) ? fact.sets : undefined,
         reps: typeof fact.reps === "number" && Number.isFinite(fact.reps) ? fact.reps : undefined,
+        setValues: Array.isArray(fact.setValues)
+          ? fact.setValues.filter((value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0)
+          : undefined,
         confidence:
           typeof fact.confidence === "number" && Number.isFinite(fact.confidence)
             ? Math.max(0, Math.min(1, fact.confidence))
@@ -118,7 +122,7 @@ export async function extractWithOpenRouter(args: {
             {
               role: "system",
               content:
-                "Extract personal memory facts from a raw life log. Return only facts that are explicit or very safe. Prefer matching existing categories. Do not invent medical, money, or account details. Use confidence below 0.85 when unsure.",
+                "Extract personal memory facts from a raw life log. Return only facts that are explicit or very safe. Prefer matching existing categories and their units. Use kind=metric for scalar measurements such as body weight or temperature. For exercise set lists such as 'pull ups 2 2 3', use setValues. Do not invent medical, money, or account details. Use confidence below 0.85 when unsure.",
             },
             {
               role: "user",
@@ -143,4 +147,3 @@ export async function extractWithOpenRouter(args: {
 
   return null;
 }
-

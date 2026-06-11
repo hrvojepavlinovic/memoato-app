@@ -10,6 +10,9 @@ export type MemoryFact = {
   durationMinutes?: number;
   sets?: number;
   reps?: number;
+  setValues?: number[];
+  setIndex?: number;
+  setCount?: number;
   confidence: number;
   note?: string;
 };

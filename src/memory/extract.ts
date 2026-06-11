@@ -46,6 +46,22 @@ function findSetsReps(text: string, aliases: string[]): { sets: number; reps: nu
   return null;
 }
 
+function findListedReps(text: string, aliases: string[]): number[] | null {
+  for (const alias of aliases) {
+    const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const after = new RegExp(`${escaped}\\s+((?:\\d+\\s+){1,8}\\d+)(?!\\s*x)`, "i").exec(text);
+    if (!after) continue;
+
+    const values = after[1]
+      .trim()
+      .split(/\s+/)
+      .map((value) => Number(value))
+      .filter((value) => Number.isInteger(value) && value > 0 && value < 500);
+    if (values.length >= 2) return values;
+  }
+  return null;
+}
+
 function findSingleReps(text: string, aliases: string[]): number | null {
   for (const alias of aliases) {
     const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -147,7 +163,8 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
   const pullUpAliases = ["zgibove", "zgibovi", "zgiba", "zgib", "pull ups", "pull-ups", "pull up", "pull-up"];
   if (includesAny(lower, pullUpAliases)) {
     const sr = findSetsReps(text, pullUpAliases);
-    const reps = sr ? sr.sets * sr.reps : findSingleReps(text, pullUpAliases);
+    const setValues = sr ? null : findListedReps(text, pullUpAliases);
+    const reps = sr ? sr.sets * sr.reps : setValues ? setValues.reduce((sum, value) => sum + value, 0) : findSingleReps(text, pullUpAliases);
     facts.push({
       kind: "movement",
       label: "pull ups",
@@ -155,6 +172,7 @@ export function extractDeterministicMemoryFacts(rawText: string): MemoryExtracti
       categoryCandidates: ["Pull ups", "Pull-ups", "Zgibovi"],
       sets: sr?.sets,
       reps: sr?.reps,
+      setValues: setValues ?? undefined,
       amount: reps ?? undefined,
       unit: reps ? "reps" : undefined,
       confidence: reps ? 0.98 : 0.86,

@@ -25,7 +25,7 @@ const tools = [
   {
     name: "memoato_create_entry",
     description:
-      "Create a raw Memoato memory entry. Use this for low-friction life logs such as workouts, symptoms, sleep, errands, money notes, and contextual observations.",
+      "Create a raw Memoato memory entry. Memoato saves the raw entry immediately and processes labels/facts asynchronously. Use this for low-friction life logs such as workouts, symptoms, sleep, errands, money notes, and contextual observations.",
     inputSchema: {
       type: "object",
       properties: {
