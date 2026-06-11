@@ -55,3 +55,4 @@ This is a living list of what to do next. Keep it short and reorder often.
 - Site: SEO upgrades (sitemap, robots, JSON-LD, `llms.txt`), new intent pages and `/adhd`.
 - Raw ingest: save raw entries before parsing, then asynchronously process deterministic/AI facts, match existing categories, create missing categories with units, and keep unmatched logs visible under Notes.
 - Quick log UI: cloud mode now submits raw text directly to the raw-entry pipeline instead of requiring category/amount prediction on the client.
+- MCP: category metadata and client-provided labels let AI clients offload part of parsing before backend AI runs.
