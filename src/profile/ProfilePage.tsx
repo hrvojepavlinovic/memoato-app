@@ -113,6 +113,7 @@ export function ProfilePage() {
   const [lastName, setLastName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [apiKeyName, setApiKeyName] = useState("ChatGPT MCP");
+  const [apiKeyAccess, setApiKeyAccess] = useState<"agent" | "logging" | "recall">("agent");
   const [apiKeyHasExpiry, setApiKeyHasExpiry] = useState(false);
   const [apiKeyExpiresAt, setApiKeyExpiresAt] = useState("");
   const [createdApiKeyToken, setCreatedApiKeyToken] = useState<string | null>(null);
@@ -292,6 +293,7 @@ export function ProfilePage() {
     try {
       const created = await createApiKey({
         name: apiKeyName,
+        access: apiKeyAccess,
         expiresAt: apiKeyHasExpiry && apiKeyExpiresAt ? new Date(apiKeyExpiresAt).toISOString() : null,
       });
       setCreatedApiKeyToken(created.token);
@@ -1111,10 +1113,10 @@ export function ProfilePage() {
           ) : (
             <div className="space-y-4">
               <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                Create revocable keys for MCP clients and automations. Keys can only write raw entries.
+                Create revocable keys for MCP clients and automations. Choose exactly what each key can do.
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <label className="flex flex-col gap-1">
                   <span className="label">Name</span>
                   <input
@@ -1123,6 +1125,18 @@ export function ProfilePage() {
                     className={inputClassName}
                     placeholder="ChatGPT MCP"
                   />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="label">Access</span>
+                  <select
+                    value={apiKeyAccess}
+                    onChange={(e) => setApiKeyAccess(e.target.value as "agent" | "logging" | "recall")}
+                    className={inputClassName}
+                  >
+                    <option value="agent">Log and recall</option>
+                    <option value="logging">Logging only</option>
+                    <option value="recall">Recall only</option>
+                  </select>
                 </label>
                 <Button
                   variant="ghost"

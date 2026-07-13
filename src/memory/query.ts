@@ -1,5 +1,3 @@
-import { extractDeterministicMemoryFacts } from "./extract";
-
 type PrismaLike = any;
 
 const DEFAULT_TAKE = 20;
@@ -95,6 +93,42 @@ function factsFromData(data: unknown): any[] {
   return Array.isArray(facts) ? facts.filter((f) => f && typeof f === "object") : [];
 }
 
+function memoryFactToResult(fact: any) {
+  const detail = fact?.data?.fact;
+  return {
+    id: fact.id,
+    kind: fact.kind,
+    label: fact.label,
+    canonical: fact.canonical,
+    amount: fact.amount,
+    unit: fact.unit,
+    durationMinutes: fact.durationMinutes,
+    confidence: fact.confidence,
+    origin: fact.origin,
+    status: fact.status,
+    note: typeof detail?.note === "string" ? detail.note : null,
+    categoryCandidates: Array.isArray(detail?.categoryCandidates) ? detail.categoryCandidates : [],
+    category: fact.category ?? null,
+  };
+}
+
+export function acceptedMemoryFacts(event: any): any[] {
+  if (!Array.isArray(event?.rawMemoryFacts)) return [];
+  return event.rawMemoryFacts
+    .filter((fact: any) => fact?.status === "accepted")
+    .map(memoryFactToResult);
+}
+
+export function isDerivedMemoryEvent(event: any): boolean {
+  return typeof event?.data?.rawEntryId === "string" || event?.data?.source === "memoato-memory";
+}
+
+export function trustedFactsForEvent(event: any): any[] {
+  if (event?.kind === "NOTE") return acceptedMemoryFacts(event);
+  if (event?.kind === "SESSION" && !isDerivedMemoryEvent(event)) return factsFromData(event.data);
+  return [];
+}
+
 function tagsFromData(data: unknown): string[] {
   if (!data || typeof data !== "object" || Array.isArray(data)) return [];
   const direct = (data as any).tags;
@@ -104,7 +138,7 @@ function tagsFromData(data: unknown): string[] {
 }
 
 function eventHaystack(event: any): string {
-  const facts = factsFromData(event.data);
+  const facts = trustedFactsForEvent(event);
   const factText = facts
     .map((f) => [f.kind, f.label, f.canonical, f.unit, f.note, ...(Array.isArray(f.categoryCandidates) ? f.categoryCandidates : [])].join(" "))
     .join(" ");
@@ -148,7 +182,7 @@ function eventWhere(userId: string, args: { from?: Date; to?: Date }) {
 }
 
 function eventToResult(event: any) {
-  const facts = factsFromData(event.data);
+  const facts = trustedFactsForEvent(event);
   return {
     id: event.id,
     kind: event.kind,
@@ -171,15 +205,8 @@ function eventToResult(event: any) {
   };
 }
 
-function hasDerivedEvents(event: any): boolean {
-  const ids = event?.data?.memoatoMemory?.derivedEventIds;
-  return Array.isArray(ids) && ids.length > 0;
-}
-
-function factsMatchingMetric(rawText: string | null | undefined, terms: string[]): any[] {
-  if (!rawText) return [];
-  const extraction = extractDeterministicMemoryFacts(rawText);
-  return extraction.facts.filter((fact) => {
+function factsMatchingMetric(event: any, terms: string[]): any[] {
+  return trustedFactsForEvent(event).filter((fact) => {
     const haystack = normalize([
       fact.kind,
       fact.label,
@@ -191,6 +218,32 @@ function factsMatchingMetric(rawText: string | null | undefined, terms: string[]
     return terms.every((term) => haystack.includes(term));
   });
 }
+
+function isSearchableMemoryEvent(event: any): boolean {
+  return event?.kind === "NOTE" || (event?.kind === "SESSION" && !isDerivedMemoryEvent(event));
+}
+
+const memoryEventInclude = {
+  category: { select: { id: true, title: true, slug: true, unit: true } },
+  rawMemoryFacts: {
+    where: { status: "accepted" },
+    select: {
+      id: true,
+      kind: true,
+      label: true,
+      canonical: true,
+      amount: true,
+      unit: true,
+      durationMinutes: true,
+      confidence: true,
+      origin: true,
+      status: true,
+      data: true,
+      category: { select: { id: true, title: true, slug: true } },
+    },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+  },
+};
 
 export async function searchMemoryEntries(args: {
   prisma: PrismaLike;
@@ -204,12 +257,12 @@ export async function searchMemoryEntries(args: {
 
   const events = await args.prisma.event.findMany({
     where: eventWhere(args.userId, range),
-    include: { category: { select: { id: true, title: true, slug: true, unit: true } } },
+    include: memoryEventInclude,
     orderBy: [{ occurredAt: "desc" }],
     take: MAX_SCAN,
   });
 
-  const matches = events.filter((event: any) => matchesQuery(event, terms)).slice(0, take);
+  const matches = events.filter((event: any) => isSearchableMemoryEvent(event) && matchesQuery(event, terms)).slice(0, take);
   return {
     query: cleanText(body.query),
     from: range.from?.toISOString() ?? null,
@@ -232,15 +285,15 @@ export async function summarizeMemoryMetric(args: {
 
   const events = await args.prisma.event.findMany({
     where: eventWhere(args.userId, range),
-    include: { category: { select: { id: true, title: true, slug: true, unit: true } } },
+    include: memoryEventInclude,
     orderBy: [{ occurredAt: "asc" }],
     take: MAX_SCAN,
   });
 
-  const sessionMatches = events.filter((event: any) => event.kind === "SESSION" && matchesQuery(event, terms));
+  const sessionMatches = events.filter((event: any) => event.kind === "SESSION" && !isDerivedMemoryEvent(event) && matchesQuery(event, terms));
   const rawFactMatches = events.flatMap((event: any) => {
-    if (event.kind !== "NOTE" || hasDerivedEvents(event)) return [];
-    return factsMatchingMetric(event.rawText, terms).map((fact) => ({ event, fact }));
+    if (event.kind !== "NOTE") return [];
+    return factsMatchingMetric(event, terms).map((fact) => ({ event, fact }));
   });
 
   const sessionTotal = sessionMatches.reduce((sum: number, event: any) => {
@@ -288,7 +341,7 @@ export async function summarizeMemoryMetric(args: {
           ? Math.round(fact.durationMinutes)
           : null,
       facts: [fact],
-      matchedVia: "rawTextFallback",
+      matchedVia: "acceptedFact",
     })),
   ].sort((a: any, b: any) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
 

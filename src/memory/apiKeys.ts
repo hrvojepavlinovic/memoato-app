@@ -1,6 +1,9 @@
 import { createHash, randomBytes } from "node:crypto";
 
 export const RAW_ENTRY_WRITE_SCOPE = "raw_entry:write";
+export const MEMORY_READ_SCOPE = "memory:read";
+
+export type ApiKeyAccess = "agent" | "logging" | "recall";
 
 export function generateApiKeyToken(): string {
   return `memoato_live_${randomBytes(32).toString("base64url")}`;
@@ -16,10 +19,40 @@ export function getApiKeyPrefix(token: string): string {
   return `${trimmed.slice(0, 14)}…${trimmed.slice(-4)}`;
 }
 
-export function scopeAllowsRawEntryWrite(scope: string | null | undefined): boolean {
-  return String(scope ?? "")
-    .split(/[,\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .includes(RAW_ENTRY_WRITE_SCOPE);
+export function parseApiKeyScopes(scope: string | null | undefined): string[] {
+  return Array.from(
+    new Set(
+      String(scope ?? "")
+        .split(/[,\s]+/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+export function scopeAllows(
+  scope: string | string[] | null | undefined,
+  requiredScope: string,
+): boolean {
+  const scopes = Array.isArray(scope) ? scope : parseApiKeyScopes(scope);
+  return scopes.includes(requiredScope);
+}
+
+export function scopesForApiKeyAccess(access: ApiKeyAccess): string {
+  if (access === "recall") return MEMORY_READ_SCOPE;
+  if (access === "agent")
+    return `${RAW_ENTRY_WRITE_SCOPE},${MEMORY_READ_SCOPE}`;
+  return RAW_ENTRY_WRITE_SCOPE;
+}
+
+export function scopeAllowsRawEntryWrite(
+  scope: string | string[] | null | undefined,
+): boolean {
+  return scopeAllows(scope, RAW_ENTRY_WRITE_SCOPE);
+}
+
+export function scopeAllowsMemoryRead(
+  scope: string | string[] | null | undefined,
+): boolean {
+  return scopeAllows(scope, MEMORY_READ_SCOPE);
 }

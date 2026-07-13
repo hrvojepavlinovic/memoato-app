@@ -1,5 +1,6 @@
 import { prisma } from "wasp/server";
-import { authenticateRawEntryRequest, createRawMemoryEntry } from "./ingest";
+import { authAllowsScope, authenticateApiRequest, createRawMemoryEntry } from "./ingest";
+import { MEMORY_READ_SCOPE, RAW_ENTRY_WRITE_SCOPE } from "./apiKeys";
 import { searchMemoryEntries, summarizeMemoryMetric } from "./query";
 
 function setJson(res: any): void {
@@ -37,9 +38,13 @@ export function addMemoryIngestRoutes(app: any): void {
   app.post("/api/raw-entry", async (req: any, res: any) => {
     setJson(res);
 
-    const auth = await authenticateRawEntryRequest(prisma, req);
+    const auth = await authenticateApiRequest(prisma, req);
     if (!auth) {
       res.status(401).end(JSON.stringify({ error: "unauthorized" }));
+      return;
+    }
+    if (!authAllowsScope(auth, RAW_ENTRY_WRITE_SCOPE)) {
+      res.status(403).end(JSON.stringify({ error: "forbidden" }));
       return;
     }
 
@@ -57,9 +62,13 @@ export function addMemoryIngestRoutes(app: any): void {
   app.post("/api/memory/search", async (req: any, res: any) => {
     setJson(res);
 
-    const auth = await authenticateRawEntryRequest(prisma, req);
+    const auth = await authenticateApiRequest(prisma, req);
     if (!auth) {
       res.status(401).end(JSON.stringify({ error: "unauthorized" }));
+      return;
+    }
+    if (!authAllowsScope(auth, MEMORY_READ_SCOPE)) {
+      res.status(403).end(JSON.stringify({ error: "forbidden" }));
       return;
     }
 
@@ -77,9 +86,13 @@ export function addMemoryIngestRoutes(app: any): void {
   app.post("/api/memory/summary", async (req: any, res: any) => {
     setJson(res);
 
-    const auth = await authenticateRawEntryRequest(prisma, req);
+    const auth = await authenticateApiRequest(prisma, req);
     if (!auth) {
       res.status(401).end(JSON.stringify({ error: "unauthorized" }));
+      return;
+    }
+    if (!authAllowsScope(auth, MEMORY_READ_SCOPE)) {
+      res.status(403).end(JSON.stringify({ error: "forbidden" }));
       return;
     }
 
