@@ -69,6 +69,8 @@ Build one narrow team context workflow:
 7. Produce a memory diff after relevant source changes.
 8. Run permission-leakage and stale-context evals before adding write actions.
 
+The concrete schema, authorization invariants, migration gates and provider-bounded implementation plan live in [`TRUSTWORTHY_CONTEXT_SCHEMA_PLAN.md`](./TRUSTWORTHY_CONTEXT_SCHEMA_PLAN.md). Its migration is intentionally unapplied until the review checklist is approved.
+
 The first useful output is a trusted read-side context packet for coding agents. Autonomous writes are not part of this milestone.
 
 ## Relationship to the guide

@@ -118,6 +118,20 @@ export function Header() {
                     Views
                   </ButtonLink>
                 </li>
+                <li className="hidden md:list-item">
+                  <ButtonLink
+                    to="/context"
+                    size="sm"
+                    variant="ghost"
+                    className={
+                      (path.startsWith("/context")
+                        ? "border-neutral-950 bg-white dark:border-neutral-200 dark:bg-neutral-900"
+                        : "border-transparent") + " px-3 text-sm"
+                    }
+                  >
+                    Context
+                  </ButtonLink>
+                </li>
                 <li>
                   <span className="relative inline-flex">
                     <ButtonLink

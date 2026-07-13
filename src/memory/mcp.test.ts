@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { MEMORY_READ_SCOPE, RAW_ENTRY_WRITE_SCOPE } from "./apiKeys";
+import {
+  CONTEXT_READ_SCOPE,
+  MEMORY_READ_SCOPE,
+  RAW_ENTRY_WRITE_SCOPE,
+} from "./apiKeys";
 import { filterMcpToolsForScopes } from "./mcpCapabilities";
 
 const tools = [
@@ -8,6 +12,7 @@ const tools = [
   "memoato_create_entry",
   "memoato_search_entries",
   "memoato_summarize_metric",
+  "memoato_build_context_packet",
 ].map((name) => ({ name }));
 
 function toolNames(scopes: string[]) {
@@ -27,6 +32,12 @@ describe("Memoato MCP capabilities", () => {
     expect(toolNames([MEMORY_READ_SCOPE])).toEqual([
       "memoato_search_entries",
       "memoato_summarize_metric",
+    ]);
+  });
+
+  it("exposes context packets only to context-scoped keys", () => {
+    expect(toolNames([CONTEXT_READ_SCOPE])).toEqual([
+      "memoato_build_context_packet",
     ]);
   });
 });

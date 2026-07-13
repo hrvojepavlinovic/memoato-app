@@ -42,6 +42,8 @@ model User {
   MemoryConceptAlias     MemoryConceptAlias[]
   MemoryEntryConcept     MemoryEntryConcept[]
   MemoryConceptEmbedding MemoryConceptEmbedding[]
+  WorkspacesCreated      Workspace[]              @relation("WorkspaceCreator")
+  WorkspaceMemberships   WorkspaceMember[]
 }
 
 enum EventKind {
@@ -501,4 +503,338 @@ model ApiKey {
 
   @@index([userId])
   @@index([tokenHash])
+}
+
+// Trustworthy context is an additive workspace layer. Existing personal
+// memory remains keyed by userId until a separately reviewed migration.
+model Workspace {
+  id String @id @default(uuid())
+
+  creator   User?   @relation("WorkspaceCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  creatorId String?
+
+  slug          String
+  name          String
+  type          String   @default("personal")
+  status        String   @default("active")
+  policyVersion String   @default("context-policy-v1")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  members           WorkspaceMember[]
+  sourceConnections SourceConnection[]
+  sourceObjects     SourceObject[]
+  sourceVersions    SourceVersion[]
+  claims            Claim[]
+  retrievalTraces   RetrievalTrace[]
+  contextPackets    ContextPacket[]
+
+  @@unique([slug])
+  @@index([type, status])
+  @@index([creatorId])
+}
+
+model WorkspaceMember {
+  id String @id @default(uuid())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  role              String    @default("member")
+  status            String    @default("active")
+  permissionVersion Int       @default(1)
+  joinedAt          DateTime  @default(now())
+  suspendedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  connectionAccesses SourceConnectionAccess[]
+  objectAccesses     SourceObjectAccess[]
+  reviewedClaims     Claim[]                  @relation("ClaimReviewer")
+  retrievalTraces    RetrievalTrace[]
+  contextPackets     ContextPacket[]
+
+  @@unique([workspaceId, userId])
+  @@index([userId, status])
+  @@index([workspaceId, role, status])
+}
+
+model SourceConnection {
+  id String @id @default(uuid())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  provider          String
+  externalAccountId String
+  displayName       String
+  credentialRef     String
+  config            Json
+  status            String    @default("active")
+  syncCursor        Json?
+  permissionVersion Int       @default(1)
+  lastSyncAt        DateTime?
+  lastSyncError     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  accesses SourceConnectionAccess[]
+  objects  SourceObject[]
+
+  @@unique([workspaceId, provider, externalAccountId])
+  @@index([workspaceId, status])
+  @@index([provider, status])
+}
+
+model SourceConnectionAccess {
+  id String @id @default(uuid())
+
+  sourceConnection   SourceConnection @relation(fields: [sourceConnectionId], references: [id], onDelete: Cascade)
+  sourceConnectionId String
+
+  workspaceMember   WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+  workspaceMemberId String
+
+  permission        String    @default("read")
+  upstreamPrincipal Json?
+  permissionVersion Int       @default(1)
+  observedAt        DateTime  @default(now())
+  revokedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  objectAccesses SourceObjectAccess[]
+
+  @@unique([sourceConnectionId, workspaceMemberId])
+  @@index([workspaceMemberId, permission, revokedAt])
+}
+
+model SourceObject {
+  id String @id @default(uuid())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  sourceConnection   SourceConnection @relation(fields: [sourceConnectionId], references: [id], onDelete: Cascade)
+  sourceConnectionId String
+
+  provider        String
+  objectType      String
+  externalId      String
+  stableKey       String
+  canonicalUrl    String?
+  upstreamScope   String
+  status          String    @default("active")
+  firstSeenAt     DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  sourceDeletedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  versions     SourceVersion[]
+  accessGrants SourceObjectAccess[]
+
+  @@unique([sourceConnectionId, objectType, externalId])
+  @@unique([workspaceId, stableKey])
+  @@index([workspaceId, provider, objectType])
+  @@index([sourceConnectionId, status])
+}
+
+model SourceObjectAccess {
+  id String @id @default(uuid())
+
+  sourceObject   SourceObject @relation(fields: [sourceObjectId], references: [id], onDelete: Cascade)
+  sourceObjectId String
+
+  sourceConnectionAccess   SourceConnectionAccess @relation(fields: [sourceConnectionAccessId], references: [id], onDelete: Cascade)
+  sourceConnectionAccessId String
+
+  workspaceMember   WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+  workspaceMemberId String
+
+  permission                        String    @default("read")
+  sourcePermissionVersion           Int
+  connectionPermissionVersion       Int
+  connectionAccessPermissionVersion Int
+  observedAt                        DateTime  @default(now())
+  revokedAt                         DateTime?
+  createdAt                         DateTime  @default(now())
+  updatedAt                         DateTime  @updatedAt
+
+  @@unique([sourceObjectId, workspaceMemberId])
+  @@index([workspaceMemberId, permission, revokedAt])
+  @@index([sourceConnectionAccessId])
+}
+
+// Immutable raw evidence. The migration adds a trigger rejecting UPDATE and
+// DELETE; normalizedText is stored with each version and rebuilt by appending a
+// new version if the projection policy changes materially.
+model SourceVersion {
+  id String @id @default(uuid())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  sourceObject   SourceObject @relation(fields: [sourceObjectId], references: [id], onDelete: Cascade)
+  sourceObjectId String
+
+  previousVersion   SourceVersion?  @relation("SourceVersionChain", fields: [previousVersionId], references: [id], onDelete: Restrict)
+  previousVersionId String?
+  nextVersions      SourceVersion[] @relation("SourceVersionChain")
+
+  ordinal         Int
+  externalVersion String?
+  contentHash     String
+  rawPayload      Json
+  normalizedText  String
+  sourceUpdatedAt DateTime?
+  ingestedAt      DateTime  @default(now())
+
+  evidence ClaimEvidence[]
+
+  @@unique([sourceObjectId, ordinal])
+  @@unique([sourceObjectId, contentHash])
+  @@index([workspaceId, ingestedAt])
+  @@index([sourceObjectId, sourceUpdatedAt])
+  @@index([previousVersionId])
+}
+
+model Claim {
+  id String @id @default(uuid())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  reviewedByMember   WorkspaceMember? @relation("ClaimReviewer", fields: [reviewedByMemberId], references: [id], onDelete: SetNull)
+  reviewedByMemberId String?
+
+  supersedesClaim   Claim?  @relation("ClaimSupersession", fields: [supersedesClaimId], references: [id], onDelete: Restrict)
+  supersedesClaimId String?
+  supersededBy      Claim[] @relation("ClaimSupersession")
+
+  claimKey      String
+  kind          String
+  statement     String
+  status        String    @default("proposed")
+  confidence    Float     @default(0.5)
+  proposerType  String    @default("deterministic")
+  proposerRef   String?
+  policyVersion String
+  validFrom     DateTime?
+  validTo       DateTime?
+  freshUntil    DateTime?
+  reviewNote    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  evidence     ClaimEvidence[]
+  packetClaims ContextPacketClaim[]
+
+  @@index([workspaceId, status, freshUntil])
+  @@index([workspaceId, claimKey, createdAt])
+  @@index([reviewedByMemberId])
+  @@index([supersedesClaimId])
+}
+
+// Evidence edges are append-only. The migration adds the same immutability
+// trigger used for SourceVersion rows.
+model ClaimEvidence {
+  id String @id @default(uuid())
+
+  claim   Claim  @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  claimId String
+
+  sourceVersion   SourceVersion @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  sourceVersionId String
+
+  role        String   @default("supports")
+  locator     Json?
+  excerpt     String?
+  excerptHash String?
+  relevance   Float    @default(1)
+  createdAt   DateTime @default(now())
+
+  @@unique([claimId, sourceVersionId, role])
+  @@index([sourceVersionId])
+  @@index([claimId, role])
+}
+
+model RetrievalTrace {
+  id String @id @default(uuid())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  requesterMember   WorkspaceMember @relation(fields: [requesterMemberId], references: [id], onDelete: Restrict)
+  requesterMemberId String
+
+  query                   String
+  queryHash               String
+  policyVersion           String
+  permissionSnapshot      Json
+  permissionSnapshotHash  String
+  stages                  Json
+  candidateCount          Int      @default(0)
+  includedCount           Int      @default(0)
+  permissionExcludedCount Int      @default(0)
+  staleExcludedCount      Int      @default(0)
+  status                  String   @default("complete")
+  createdAt               DateTime @default(now())
+
+  packet ContextPacket?
+
+  @@index([workspaceId, requesterMemberId, createdAt])
+  @@index([workspaceId, queryHash, createdAt])
+  @@index([permissionSnapshotHash])
+}
+
+model ContextPacket {
+  id String @id @default(uuid())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+
+  requesterMember   WorkspaceMember @relation(fields: [requesterMemberId], references: [id], onDelete: Restrict)
+  requesterMemberId String
+
+  retrievalTrace   RetrievalTrace @relation(fields: [retrievalTraceId], references: [id], onDelete: Restrict)
+  retrievalTraceId String         @unique
+
+  previousPacket   ContextPacket?  @relation("ContextPacketDiff", fields: [previousPacketId], references: [id], onDelete: Restrict)
+  previousPacketId String?
+  nextPackets      ContextPacket[] @relation("ContextPacketDiff")
+
+  queryHash              String
+  permissionSnapshotHash String
+  policyVersion          String
+  content                Json
+  diff                   Json
+  packetHash             String
+  freshUntil             DateTime?
+  createdAt              DateTime  @default(now())
+
+  claims ContextPacketClaim[]
+
+  @@index([workspaceId, requesterMemberId, queryHash, createdAt])
+  @@index([previousPacketId])
+  @@index([packetHash])
+}
+
+model ContextPacketClaim {
+  contextPacket   ContextPacket @relation(fields: [contextPacketId], references: [id], onDelete: Cascade)
+  contextPacketId String
+
+  claim   Claim  @relation(fields: [claimId], references: [id], onDelete: Restrict)
+  claimId String
+
+  rank  Int
+  score Float
+
+  @@id([contextPacketId, claimId])
+  @@unique([contextPacketId, rank])
+  @@index([claimId])
 }

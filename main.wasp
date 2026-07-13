@@ -119,6 +119,12 @@ page RecallPage {
   component: import { RecallPage } from "@src/memory/RecallPage"
 }
 
+route ContextRoute { path: "/context", to: ContextPage }
+page ContextPage {
+  authRequired: true,
+  component: import { ContextPage } from "@src/context/ContextPage"
+}
+
 route ViewsRoute { path: "/views", to: ViewsPage }
 page ViewsPage {
   authRequired: true,
@@ -260,6 +266,11 @@ query recallMemory {
   entities: [User, Event, Category, MemoryFact, MemoryEmbedding]
 }
 
+query getContextOverview {
+  fn: import { getContextOverview } from "@src/context/operations",
+  entities: [User, Workspace, WorkspaceMember, SourceConnection, SourceConnectionAccess, SourceObject, SourceObjectAccess, SourceVersion, Claim, ClaimEvidence]
+}
+
 query getPublicTotals {
   fn: import { getPublicTotals } from "@src/public/queries",
   entities: [User, Category, Event]
@@ -293,6 +304,31 @@ action answerMemoryRecall {
 action retryMemoryEntry {
   fn: import { retryMemoryEntry } from "@src/memory/operations",
   entities: [User, Event, MemoryProcessingRun]
+}
+
+action createContextWorkspace {
+  fn: import { createContextWorkspace } from "@src/context/operations",
+  entities: [User, Workspace, WorkspaceMember]
+}
+
+action connectContextSource {
+  fn: import { connectContextSource } from "@src/context/operations",
+  entities: [User, Workspace, WorkspaceMember, SourceConnection, SourceConnectionAccess]
+}
+
+action syncContextSource {
+  fn: import { syncContextSource } from "@src/context/operations",
+  entities: [User, Workspace, WorkspaceMember, SourceConnection, SourceConnectionAccess, SourceObject, SourceObjectAccess, SourceVersion, Claim, ClaimEvidence]
+}
+
+action reviewContextClaim {
+  fn: import { reviewContextClaim } from "@src/context/operations",
+  entities: [User, Workspace, WorkspaceMember, SourceConnectionAccess, SourceObjectAccess, SourceVersion, Claim, ClaimEvidence]
+}
+
+action buildContextPacket {
+  fn: import { buildContextPacket } from "@src/context/operations",
+  entities: [User, Workspace, WorkspaceMember, SourceConnection, SourceConnectionAccess, SourceObject, SourceObjectAccess, SourceVersion, Claim, ClaimEvidence, RetrievalTrace, ContextPacket, ContextPacketClaim]
 }
 
 action updateEvent {

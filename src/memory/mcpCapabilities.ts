@@ -1,4 +1,8 @@
-import { MEMORY_READ_SCOPE, RAW_ENTRY_WRITE_SCOPE } from "./apiKeys";
+import {
+  CONTEXT_READ_SCOPE,
+  MEMORY_READ_SCOPE,
+  RAW_ENTRY_WRITE_SCOPE,
+} from "./apiKeys";
 
 export function requiredScopeForMcpTool(name: string): string | null {
   if (
@@ -14,6 +18,7 @@ export function requiredScopeForMcpTool(name: string): string | null {
   ) {
     return MEMORY_READ_SCOPE;
   }
+  if (name === "memoato_build_context_packet") return CONTEXT_READ_SCOPE;
   return null;
 }
 

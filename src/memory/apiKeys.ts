@@ -2,8 +2,9 @@ import { createHash, randomBytes } from "node:crypto";
 
 export const RAW_ENTRY_WRITE_SCOPE = "raw_entry:write";
 export const MEMORY_READ_SCOPE = "memory:read";
+export const CONTEXT_READ_SCOPE = "context:read";
 
-export type ApiKeyAccess = "agent" | "logging" | "recall";
+export type ApiKeyAccess = "agent" | "logging" | "recall" | "context";
 
 export function generateApiKeyToken(): string {
   return `memoato_live_${randomBytes(32).toString("base64url")}`;
@@ -39,6 +40,7 @@ export function scopeAllows(
 }
 
 export function scopesForApiKeyAccess(access: ApiKeyAccess): string {
+  if (access === "context") return CONTEXT_READ_SCOPE;
   if (access === "recall") return MEMORY_READ_SCOPE;
   if (access === "agent")
     return `${RAW_ENTRY_WRITE_SCOPE},${MEMORY_READ_SCOPE}`;
@@ -55,4 +57,10 @@ export function scopeAllowsMemoryRead(
   scope: string | string[] | null | undefined,
 ): boolean {
   return scopeAllows(scope, MEMORY_READ_SCOPE);
+}
+
+export function scopeAllowsContextRead(
+  scope: string | string[] | null | undefined,
+): boolean {
+  return scopeAllows(scope, CONTEXT_READ_SCOPE);
 }
