@@ -2,6 +2,10 @@ import type { ServerSetupFn } from "wasp/server";
 import { prisma } from "wasp/server";
 import { addMemoryIngestRoutes } from "../memory/routes";
 import { addMcpRoutes } from "../memory/mcp";
+import {
+  backfillLegacyMemoryFacts,
+  recoverPendingMemoryEntries,
+} from "../memory/ingest";
 
 function setCors(res: any): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -43,7 +47,8 @@ function startOfYear(d: Date): Date {
 function getNumberField(data: unknown, key: string): number | null {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
   const fields = (data as any).fields;
-  if (!fields || typeof fields !== "object" || Array.isArray(fields)) return null;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields))
+    return null;
   const v = (fields as any)[key];
   if (typeof v === "number" && Number.isFinite(v)) return v;
   return null;
@@ -53,9 +58,11 @@ function normalizedUnit(u: unknown): string | null {
   if (typeof u !== "string") return null;
   const s = u.trim().toLowerCase();
   if (!s || s === "x") return null;
-  if (s === "cal" || s === "cals" || s === "calorie" || s === "calories") return "kcal";
+  if (s === "cal" || s === "cals" || s === "calorie" || s === "calories")
+    return "kcal";
   if (s === "kilogram" || s === "kilograms" || s === "kgs") return "kg";
-  if (s === "liter" || s === "liters" || s === "litre" || s === "litres") return "l";
+  if (s === "liter" || s === "liters" || s === "litre" || s === "litres")
+    return "l";
   if (s === "minute" || s === "minutes" || s === "mins") return "min";
   if (s === "hour" || s === "hours" || s === "hrs" || s === "hr") return "h";
   return s;
@@ -146,7 +153,12 @@ function addPublicStatsRoutes(app: any): void {
     try {
       const user = await prisma.user.findFirst({
         where: { publicStatsEnabled: true, publicStatsToken: token },
-        select: { id: true, username: true, publicStatsCategoryIds: true, activeKcalRollupEnabled: true },
+        select: {
+          id: true,
+          username: true,
+          publicStatsCategoryIds: true,
+          activeKcalRollupEnabled: true,
+        },
       });
       if (!user) {
         res.status(404).end(JSON.stringify({ error: "not_found" }));
@@ -167,7 +179,11 @@ function addPublicStatsRoutes(app: any): void {
       }
 
       const categories = await prisma.category.findMany({
-        where: { userId: user.id, sourceArchivedAt: null, id: { in: categoryIds } },
+        where: {
+          userId: user.id,
+          sourceArchivedAt: null,
+          id: { in: categoryIds },
+        },
         select: {
           id: true,
           slug: true,
@@ -180,7 +196,9 @@ function addPublicStatsRoutes(app: any): void {
       });
 
       const byId = new Map(categories.map((c) => [c.id, c]));
-      const ordered = categoryIds.map((id) => byId.get(id)).filter(Boolean) as typeof categories;
+      const ordered = categoryIds
+        .map((id) => byId.get(id))
+        .filter(Boolean) as typeof categories;
 
       const now = new Date();
       const today = startOfDay(now);
@@ -196,7 +214,13 @@ function addPublicStatsRoutes(app: any): void {
       };
 
       // If Active kcal rollup is enabled, compute sums including kcal fields in a single pass.
-      const activeKcal = ordered.find((c) => String(c.slug ?? "").trim().toLowerCase() === "active-kcal") ?? null;
+      const activeKcal =
+        ordered.find(
+          (c) =>
+            String(c.slug ?? "")
+              .trim()
+              .toLowerCase() === "active-kcal",
+        ) ?? null;
       const wantsRollup = user.activeKcalRollupEnabled === true;
       const forbidsRollup = user.activeKcalRollupEnabled === false;
       const rollupEnabled =
@@ -204,12 +228,21 @@ function addPublicStatsRoutes(app: any): void {
           ? wantsRollup ||
             (user.activeKcalRollupEnabled == null &&
               !(await prisma.event.findFirst({
-                where: { userId: user.id, categoryId: activeKcal.id, kind: "SESSION" },
+                where: {
+                  userId: user.id,
+                  categoryId: activeKcal.id,
+                  kind: "SESSION",
+                },
                 select: { id: true },
               })))
           : false;
 
-      const activeKcalSums: { today: number; week: number; month: number; year: number } | null = rollupEnabled
+      const activeKcalSums: {
+        today: number;
+        week: number;
+        month: number;
+        year: number;
+      } | null = rollupEnabled
         ? (() => ({ today: 0, week: 0, month: 0, year: 0 }))()
         : null;
 
@@ -223,13 +256,22 @@ function addPublicStatsRoutes(app: any): void {
           },
           select: { id: true, unit: true },
         });
-        const rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
+        const rollupMetaById = new Map<
+          string,
+          { unit: string | null; isActive: boolean }
+        >();
         rollupMetaById.set(activeKcal.id, { unit: "kcal", isActive: true });
         for (const c of contributorCats) {
-          rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+          rollupMetaById.set(String(c.id), {
+            unit: normalizedUnit(c.unit),
+            isActive: false,
+          });
         }
 
-        const rollupIds = [activeKcal.id, ...contributorCats.map((c) => String(c.id))];
+        const rollupIds = [
+          activeKcal.id,
+          ...contributorCats.map((c) => String(c.id)),
+        ];
         const events = await prisma.event.findMany({
           where: {
             userId: user.id,
@@ -237,17 +279,32 @@ function addPublicStatsRoutes(app: any): void {
             categoryId: { in: rollupIds },
             occurredOn: { gte: yearStart, lte: today },
           },
-          select: { categoryId: true, amount: true, data: true, occurredOn: true },
+          select: {
+            categoryId: true,
+            amount: true,
+            data: true,
+            occurredOn: true,
+          },
           take: 20000,
         });
 
         for (const ev of events) {
           const meta = rollupMetaById.get(String(ev.categoryId ?? ""));
           if (!meta) continue;
-          const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
-          const kcal = meta.isActive ? amount : meta.unit === "kcal" ? amount : getNumberField(ev.data, "kcal") ?? 0;
+          const amount =
+            typeof ev.amount === "number" && Number.isFinite(ev.amount)
+              ? ev.amount
+              : 0;
+          const kcal = meta.isActive
+            ? amount
+            : meta.unit === "kcal"
+              ? amount
+              : (getNumberField(ev.data, "kcal") ?? 0);
           if (!(kcal > 0)) continue;
-          const on = ev.occurredOn instanceof Date ? ev.occurredOn : new Date(ev.occurredOn as any);
+          const on =
+            ev.occurredOn instanceof Date
+              ? ev.occurredOn
+              : new Date(ev.occurredOn as any);
           const t = on.getTime();
           if (t >= today.getTime()) activeKcalSums.today += kcal;
           if (t >= weekStart.getTime()) activeKcalSums.week += kcal;
@@ -259,11 +316,15 @@ function addPublicStatsRoutes(app: any): void {
       const outCategories = await Promise.all(
         ordered.map(async (c) => {
           const aggregation =
-            (c.bucketAggregation ?? "").trim().toLowerCase() === "last" || (c.chartType ?? "").trim().toLowerCase() === "line"
+            (c.bucketAggregation ?? "").trim().toLowerCase() === "last" ||
+            (c.chartType ?? "").trim().toLowerCase() === "line"
               ? "last"
               : "sum";
 
-          const isActiveKcal = String(c.slug ?? "").trim().toLowerCase() === "active-kcal";
+          const isActiveKcal =
+            String(c.slug ?? "")
+              .trim()
+              .toLowerCase() === "active-kcal";
           const rollupEnabledForThis = isActiveKcal && rollupEnabled;
 
           const idsForSum = [c.id];
@@ -271,18 +332,63 @@ function addPublicStatsRoutes(app: any): void {
           const [todayVal, weekVal, monthVal, yearVal] =
             aggregation === "last"
               ? await Promise.all([
-                  getLastAmountInRange({ userId: user.id, categoryId: c.id, from: today, to: today }),
-                  getLastAmountInRange({ userId: user.id, categoryId: c.id, from: weekStart, to: today }),
-                  getLastAmountInRange({ userId: user.id, categoryId: c.id, from: monthStart, to: today }),
-                  getLastAmountInRange({ userId: user.id, categoryId: c.id, from: yearStart, to: today }),
+                  getLastAmountInRange({
+                    userId: user.id,
+                    categoryId: c.id,
+                    from: today,
+                    to: today,
+                  }),
+                  getLastAmountInRange({
+                    userId: user.id,
+                    categoryId: c.id,
+                    from: weekStart,
+                    to: today,
+                  }),
+                  getLastAmountInRange({
+                    userId: user.id,
+                    categoryId: c.id,
+                    from: monthStart,
+                    to: today,
+                  }),
+                  getLastAmountInRange({
+                    userId: user.id,
+                    categoryId: c.id,
+                    from: yearStart,
+                    to: today,
+                  }),
                 ])
               : rollupEnabledForThis && aggregation === "sum" && activeKcalSums
-                ? [activeKcalSums.today, activeKcalSums.week, activeKcalSums.month, activeKcalSums.year]
+                ? [
+                    activeKcalSums.today,
+                    activeKcalSums.week,
+                    activeKcalSums.month,
+                    activeKcalSums.year,
+                  ]
                 : await Promise.all([
-                    getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: today, to: today }),
-                    getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: weekStart, to: today }),
-                    getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: monthStart, to: today }),
-                    getSumAmountInRangeMany({ userId: user.id, categoryIds: idsForSum, from: yearStart, to: today }),
+                    getSumAmountInRangeMany({
+                      userId: user.id,
+                      categoryIds: idsForSum,
+                      from: today,
+                      to: today,
+                    }),
+                    getSumAmountInRangeMany({
+                      userId: user.id,
+                      categoryIds: idsForSum,
+                      from: weekStart,
+                      to: today,
+                    }),
+                    getSumAmountInRangeMany({
+                      userId: user.id,
+                      categoryIds: idsForSum,
+                      from: monthStart,
+                      to: today,
+                    }),
+                    getSumAmountInRangeMany({
+                      userId: user.id,
+                      categoryIds: idsForSum,
+                      from: yearStart,
+                      to: today,
+                    }),
                   ]);
 
           return {
@@ -291,7 +397,9 @@ function addPublicStatsRoutes(app: any): void {
             unit: c.unit ?? null,
             aggregation,
             url: `https://app.memoato.com/u/${encodeURIComponent(user.username)}/c/${encodeURIComponent(
-              typeof c.slug === "string" && c.slug.trim() ? c.slug.trim() : String(c.id),
+              typeof c.slug === "string" && c.slug.trim()
+                ? c.slug.trim()
+                : String(c.id),
             )}`,
             today: todayVal ?? 0,
             week: weekVal ?? 0,
@@ -321,4 +429,10 @@ export const setupPublicStatsRoutes: ServerSetupFn = async ({ app }) => {
   addPublicStatsRoutes(app as any);
   addMemoryIngestRoutes(app as any);
   addMcpRoutes(app as any);
+  void recoverPendingMemoryEntries(prisma).catch((error) => {
+    console.error("Memoato pending memory recovery failed", error);
+  });
+  void backfillLegacyMemoryFacts(prisma).catch((error) => {
+    console.error("Memoato legacy memory backfill failed", error);
+  });
 };

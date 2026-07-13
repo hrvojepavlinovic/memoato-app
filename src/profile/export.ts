@@ -2,6 +2,7 @@ import { prisma, HttpError } from "wasp/server";
 import type { ExportMyData } from "wasp/server/operations";
 
 type MemoatoExport = {
+  schemaVersion: 2;
   exportedAt: string;
   user: {
     id: string;
@@ -33,26 +34,42 @@ type MemoatoExport = {
   events: Array<{
     id: string;
     kind: string;
+    source: string;
     categoryId: string | null;
     amount: number | null;
+    duration: number | null;
     rawText: string | null;
+    data: any;
     occurredAt: string;
     occurredOn: string;
     createdAt: string;
     updatedAt: string;
   }>;
+  memory: {
+    facts: any[];
+    processingRuns: any[];
+    corrections: any[];
+    aliases: any[];
+    entities: any[];
+    inferences: any[];
+  };
 };
 
 function parseProviderData(providerData: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(providerData);
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : {};
   } catch {
     return {};
   }
 }
 
-export const exportMyData: ExportMyData<void, MemoatoExport> = async (_args, context) => {
+export const exportMyData: ExportMyData<void, MemoatoExport> = async (
+  _args,
+  context,
+) => {
   if (!context.user) throw new HttpError(401);
   const userId = context.user.id;
 
@@ -76,21 +93,38 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (_args, con
     select: {
       identities: {
         where: { providerName: { in: ["email", "google"] } },
-        select: { providerName: true, providerUserId: true, providerData: true },
+        select: {
+          providerName: true,
+          providerUserId: true,
+          providerData: true,
+        },
       },
     },
   });
   const identities = auth?.identities ?? [];
-  const emailIdentity = identities.find((i) => i.providerName === "email") ?? null;
+  const emailIdentity =
+    identities.find((i) => i.providerName === "email") ?? null;
 
   const emailFromUser = user.email?.trim().toLowerCase() ?? null;
-  const emailFromEmailIdentity = emailIdentity?.providerUserId?.trim().toLowerCase() ?? null;
+  const emailFromEmailIdentity =
+    emailIdentity?.providerUserId?.trim().toLowerCase() ?? null;
   const email = emailFromUser || emailFromEmailIdentity || null;
 
   const providerData = parseProviderData(emailIdentity?.providerData ?? "{}");
-  const isEmailVerified = emailIdentity ? providerData.isEmailVerified === true : true;
+  const isEmailVerified = emailIdentity
+    ? providerData.isEmailVerified === true
+    : true;
 
-  const [categories, events] = await Promise.all([
+  const [
+    categories,
+    events,
+    facts,
+    processingRuns,
+    corrections,
+    aliases,
+    entities,
+    inferences,
+  ] = await Promise.all([
     context.entities.Category.findMany({
       where: { userId },
       select: {
@@ -116,9 +150,12 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (_args, con
       select: {
         id: true,
         kind: true,
+        source: true,
         categoryId: true,
         amount: true,
+        duration: true,
         rawText: true,
+        data: true,
         occurredAt: true,
         occurredOn: true,
         createdAt: true,
@@ -126,9 +163,35 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (_args, con
       },
       orderBy: [{ occurredAt: "asc" }],
     }),
+    prisma.memoryFact.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: "asc" }],
+    }),
+    prisma.memoryProcessingRun.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: "asc" }],
+    }),
+    prisma.memoryCorrection.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: "asc" }],
+    }),
+    prisma.memoryAlias.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: "asc" }],
+    }),
+    prisma.memoryEntity.findMany({
+      where: { userId },
+      include: { facts: true },
+      orderBy: [{ createdAt: "asc" }],
+    }),
+    prisma.memoryInference.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: "asc" }],
+    }),
   ]);
 
   return {
+    schemaVersion: 2,
     exportedAt: new Date().toISOString(),
     user: {
       id: user.id,
@@ -155,14 +218,19 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (_args, con
       goalValue: c.goalValue ?? null,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
-      sourceArchivedAt: c.sourceArchivedAt ? c.sourceArchivedAt.toISOString() : null,
+      sourceArchivedAt: c.sourceArchivedAt
+        ? c.sourceArchivedAt.toISOString()
+        : null,
     })),
     events: events.map((e: any) => ({
       id: e.id,
       kind: String(e.kind),
+      source: e.source,
       categoryId: e.categoryId ?? null,
       amount: e.amount ?? null,
+      duration: e.duration ?? null,
       rawText: e.rawText ?? null,
+      data: e.data ?? null,
       occurredAt: e.occurredAt.toISOString(),
       occurredOn: (() => {
         const d = e.occurredOn;
@@ -172,5 +240,13 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (_args, con
       createdAt: e.createdAt.toISOString(),
       updatedAt: e.updatedAt.toISOString(),
     })),
+    memory: {
+      facts,
+      processingRuns,
+      corrections,
+      aliases,
+      entities,
+      inferences,
+    },
   };
 };

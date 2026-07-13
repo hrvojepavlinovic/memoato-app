@@ -1,12 +1,13 @@
 # Memoato
 
-Fast, minimal habit tracking for ADHD brains: quick input, clear progress, fewer decisions.
+A private memory layer for the details of your life. Write what happened in your own words; Memoato preserves the original, extracts useful facts, and helps you recall the context later.
 
 - Product spec: `docs/PRODUCT_SPEC.md`
 - Import plan (JSON export): `docs/IMPORT_PLAN.md`
 - Dev setup (Postgres socket + Wasp): `docs/DEV_SETUP.md`
 - Deploy (Hetzner + systemd + Caddy): `docs/DEPLOY.md`
 - Architecture: `docs/ARCHITECTURE.md`
+- Memoato 2.0 product + technical architecture: `docs/MEMOATO_2_PRODUCT_ARCHITECTURE.md`
 - Self-hosting: `docs/SELF_HOSTING.md`
 - Landing handover (Astro + Cloudflare Pages): `docs/LANDING_HANDOVER.md`
 - Mobile apps (Capacitor + TestFlight/Play): `docs/MOBILE.md`
@@ -17,10 +18,13 @@ Fast, minimal habit tracking for ADHD brains: quick input, clear progress, fewer
 
 ## What it is
 
-- **Categories** with goals + charts (bar totals or line values)
-- **Manual category ordering** on Home (drag-and-drop reorder mode)
-- **Timeline** view with human-readable daily summaries
+- **Raw-first capture** with the original entry as the source of truth
+- **Memory review** for visible, correctable extracted facts
+- **Evidence-first recall** across raw entries, facts and legacy events
+- **Views** with the existing categories, goals, charts and schedules
+- **Deterministic-first processing** with OpenRouter only when useful
 - **Privacy options** (cloud sync / encrypted cloud / local-only)
+- **MCP/API capture** through revocable raw-write keys
 - **PWA-ready** (Add to Home Screen)
 
 ## Prerequisites

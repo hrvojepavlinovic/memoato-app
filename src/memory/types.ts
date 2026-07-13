@@ -1,4 +1,9 @@
-export type MemoryFactKind = "movement" | "metric" | "energy" | "context" | "note";
+export type MemoryFactKind =
+  | "movement"
+  | "metric"
+  | "energy"
+  | "context"
+  | "note";
 
 export type MemoryFact = {
   kind: MemoryFactKind;
@@ -16,6 +21,7 @@ export type MemoryFact = {
   setCount?: number;
   confidence: number;
   note?: string;
+  origin?: "deterministic" | "openrouter" | "client";
 };
 
 export type MemoryExtraction = {
@@ -23,6 +29,9 @@ export type MemoryExtraction = {
   parserVersion: string;
   facts: MemoryFact[];
   unknowns: string[];
+  provider?: "openrouter";
+  model?: string;
+  latencyMs?: number;
 };
 
 export type CreateRawEntryRequest = {

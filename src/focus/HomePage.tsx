@@ -26,6 +26,7 @@ import {
 } from "./local";
 import type { BucketAggregation, GoalDirection } from "./types";
 import { QuickLogDialog } from "./components/QuickLogDialog";
+import { TodayMemoryPanel } from "../memory/components/TodayMemoryPanel";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -918,6 +919,8 @@ export function HomePage() {
           Quick log
         </Button>
       </section>
+
+      <TodayMemoryPanel onOpenLegacyCapture={() => openQuickLog(null)} />
 
       <CoachCard
         categories={orderedCategories}

@@ -107,6 +107,24 @@ page TimelinePage {
   component: import { TimelinePage } from "@src/timeline/TimelinePage"
 }
 
+route MemoryRoute { path: "/memory", to: MemoryPage }
+page MemoryPage {
+  authRequired: true,
+  component: import { MemoryPage } from "@src/memory/MemoryPage"
+}
+
+route RecallRoute { path: "/recall", to: RecallPage }
+page RecallPage {
+  authRequired: true,
+  component: import { RecallPage } from "@src/memory/RecallPage"
+}
+
+route ViewsRoute { path: "/views", to: ViewsPage }
+page ViewsPage {
+  authRequired: true,
+  component: import { ViewsPage } from "@src/focus/ViewsPage"
+}
+
 route SudoRoute { path: "/sudo", to: SudoPage }
 page SudoPage {
   component: import { SudoPage } from "@src/admin/SudoPage"
@@ -227,6 +245,21 @@ query getDayEvents {
   entities: [Event, Category]
 }
 
+query getMemoryOverview {
+  fn: import { getMemoryOverview } from "@src/memory/operations",
+  entities: [User, Event, Category, MemoryFact, MemoryProcessingRun]
+}
+
+query getMemoryFeed {
+  fn: import { getMemoryFeed } from "@src/memory/operations",
+  entities: [User, Event, Category, MemoryFact]
+}
+
+query recallMemory {
+  fn: import { recallMemory } from "@src/memory/operations",
+  entities: [User, Event, Category, MemoryFact]
+}
+
 query getPublicTotals {
   fn: import { getPublicTotals } from "@src/public/queries",
   entities: [User, Category, Event]
@@ -245,6 +278,16 @@ action createEvent {
 action createRawLog {
   fn: import { createRawLog } from "@src/focus/actions",
   entities: [Event, Category]
+}
+
+action reviewMemoryFact {
+  fn: import { reviewMemoryFact } from "@src/memory/operations",
+  entities: [User, Event, Category, MemoryFact, MemoryCorrection, MemoryAlias]
+}
+
+action retryMemoryEntry {
+  fn: import { retryMemoryEntry } from "@src/memory/operations",
+  entities: [User, Event, MemoryProcessingRun]
 }
 
 action updateEvent {
@@ -365,7 +408,7 @@ action confirmAccountDeletion {
 
 action exportMyData {
   fn: import { exportMyData } from "@src/profile/export",
-  entities: [User, Category, Event]
+  entities: [User, Category, Event, MemoryFact, MemoryProcessingRun, MemoryCorrection, MemoryAlias, MemoryEntity, MemoryInference]
 }
 
 // analytics is handled client-side via Databuddy script in <head>

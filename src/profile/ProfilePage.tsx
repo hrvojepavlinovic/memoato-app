@@ -11,6 +11,7 @@ import {
   exportMyData,
   getCategories,
   getCategoryEvents,
+  getMemoryOverview,
   getProfile,
   requestAccountDeletion,
   requestEmailChange,
@@ -104,6 +105,7 @@ export function ProfilePage() {
   const privacy = usePrivacy();
   const theme = useTheme();
   const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
+  const memoryOverviewQuery = useQuery(getMemoryOverview, undefined, { enabled: privacy.mode !== "local" });
   const isNative = useMemo(() => Capacitor.isNativePlatform(), []);
 
   const [username, setUsername] = useState("");
@@ -1057,6 +1059,39 @@ export function ProfilePage() {
 	            </div>
 	          </div>
 	        </div>
+
+        <div className="card overflow-hidden">
+          <div className="border-b border-neutral-300 p-4 dark:border-neutral-700">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold">Memory processing</div>
+                <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">How Memoato reads raw entries after they are safely stored.</div>
+              </div>
+              <span className={`h-2.5 w-2.5 ${memoryOverviewQuery.data?.processing?.openRouterConfigured ? "bg-emerald-500" : "bg-neutral-400"}`} aria-hidden="true" />
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-3">
+            <div className="p-4">
+              <div className="label">1 / Preserve</div>
+              <div className="mt-2 text-sm font-semibold">Original first</div>
+              <p className="mt-1 text-xs leading-5 text-neutral-500">Your exact words are the source of truth and are never replaced by a model response.</p>
+            </div>
+            <div className="border-t border-neutral-300 p-4 dark:border-neutral-700 sm:border-l sm:border-t-0">
+              <div className="label">2 / Read</div>
+              <div className="mt-2 text-sm font-semibold">{memoryOverviewQuery.data?.processing?.openRouterConfigured ? "Hybrid" : "Local rules"}</div>
+              <p className="mt-1 text-xs leading-5 text-neutral-500">OpenRouter is used only when local parsing is uncertain or the entry carries multiple facts.</p>
+            </div>
+            <div className="border-t border-neutral-300 p-4 dark:border-neutral-700 sm:border-l sm:border-t-0">
+              <div className="label">3 / Review</div>
+              <div className="mt-2 text-sm font-semibold">Human-owned</div>
+              <p className="mt-1 text-xs leading-5 text-neutral-500">Low-confidence readings wait for you. Corrections become personal aliases, not silent guesses.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-300 bg-white/50 px-4 py-3 text-xs dark:border-neutral-700 dark:bg-neutral-950/30">
+            <span className="font-semibold">OpenRouter: {memoryOverviewQuery.data?.processing?.openRouterConfigured ? "Connected" : "Not configured"}</span>
+            <span className="max-w-full truncate font-mono text-[10px] text-neutral-500">{memoryOverviewQuery.data?.processing?.model ?? "Local only"}</span>
+          </div>
+        </div>
 
         <div className="card p-4">
           <div className="mb-3 text-sm font-semibold">API keys</div>

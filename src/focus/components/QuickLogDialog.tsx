@@ -1108,6 +1108,8 @@ export function QuickLogDialog({
     const queryClient = await queryClientInitialized;
     await queryClient.invalidateQueries({ queryKey: ["operations/get-categories"] });
     await queryClient.invalidateQueries({ queryKey: ["operations/get-scheduled-prompts"] });
+    await queryClient.invalidateQueries({ queryKey: ["operations/get-memory-overview"] });
+    await queryClient.invalidateQueries({ queryKey: ["operations/get-memory-feed"] });
   }
 
   const createSuggestion = React.useMemo(() => {
