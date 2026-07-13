@@ -1,15 +1,14 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import StatsRow from "../components/StatsRow.astro";
 
 const softwareJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: "memoato",
   operatingSystem: "Web",
-  applicationCategory: "ProductivityApplication",
+  applicationCategory: "LifestyleApplication",
   url: "https://app.memoato.com",
-  description: "A low-friction life logger that turns messy notes into useful personal memory.",
+  description: "A low-friction memory for the context of everyday life.",
   publisher: { "@id": "https://memoato.com/#organization" },
   isAccessibleForFree: true,
 };
@@ -17,388 +16,1307 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
 ---
 
 <BaseLayout
-  title="memoato: useful memory from messy life logs"
-  description="Type what happened. Memoato turns raw life notes into structured memory, searchable facts, and useful recall."
+  title="memoato — remember the life behind the data"
+  description="Memoato keeps the small context your trackers, calendars, and notes miss. Write what happened naturally and find it when it matters."
   canonicalPath="/"
+  bodyClass="landing-v2"
 >
   <script slot="head" type="application/ld+json" set:html={softwareJsonLdString} />
 
-  <section class="container hero memory-hero">
-    <div class="hero-copy">
-      <div class="pill">Raw notes · Structured facts · MCP-ready</div>
-      <h1 class="h1" style="margin-top: 1rem">Type what happened. Remember what matters.</h1>
-      <p class="lead">
-        memoato is a low-friction life logger that turns messy everyday notes into useful memory.
-        Log health, training, family, money, errands, and context in plain text.
-      </p>
-      <div class="hero-actions">
-        <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
-          Open app
-        </a>
-        <a class="btn" href="/help">How it works</a>
-        <a class="btn" href="/blog/why-memoato">Read the story</a>
-      </div>
-    </div>
-
-    <div class="memory-demo" aria-label="Memoato logging example">
-      <div class="demo-card-top">
-        <div>
-          <div class="demo-label">Plain text log</div>
-          <div class="demo-caption">app, chat, MCP, or agent</div>
-        </div>
-        <div class="demo-status">raw saved first</div>
-      </div>
-
-      <div class="demo-input">
-        Low energy today. Skipped gym, but walked 20 minutes after lunch. Slept badly again. Big client call at 9am.
-      </div>
-
-      <div class="demo-route" aria-hidden="true">
-        <span></span>
-        <strong>memoato parses context</strong>
-        <span></span>
-      </div>
-
-      <div class="demo-label">Memoato understands</div>
-      <div class="fact-list">
-        <div class="fact-row">
-          <span class="fact-kicker">Energy</span>
-          <span>low</span>
-          <small>today</small>
-        </div>
-        <div class="fact-row">
-          <span class="fact-kicker">Movement</span>
-          <span>20 min walk</span>
-          <small>gym skipped · after lunch</small>
-        </div>
-        <div class="fact-row">
-          <span class="fact-kicker">Context</span>
-          <span>bad sleep again</span>
-          <small>client call at 9am</small>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <section class="section mcp-setup-section">
-    <div class="container">
-      <div class="mcp-setup">
-        <div class="mcp-setup-copy">
-          <div class="card-kicker">MCP setup</div>
-          <div class="h2">Connect Claude or Codex without installing Memoato</div>
-          <p class="muted">
-            Add the hosted MCP endpoint, create a scoped Memoato API key, then paste it into your AI client setup. Codex also gets a local Memoato skill.
+  <div class="landing-shell">
+    <section class="memo-hero" aria-labelledby="hero-title">
+      <div class="memo-hero-glow" aria-hidden="true"></div>
+      <div class="landing-container memo-hero-grid">
+        <div class="memo-hero-copy">
+          <p class="eyebrow"><span></span> A memory for real life</p>
+          <h1 id="hero-title">Remember the life<br />behind the data.</h1>
+          <p class="hero-intro">
+            The walk you took instead. The reason you slept badly. The name of the place
+            you swore you'd return to. Memoato keeps the small context that otherwise disappears.
           </p>
-          <div class="mcp-flow" aria-label="How Memoato MCP logging works">
-            <div class="mcp-flow-item">
-              <span>1</span>
+          <div class="memo-actions">
+            <a
+              class="memo-button memo-button-primary"
+              href="https://app.memoato.com"
+              rel="noreferrer"
+              referrerpolicy="no-referrer"
+            >
+              Start remembering
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M4 10h11M11 6l4 4-4 4"></path>
+              </svg>
+            </a>
+            <a class="memo-text-link" href="#how-it-works">See how it works <span>↓</span></a>
+          </div>
+          <p class="hero-note">Free while we're early · Your original words stay intact</p>
+        </div>
+
+        <div class="memory-composition" aria-label="An example memory captured in Memoato">
+          <div class="memory-date" aria-hidden="true">
+            <span>17</span>
+            <small>APR</small>
+          </div>
+          <div class="memory-paper">
+            <div class="paper-head">
+              <span>Today, 8:42 pm</span>
+              <span class="paper-saved"><i></i> saved</span>
+            </div>
+            <p class="raw-memory">
+              Rough night. Big call at nine. Skipped the gym, but walked for 20 minutes
+              after lunch. Energy came back by dinner.
+            </p>
+            <div class="paper-rule"></div>
+            <div class="memory-details">
               <div>
-                <strong>Read your categories</strong>
-                <p>The agent can fetch your labels, units, and fields before it writes anything.</p>
+                <span class="memory-mark mark-sage"></span>
+                <p><small>MOVEMENT</small>20 minute walk</p>
+                <em>instead of the gym</em>
+              </div>
+              <div>
+                <span class="memory-mark mark-rust"></span>
+                <p><small>ENERGY</small>Low → recovered</p>
+                <em>by dinner</em>
+              </div>
+              <div>
+                <span class="memory-mark mark-blue"></span>
+                <p><small>CONTEXT</small>Bad sleep + big call</p>
+                <em>morning</em>
               </div>
             </div>
-            <div class="mcp-flow-item">
-              <span>2</span>
-              <div>
-                <strong>Label the raw log</strong>
-                <p>It keeps your exact text, then attaches confident labels like Weight, Pull ups, or Football.</p>
+            <div class="paper-foot">
+              <span>Original note preserved</span>
+              <span>3 details remembered</span>
+            </div>
+          </div>
+          <div class="memory-whisper whisper-one">the fallback mattered</div>
+          <div class="memory-whisper whisper-two">not just the workout</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="missing-context" aria-labelledby="context-title">
+      <div class="landing-container context-grid">
+        <div class="section-heading context-heading">
+          <p class="eyebrow eyebrow-light"><span></span> The missing layer</p>
+          <h2 id="context-title">Your apps remember <em>what.</em><br />Memoato remembers <em>why.</em></h2>
+        </div>
+        <div class="context-list">
+          <div class="context-row">
+            <div class="context-number">01</div>
+            <div>
+              <h3>Trackers count the workout.</h3>
+              <p>Memoato remembers what hurt, why you stopped, and what you did instead.</p>
+            </div>
+          </div>
+          <div class="context-row">
+            <div class="context-number">02</div>
+            <div>
+              <h3>Calendars keep the meeting.</h3>
+              <p>Memoato remembers the restless night before it and the relief afterward.</p>
+            </div>
+          </div>
+          <div class="context-row">
+            <div class="context-number">03</div>
+            <div>
+              <h3>Notes hold the long story.</h3>
+              <p>Memoato catches the tiny details you won't open a document to write down.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="how-section" id="how-it-works" aria-labelledby="how-title">
+      <div class="landing-container">
+        <div class="section-heading how-heading">
+          <p class="eyebrow"><span></span> Almost no ceremony</p>
+          <h2 id="how-title">Write less.<br />Remember more.</h2>
+          <p>Memoato is built around the way memories actually arrive: unfinished, out of order, and in your own words.</p>
+        </div>
+
+        <div class="chapter-grid">
+          <article class="chapter chapter-write">
+            <div class="chapter-index">I</div>
+            <div class="chapter-art write-art" aria-hidden="true">
+              <div class="writing-line">Bought the good coffee from that tiny place near the station.</div>
+              <span class="cursor-line"></span>
+            </div>
+            <h3>Say it naturally</h3>
+            <p>No forms to fill before the thought disappears. A sentence, a number, or a messy note is enough.</p>
+          </article>
+
+          <article class="chapter chapter-keep">
+            <div class="chapter-index">II</div>
+            <div class="chapter-art keep-art" aria-hidden="true">
+              <span class="kept-word word-one">coffee</span>
+              <span class="kept-word word-two">near the station</span>
+              <span class="kept-word word-three">worth returning</span>
+              <span class="kept-line line-one"></span>
+              <span class="kept-line line-two"></span>
+            </div>
+            <h3>Keep the meaning</h3>
+            <p>Your note stays whole while useful details become easy to browse, connect, and correct.</p>
+          </article>
+
+          <article class="chapter chapter-return">
+            <div class="chapter-index">III</div>
+            <div class="chapter-art return-art" aria-hidden="true">
+              <p>“What was that coffee place I liked near the station?”</p>
+              <div class="return-answer">
+                <span>Found in your memory</span>
+                <strong>April 17 · evening</strong>
               </div>
             </div>
-            <div class="mcp-flow-item">
-              <span>3</span>
-              <div>
-                <strong>Create missing metrics</strong>
-                <p>If no category fits, Memoato can create a new one with the right unit instead of losing the note.</p>
-              </div>
-            </div>
-          </div>
+            <h3>Return when it matters</h3>
+            <p>Find the detail later, notice a pattern over time, or simply remember the texture of a season.</p>
+          </article>
         </div>
+      </div>
+    </section>
 
-        <div class="mcp-terminal" data-mcp-tabs aria-label="Memoato MCP setup terminal">
-          <div class="mcp-terminal-top">
-            <div class="terminal-dots" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <div class="terminal-tabs" role="tablist" aria-label="MCP setup snippets">
-              <button class="terminal-tab is-active" type="button" data-mcp-tab="codex">Codex</button>
-              <button class="terminal-tab" type="button" data-mcp-tab="claude">Claude</button>
-              <button class="terminal-tab" type="button" data-mcp-tab="json">JSON</button>
-            </div>
+    <section class="recall-section" aria-labelledby="recall-title">
+      <div class="landing-container recall-grid">
+        <div class="recall-copy">
+          <p class="eyebrow"><span></span> Memory becomes useful</p>
+          <h2 id="recall-title">The questions only your life can answer.</h2>
+          <p>
+            A single note is a detail. A trail of them becomes perspective — on your energy,
+            routines, health, family, work, and everything that never fit neatly in a tracker.
+          </p>
+          <a class="memo-text-link dark-link" href="/blog/why-memoato">Why we built Memoato <span>→</span></a>
+        </div>
+        <div class="question-stack">
+          <div class="question-card question-card-one">
+            <span>TRAINING & ENERGY</span>
+            <p>What usually happens before my low-energy days?</p>
           </div>
-
-          <div class="terminal-panel is-active" data-mcp-panel="codex">
-            <div class="terminal-title">Add to Codex</div>
-            <pre><code>{`curl -fsSL https://api.memoato.com/mcp-codex | bash`}</code></pre>
-            <div class="terminal-hint">
-              The script asks for your API key from <a href="https://app.memoato.com/profile" rel="noreferrer" referrerpolicy="no-referrer">Profile -> API keys</a>, then updates <code>~/.codex/config.toml</code> and installs a Memoato logging skill.
-            </div>
+          <div class="question-card question-card-two">
+            <span>PEOPLE & PLACES</span>
+            <p>Where did we have that quiet lunch by the sea?</p>
           </div>
-
-          <div class="terminal-panel" data-mcp-panel="claude">
-            <div class="terminal-title">Add to Claude Code</div>
-            <pre><code>{`claude mcp add --transport http memoato https://api.memoato.com/mcp \\
-  --header "Authorization: Bearer memoato_live_..."`}</code></pre>
-            <div class="terminal-hint">
-              The hosted endpoint exposes category metadata, labeled raw entry creation, search, and summary tools. No local Memoato install required.
-            </div>
-          </div>
-
-          <div class="terminal-panel" data-mcp-panel="json">
-            <div class="terminal-title">Config shape</div>
-            <pre><code>{`{
-  "mcpServers": {
-    "memoato": {
-      "type": "http",
-      "url": "https://api.memoato.com/mcp",
-      "headers": {
-        "Authorization": "Bearer memoato_live_..."
-      }
-    }
-  }
-}`}</code></pre>
-            <div class="terminal-hint">
-              Replace <code>memoato_live_...</code> with a revocable key from <a href="https://app.memoato.com/profile" rel="noreferrer" referrerpolicy="no-referrer">Profile -> API keys</a>.
-            </div>
+          <div class="question-card question-card-three">
+            <span>LIFE ADMIN</span>
+            <p>When did I replace the car battery, and how long is the warranty?</p>
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="section memory-stats-section">
-    <div class="container">
-      <StatsRow />
-    </div>
-  </section>
-
-  <section class="section" style="padding-top: 2.5rem">
-    <div class="container">
-      <div class="value-surface">
-        <div class="value-header">
-          <div class="h2">A memory system, not another habit app</div>
-          <div class="muted" style="max-width: 70ch">
-            Keep the input simple. Let the system do the sorting, labeling, and recall.
-          </div>
+    <section class="principles-section" aria-labelledby="principles-title">
+      <div class="landing-container">
+        <div class="principles-intro">
+          <p class="eyebrow eyebrow-light"><span></span> Made for humans</p>
+          <h2 id="principles-title">Quiet technology.<br />Your life stays in focus.</h2>
         </div>
-
-        <div class="feature-grid value-features">
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg
-                class="feature-svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Raw log first</div>
-              <div class="muted">Write the thing naturally. The original note is always preserved.</div>
-            </div>
-          </div>
-
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg
-                class="feature-svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect x="4" y="4" width="7" height="7" rx="1" />
-                <rect x="13" y="4" width="7" height="7" rx="1" />
-                <rect x="4" y="13" width="7" height="7" rx="1" />
-                <rect x="13" y="13" width="7" height="7" rx="1" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Facts from text</div>
-              <div class="muted">Exercise, symptoms, temperature, money, duration, distance, and context become structured data.</div>
-            </div>
-          </div>
-
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg
-                class="feature-svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 7v6l3 2" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Learns your defaults</div>
-              <div class="muted">If curls are usually 10 kg, Memoato can assume that and show it clearly.</div>
-            </div>
-          </div>
-
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg
-                class="feature-svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M3 3v18h18" />
-                <path d="m7 15 4-4 3 3 6-7" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">MCP support</div>
-              <div class="muted">Let AI agents or small automations send raw entries through scoped, revocable API keys.</div>
-            </div>
-          </div>
-
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg
-                class="feature-svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M21 12a9 9 0 1 1-3-6.7" />
-                <path d="M21 3v7h-7" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Forgiving review</div>
-              <div class="muted">Correct assumptions when needed. Skip the form when the guess is right.</div>
-            </div>
-          </div>
-
-          <div class="feature-line">
-            <div class="feature-icon" aria-hidden="true">
-              <svg
-                class="feature-svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M7 11V8a5 5 0 0 1 10 0v3" />
-                <path d="M6 11h12v10H6V11Z" />
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Connects later</div>
-              <div class="muted">Todoist, calendar, mail, Obsidian, and wearable exports can become sources.</div>
-            </div>
-          </div>
+        <div class="principles-grid">
+          <article>
+            <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M5 14.5 11 20l12-13"></path></svg>
+            <h3>Raw note first</h3>
+            <p>Your exact words are saved before anything else happens. The source never gets polished away.</p>
+          </article>
+          <article>
+            <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M14 3v22M3 14h22"></path></svg>
+            <h3>Helpful, not demanding</h3>
+            <p>Memoato asks only when a missing detail truly matters. Everything else can wait.</p>
+          </article>
+          <article>
+            <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="4" width="18" height="20" rx="9"></rect><path d="M10 14h8"></path></svg>
+            <h3>Yours to correct</h3>
+            <p>Assumptions are visible and easy to change. Your corrections make future logging feel more natural.</p>
+          </article>
         </div>
-
-        <div class="card-actions value-actions">
-          <a class="btn" href="/help">Help & FAQ</a>
-          <a class="btn" href="/adhd">ADHD-friendly</a>
-          <a class="btn" href="/privacy">Privacy</a>
-          <a class="btn" href="/open-source">Open source</a>
-          <a class="btn" href="/changelog">Changelog</a>
-          <a class="btn" href="/blog/why-memoato">Why memoato</a>
-          <a class="btn" href="/blog/timeline">Timeline</a>
+        <div class="quiet-tech">
+          <span>Log from the web today</span>
+          <i></i>
+          <span>Connect Codex or Claude through MCP</span>
+          <i></i>
+          <span>Open source core</span>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <script>
-    document.querySelectorAll("[data-mcp-tabs]").forEach((root) => {
-      const tabs = Array.from(root.querySelectorAll("[data-mcp-tab]"));
-      const panels = Array.from(root.querySelectorAll("[data-mcp-panel]"));
-      tabs.forEach((tab) => {
-        tab.addEventListener("click", () => {
-          const id = tab.getAttribute("data-mcp-tab");
-          tabs.forEach((item) => item.classList.toggle("is-active", item === tab));
-          panels.forEach((panel) => {
-            panel.classList.toggle("is-active", panel.getAttribute("data-mcp-panel") === id);
-          });
-        });
-      });
-    });
-  </script>
-
-  <section class="section" style="padding-top: 2.5rem">
-    <div class="container">
-      <div class="h2" style="text-align: left">What it remembers</div>
-      <div class="muted usecases-subtitle">
-        Messy real-life notes become timelines, totals, symptoms, and context you can actually use.
-      </div>
-
-      <div class="usecase-grid">
-        <a class="card card-link" href="/blog/training-memory">
-          <div class="card-kicker">Training</div>
-          <div class="card-title">Sets, weights, pain, and patterns</div>
-          <div class="card-body">Log reps and notes in one sentence. See what changed before something hurt.</div>
-          <div class="card-cta">
-            <span>Read</span>
-            <span aria-hidden="true">→</span>
-          </div>
-        </a>
-
-        <a class="card card-link" href="/blog/family-health-memory">
-          <div class="card-kicker">Family and health</div>
-          <div class="card-title">Symptoms, temperatures, and episodes</div>
-          <div class="card-body">Remember who was sick, when it started, and how often it repeats.</div>
-          <div class="card-cta">
-            <span>Read</span>
-            <span aria-hidden="true">→</span>
-          </div>
-        </a>
-
-        <a class="card card-link" href="/blog/life-admin-memory">
-          <div class="card-kicker">Life admin</div>
-          <div class="card-title">Purchases, cars, errands, and reminders</div>
-          <div class="card-body">Turn small logs into a searchable history of what you bought, fixed, paid, or promised.</div>
-          <div class="card-cta">
-            <span>Read</span>
-            <span aria-hidden="true">→</span>
-          </div>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="card donate-card">
-        <div>
-          <div class="h2">Early, open, and changing fast</div>
-          <div class="muted">memoato is being rebuilt around raw logging, structured memory, and useful recall.</div>
-        </div>
+    <section class="closing-section" aria-labelledby="closing-title">
+      <div class="landing-container closing-inner">
+        <p class="closing-kicker">Do not track more.</p>
+        <h2 id="closing-title">Remember the<br />missing context.</h2>
+        <p>Start with one sentence about today.</p>
         <a
-          class="btn accent"
+          class="memo-button memo-button-light"
           href="https://app.memoato.com"
           rel="noreferrer"
           referrerpolicy="no-referrer"
         >
-          Try memoato
+          Open Memoato
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M4 10h11M11 6l4 4-4 4"></path>
+          </svg>
         </a>
       </div>
-    </div>
-  </section>
+    </section>
+  </div>
+
+  <style is:global>
+    @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap");
+
+    .landing-v2 {
+      --paper: #f4f0e7;
+      --paper-deep: #e9e2d5;
+      --ink: #1d201b;
+      --soft-ink: #5f6259;
+      --sage: #87937b;
+      --forest: #26372f;
+      --rust: #b75e3b;
+      --blue: #637a87;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .landing-v2 .landing-shell {
+      overflow: hidden;
+      background: var(--paper);
+    }
+
+    .landing-v2 .landing-container {
+      width: min(100% - 2rem, 1180px);
+      margin-inline: auto;
+    }
+
+    .landing-v2 .topbar {
+      background: rgba(244, 240, 231, 0.9);
+      border-color: rgba(29, 32, 27, 0.12);
+      box-shadow: none;
+      backdrop-filter: blur(18px);
+    }
+
+    .landing-v2 .topbar-inner {
+      max-width: 1180px;
+      padding-top: 1.15rem;
+      padding-bottom: 1.15rem;
+    }
+
+    .landing-v2 .brand {
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.35rem;
+      font-weight: 500;
+    }
+
+    .landing-v2 .logo {
+      width: 30px;
+      height: 30px;
+      background: var(--forest);
+    }
+
+    .landing-v2 .navlinks {
+      gap: 0.2rem;
+    }
+
+    .landing-v2 .navlinks .btn,
+    .landing-v2 .header-actions .icon-btn {
+      background: transparent;
+      color: var(--soft-ink);
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .landing-v2 .header-actions > .btn.primary {
+      min-height: 38px;
+      padding-inline: 1.15rem;
+      border-radius: 999px;
+      background: var(--ink);
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .memo-hero {
+      position: relative;
+      min-height: 780px;
+      display: grid;
+      align-items: center;
+      padding: 7.5rem 0 8rem;
+      border-bottom: 1px solid rgba(29, 32, 27, 0.12);
+    }
+
+    .memo-hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.34;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(29, 32, 27, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(29, 32, 27, 0.045) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: linear-gradient(to bottom, black, transparent 88%);
+    }
+
+    .memo-hero-glow {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      right: -160px;
+      top: -180px;
+      border-radius: 50%;
+      background: rgba(183, 94, 59, 0.1);
+      filter: blur(4px);
+    }
+
+    .memo-hero-grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.03fr) minmax(430px, 0.97fr);
+      gap: 6rem;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      margin: 0 0 1.6rem;
+      color: #6b6f64;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow > span {
+      width: 30px;
+      height: 1px;
+      background: currentColor;
+    }
+
+    .eyebrow-light {
+      color: rgba(244, 240, 231, 0.58);
+    }
+
+    .memo-hero h1,
+    .section-heading h2,
+    .principles-intro h2,
+    .closing-inner h2 {
+      margin: 0;
+      font-family: "Newsreader", Georgia, serif;
+      font-weight: 400;
+      letter-spacing: -0.055em;
+    }
+
+    .memo-hero h1 {
+      max-width: 700px;
+      font-size: clamp(4.3rem, 7.1vw, 7.4rem);
+      line-height: 0.88;
+    }
+
+    .hero-intro {
+      max-width: 620px;
+      margin: 2rem 0 0;
+      color: var(--soft-ink);
+      font-size: clamp(1.03rem, 1.4vw, 1.2rem);
+      line-height: 1.75;
+    }
+
+    .memo-actions {
+      display: flex;
+      align-items: center;
+      gap: 1.6rem;
+      margin-top: 2.25rem;
+    }
+
+    .memo-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.8rem;
+      min-height: 54px;
+      padding: 0.9rem 1.5rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+    }
+
+    .memo-button:hover {
+      transform: translateY(-2px);
+      text-decoration: none !important;
+    }
+
+    .memo-button svg {
+      width: 19px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .memo-button-primary {
+      background: var(--ink);
+      color: white;
+    }
+
+    .memo-button-primary:hover {
+      background: var(--forest);
+    }
+
+    .memo-text-link {
+      display: inline-flex;
+      gap: 0.55rem;
+      align-items: center;
+      padding: 0.7rem 0;
+      border-bottom: 1px solid rgba(29, 32, 27, 0.3);
+      color: var(--ink);
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .memo-text-link:hover {
+      border-color: var(--ink);
+      text-decoration: none !important;
+    }
+
+    .hero-note {
+      margin: 1.2rem 0 0;
+      color: #85887f;
+      font-size: 0.72rem;
+    }
+
+    .memory-composition {
+      position: relative;
+      width: min(100%, 510px);
+      margin-left: auto;
+      padding: 2.2rem 0 2.7rem 2.6rem;
+    }
+
+    .memory-paper {
+      position: relative;
+      z-index: 2;
+      padding: 2.2rem 2.25rem 1.45rem;
+      border: 1px solid rgba(29, 32, 27, 0.14);
+      background: #fbf9f3;
+      box-shadow: 0 40px 90px rgba(45, 38, 29, 0.12), 0 4px 15px rgba(45, 38, 29, 0.05);
+      transform: rotate(1.2deg);
+    }
+
+    .memory-paper::after {
+      content: "";
+      position: absolute;
+      inset: 9px -9px -9px 9px;
+      z-index: -1;
+      border: 1px solid rgba(29, 32, 27, 0.08);
+      background: #ebe5d8;
+    }
+
+    .memory-date {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 4;
+      display: grid;
+      place-items: center;
+      width: 74px;
+      height: 82px;
+      background: var(--rust);
+      color: white;
+      box-shadow: 0 14px 35px rgba(92, 54, 38, 0.2);
+      transform: rotate(-5deg);
+    }
+
+    .memory-date span {
+      margin-top: 0.35rem;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 2.25rem;
+      line-height: 1;
+    }
+
+    .memory-date small {
+      align-self: start;
+      font-size: 0.58rem;
+      letter-spacing: 0.18em;
+    }
+
+    .paper-head,
+    .paper-foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      color: #8b8b82;
+      font-size: 0.65rem;
+      letter-spacing: 0.04em;
+    }
+
+    .paper-saved {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: #66745f;
+    }
+
+    .paper-saved i {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #7d9272;
+    }
+
+    .raw-memory {
+      margin: 1.65rem 0 1.8rem;
+      color: #2b2c28;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.42rem;
+      line-height: 1.38;
+    }
+
+    .paper-rule {
+      height: 1px;
+      margin-bottom: 1.45rem;
+      background: rgba(29, 32, 27, 0.1);
+    }
+
+    .memory-details {
+      display: grid;
+      gap: 0.95rem;
+    }
+
+    .memory-details > div {
+      display: grid;
+      grid-template-columns: 7px 1fr auto;
+      gap: 0.8rem;
+      align-items: center;
+    }
+
+    .memory-details p,
+    .memory-details em {
+      margin: 0;
+    }
+
+    .memory-details p {
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .memory-details p small {
+      display: inline-block;
+      width: 88px;
+      color: #94948b;
+      font-size: 0.55rem;
+      font-weight: 600;
+      letter-spacing: 0.11em;
+    }
+
+    .memory-details em {
+      color: #898a82;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 0.77rem;
+    }
+
+    .memory-mark {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .mark-sage { background: var(--sage); }
+    .mark-rust { background: var(--rust); }
+    .mark-blue { background: var(--blue); }
+
+    .paper-foot {
+      margin-top: 1.7rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(29, 32, 27, 0.08);
+    }
+
+    .memory-whisper {
+      position: absolute;
+      z-index: 3;
+      padding: 0.52rem 0.72rem;
+      background: #e5d9bd;
+      box-shadow: 0 10px 28px rgba(45, 38, 29, 0.1);
+      color: #655d4d;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 0.72rem;
+      font-style: italic;
+    }
+
+    .whisper-one { right: -20px; bottom: 4px; transform: rotate(-3deg); }
+    .whisper-two { left: 2px; bottom: 54px; transform: rotate(4deg); }
+
+    .missing-context {
+      padding: 10rem 0;
+      background: var(--forest);
+      color: var(--paper);
+    }
+
+    .context-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(450px, 1.1fr);
+      gap: 9rem;
+      align-items: start;
+    }
+
+    .section-heading h2,
+    .principles-intro h2 {
+      font-size: clamp(3.2rem, 5.5vw, 5.8rem);
+      line-height: 0.97;
+    }
+
+    .context-heading {
+      position: sticky;
+      top: 9rem;
+    }
+
+    .context-heading h2 em {
+      color: #a8b8a1;
+      font-weight: 400;
+    }
+
+    .context-list {
+      border-top: 1px solid rgba(244, 240, 231, 0.2);
+    }
+
+    .context-row {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 1.5rem;
+      padding: 2.8rem 0;
+      border-bottom: 1px solid rgba(244, 240, 231, 0.2);
+    }
+
+    .context-number {
+      padding-top: 0.3rem;
+      color: rgba(244, 240, 231, 0.4);
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 0.85rem;
+    }
+
+    .context-row h3 {
+      margin: 0 0 0.8rem;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: clamp(1.5rem, 2.2vw, 2rem);
+      font-weight: 400;
+    }
+
+    .context-row p {
+      max-width: 530px;
+      margin: 0;
+      color: rgba(244, 240, 231, 0.62);
+      font-size: 0.93rem;
+      line-height: 1.7;
+    }
+
+    .how-section {
+      padding: 10rem 0 11rem;
+    }
+
+    .how-heading {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: end;
+      gap: 4rem;
+      margin-bottom: 5rem;
+    }
+
+    .how-heading .eyebrow {
+      grid-column: 1 / -1;
+      margin-bottom: -1.3rem;
+    }
+
+    .how-heading p:last-child {
+      max-width: 470px;
+      margin: 0 0 0.5rem auto;
+      color: var(--soft-ink);
+      line-height: 1.75;
+    }
+
+    .chapter-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid rgba(29, 32, 27, 0.18);
+      border-bottom: 1px solid rgba(29, 32, 27, 0.18);
+    }
+
+    .chapter {
+      position: relative;
+      min-width: 0;
+      padding: 2.2rem 2rem 2.8rem;
+    }
+
+    .chapter + .chapter {
+      border-left: 1px solid rgba(29, 32, 27, 0.18);
+    }
+
+    .chapter-index {
+      margin-bottom: 2rem;
+      color: #888b81;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 0.8rem;
+      font-style: italic;
+    }
+
+    .chapter-art {
+      height: 240px;
+      margin-bottom: 2.2rem;
+      overflow: hidden;
+      background: #e9e2d5;
+    }
+
+    .write-art {
+      position: relative;
+      padding: 2rem 1.7rem;
+      background-image: linear-gradient(rgba(29, 32, 27, 0.08) 1px, transparent 1px);
+      background-size: 100% 32px;
+    }
+
+    .writing-line {
+      color: #393a35;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.23rem;
+      line-height: 1.58;
+      transform: rotate(-1deg);
+    }
+
+    .cursor-line {
+      display: inline-block;
+      width: 1px;
+      height: 20px;
+      margin: 0.3rem 0 0 0.1rem;
+      background: var(--rust);
+    }
+
+    .keep-art {
+      position: relative;
+      background: #dfe2d7;
+    }
+
+    .kept-word {
+      position: absolute;
+      z-index: 2;
+      padding: 0.5rem 0.7rem;
+      border: 1px solid rgba(38, 55, 47, 0.17);
+      background: rgba(255, 255, 255, 0.62);
+      color: #405047;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 0.82rem;
+    }
+
+    .word-one { left: 22px; top: 34px; }
+    .word-two { right: 20px; top: 98px; }
+    .word-three { left: 44px; bottom: 26px; }
+
+    .kept-line {
+      position: absolute;
+      height: 1px;
+      background: rgba(38, 55, 47, 0.22);
+      transform-origin: left;
+    }
+
+    .line-one { width: 110px; left: 85px; top: 78px; transform: rotate(24deg); }
+    .line-two { width: 125px; left: 120px; top: 160px; transform: rotate(-20deg); }
+
+    .return-art {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 1.7rem;
+      background: #d9d0c0;
+    }
+
+    .return-art > p {
+      margin: 0;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.15rem;
+      line-height: 1.45;
+    }
+
+    .return-answer {
+      padding-top: 1rem;
+      border-top: 1px solid rgba(29, 32, 27, 0.16);
+    }
+
+    .return-answer span,
+    .return-answer strong {
+      display: block;
+    }
+
+    .return-answer span {
+      margin-bottom: 0.35rem;
+      color: #77796f;
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .return-answer strong {
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .chapter h3 {
+      margin: 0 0 0.8rem;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.7rem;
+      font-weight: 400;
+    }
+
+    .chapter > p {
+      margin: 0;
+      color: var(--soft-ink);
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+
+    .recall-section {
+      padding: 11rem 0;
+      background: #d9d0c0;
+    }
+
+    .recall-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 9rem;
+      align-items: center;
+    }
+
+    .recall-copy h2 {
+      margin: 0;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: clamp(3.2rem, 5vw, 5.3rem);
+      font-weight: 400;
+      letter-spacing: -0.05em;
+      line-height: 0.98;
+    }
+
+    .recall-copy > p:not(.eyebrow) {
+      max-width: 480px;
+      margin: 2rem 0 1.6rem;
+      color: #5c5b54;
+      font-size: 0.94rem;
+      line-height: 1.75;
+    }
+
+    .dark-link {
+      color: var(--ink);
+    }
+
+    .question-stack {
+      position: relative;
+      min-height: 520px;
+    }
+
+    .question-card {
+      position: absolute;
+      width: min(100%, 430px);
+      padding: 2rem 2.1rem;
+      border: 1px solid rgba(29, 32, 27, 0.12);
+      background: #fbf9f3;
+      box-shadow: 0 28px 65px rgba(45, 38, 29, 0.1);
+    }
+
+    .question-card span {
+      color: #8b8c83;
+      font-size: 0.58rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+
+    .question-card p {
+      margin: 1.3rem 0 0;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.45rem;
+      line-height: 1.3;
+    }
+
+    .question-card-one { top: 0; left: 0; transform: rotate(-2deg); }
+    .question-card-two { top: 150px; right: 0; transform: rotate(2.5deg); }
+    .question-card-three { bottom: 0; left: 28px; transform: rotate(-0.8deg); }
+
+    .principles-section {
+      padding: 10rem 0 8rem;
+      background: #1c211d;
+      color: var(--paper);
+    }
+
+    .principles-intro {
+      display: flex;
+      justify-content: space-between;
+      gap: 4rem;
+      align-items: flex-end;
+      margin-bottom: 5rem;
+    }
+
+    .principles-intro .eyebrow {
+      align-self: flex-start;
+      white-space: nowrap;
+    }
+
+    .principles-intro h2 {
+      max-width: 740px;
+      text-align: right;
+    }
+
+    .principles-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid rgba(244, 240, 231, 0.18);
+      border-bottom: 1px solid rgba(244, 240, 231, 0.18);
+    }
+
+    .principles-grid article {
+      padding: 3rem 2.4rem 3.4rem;
+    }
+
+    .principles-grid article + article {
+      border-left: 1px solid rgba(244, 240, 231, 0.18);
+    }
+
+    .principles-grid svg {
+      width: 28px;
+      margin-bottom: 3.8rem;
+      fill: none;
+      stroke: #a8b8a1;
+      stroke-width: 1.3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .principles-grid h3 {
+      margin: 0 0 0.8rem;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.7rem;
+      font-weight: 400;
+    }
+
+    .principles-grid p {
+      margin: 0;
+      color: rgba(244, 240, 231, 0.58);
+      font-size: 0.86rem;
+      line-height: 1.7;
+    }
+
+    .quiet-tech {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.3rem;
+      padding-top: 2.5rem;
+      color: rgba(244, 240, 231, 0.46);
+      font-size: 0.66rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .quiet-tech i {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(244, 240, 231, 0.35);
+    }
+
+    .closing-section {
+      position: relative;
+      padding: 11rem 0;
+      background: var(--rust);
+      color: white;
+      text-align: center;
+    }
+
+    .closing-section::before,
+    .closing-section::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .closing-section::before { left: calc(50% - 300px); }
+    .closing-section::after { right: calc(50% - 300px); }
+
+    .closing-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .closing-kicker {
+      margin: 0 0 1.7rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .closing-inner h2 {
+      font-size: clamp(4.5rem, 9vw, 9rem);
+      line-height: 0.83;
+    }
+
+    .closing-inner > p:not(.closing-kicker) {
+      margin: 2rem 0 1.7rem;
+      color: rgba(255, 255, 255, 0.75);
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 1.15rem;
+      font-style: italic;
+    }
+
+    .memo-button-light {
+      background: white;
+      color: var(--rust);
+    }
+
+    .memo-button-light:hover {
+      background: var(--ink);
+      color: white;
+    }
+
+    .landing-v2 .footer {
+      padding: 5rem 0;
+      border-top: 0;
+      background: #141714;
+      color: rgba(244, 240, 231, 0.65);
+    }
+
+    .landing-v2 .footer-grid {
+      max-width: 1180px;
+    }
+
+    .landing-v2 .footer .brand,
+    .landing-v2 .footer a {
+      color: var(--paper);
+    }
+
+    .landing-v2 .footer .btn,
+    .landing-v2 .footer .icon-btn {
+      border: 1px solid rgba(244, 240, 231, 0.16);
+      background: transparent;
+      color: var(--paper);
+    }
+
+    @media (max-width: 980px) {
+      .memo-hero {
+        padding-top: 6rem;
+      }
+
+      .memo-hero-grid,
+      .context-grid,
+      .recall-grid {
+        grid-template-columns: 1fr;
+        gap: 5.5rem;
+      }
+
+      .memo-hero-copy {
+        max-width: 760px;
+      }
+
+      .memory-composition {
+        width: min(90%, 560px);
+        margin: 0 auto;
+      }
+
+      .context-heading {
+        position: static;
+      }
+
+      .context-list {
+        max-width: 720px;
+        margin-left: auto;
+      }
+
+      .recall-copy {
+        max-width: 700px;
+      }
+
+      .question-stack {
+        width: min(100%, 700px);
+        margin-inline: auto;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .landing-v2 .landing-container {
+        width: min(100% - 2.4rem, 1180px);
+      }
+
+      .memo-hero {
+        min-height: auto;
+        padding: 5rem 0 6rem;
+      }
+
+      .memo-hero h1 {
+        font-size: clamp(3.55rem, 17vw, 5.2rem);
+      }
+
+      .memo-actions {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .memory-composition {
+        width: 100%;
+        padding-left: 1.2rem;
+      }
+
+      .memory-paper {
+        padding: 1.7rem 1.25rem 1.2rem;
+      }
+
+      .memory-date {
+        width: 60px;
+        height: 68px;
+      }
+
+      .memory-date span { font-size: 1.8rem; }
+      .memory-details > div { grid-template-columns: 7px 1fr; }
+      .memory-details em { display: none; }
+      .paper-foot span:first-child { display: none; }
+      .whisper-one { right: -6px; }
+      .whisper-two { display: none; }
+
+      .missing-context,
+      .how-section,
+      .recall-section,
+      .principles-section,
+      .closing-section {
+        padding-top: 7rem;
+        padding-bottom: 7rem;
+      }
+
+      .section-heading h2,
+      .principles-intro h2,
+      .recall-copy h2 {
+        font-size: clamp(3rem, 14vw, 4.5rem);
+      }
+
+      .how-heading {
+        display: block;
+        margin-bottom: 3.5rem;
+      }
+
+      .how-heading .eyebrow {
+        margin-bottom: 1.6rem;
+      }
+
+      .how-heading p:last-child {
+        margin: 1.5rem 0 0;
+      }
+
+      .chapter-grid,
+      .principles-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chapter + .chapter,
+      .principles-grid article + article {
+        border-left: 0;
+        border-top: 1px solid rgba(29, 32, 27, 0.18);
+      }
+
+      .principles-grid article + article {
+        border-color: rgba(244, 240, 231, 0.18);
+      }
+
+      .chapter {
+        padding-inline: 0;
+      }
+
+      .chapter-art {
+        height: 220px;
+      }
+
+      .principles-intro {
+        display: block;
+      }
+
+      .principles-intro h2 {
+        text-align: left;
+      }
+
+      .principles-grid article {
+        padding-inline: 0;
+      }
+
+      .question-stack {
+        min-height: auto;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .question-card {
+        position: static;
+        width: 100%;
+      }
+
+      .question-card-one { transform: rotate(-1deg); }
+      .question-card-two { transform: rotate(1deg); }
+      .question-card-three { transform: rotate(-0.5deg); }
+
+      .quiet-tech {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .quiet-tech i {
+        display: none;
+      }
+
+      .closing-section::before,
+      .closing-section::after {
+        display: none;
+      }
+
+      .closing-inner h2 {
+        font-size: clamp(4rem, 20vw, 6rem);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .landing-v2 .header-actions .icon-btn {
+        display: none;
+      }
+
+      .landing-v2 .header-actions > .btn.primary {
+        min-height: 36px;
+        padding-inline: 0.9rem;
+      }
+
+      .raw-memory {
+        font-size: 1.17rem;
+      }
+
+      .memory-details p small {
+        display: block;
+        width: auto;
+        margin-bottom: 0.12rem;
+      }
+
+      .context-grid,
+      .recall-grid {
+        gap: 4rem;
+      }
+
+      .context-row {
+        grid-template-columns: 28px 1fr;
+        gap: 0.8rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .memory-paper {
+        animation: memory-arrive 700ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
+      }
+
+      .memory-date {
+        animation: date-arrive 650ms 180ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
+      }
+
+      @keyframes memory-arrive {
+        from { opacity: 0; transform: translateY(24px) rotate(2.4deg); }
+        to { opacity: 1; transform: translateY(0) rotate(1.2deg); }
+      }
+
+      @keyframes date-arrive {
+        from { opacity: 0; transform: translate(-8px, 12px) rotate(-9deg); }
+        to { opacity: 1; transform: translate(0, 0) rotate(-5deg); }
+      }
+    }
+  </style>
 </BaseLayout>
