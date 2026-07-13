@@ -34,7 +34,9 @@ Filters expose the complete stream, review queue and failed processing queue. A 
 
 ### Recall
 
-Evidence-first retrieval across raw entries, normalized facts and legacy category events. Natural questions are reduced to meaningful search terms, but results are not fabricated into a chat answer. When a numeric signal is clear, Memoato can show its latest value with the matching sources underneath.
+Evidence-first retrieval across raw entries, normalized facts and legacy category events. Croatian and English concepts and calendar phrases are normalized into one query contract. PostgreSQL combines full-text, diacritic-insensitive fuzzy and multilingual vector ranking. The original entries always remain visible.
+
+An AI synthesis is optional and user-triggered. It receives only the visible top evidence, must answer in the question's language, and may cite only supplied entry IDs. It is labeled as synthesis and never replaces search results or stored facts.
 
 ### Views
 
@@ -56,6 +58,7 @@ The normalized layer is additive:
 - `MemoryAlias`: personal language learned only from explicit correction;
 - `MemoryEntity` + `MemoryFactEntity`: people, places, activities and topics that can connect facts later;
 - `MemoryInference`: suggestions separated from facts, with evidence IDs and review status.
+- `MemoryEmbedding`: versioned, rebuildable search text and vector projection for one raw entry.
 
 Facts are rebuildable. Raw entries are not.
 
@@ -72,9 +75,32 @@ capture
       preserve raw Event
       record parser/model/run result
   → accepted facts or human review queue
+  → enqueue rebuildable search projection
+  → single failure-safe embedding worker
+  → lexical Recall is available even while vectors are queued or unavailable
 ```
 
 Processing is recoverable after a restart. Queued runs and stale processing leases are reclaimed from the database. Reprocessing swaps derived state in one transaction so a crash cannot leave half-deleted derived data.
+
+Embedding work has its own statuses, attempts and stale-lease recovery. It is deliberately outside the fact-processing transaction. A provider failure can mark only the projection as failed; it cannot mark the raw entry or accepted fact as failed. Human corrections invalidate and rebuild only the affected projection.
+
+## Recall storage and ranking
+
+PostgreSQL is the sole persistence and retrieval system:
+
+- `unaccent` makes `težina` and `tezina` equivalent for lookup;
+- `pg_trgm` tolerates partial words and small spelling differences;
+- PostgreSQL full-text search uses the language-neutral `simple` dictionary so Croatian and English can coexist;
+- pgvector stores a 1024-dimensional multilingual embedding produced through OpenRouter;
+- reciprocal-rank fusion combines lexical and semantic result lists without pretending their raw scores share one scale.
+
+Embeddings are pinned by model, dimensions and projection version. A model change creates a new projection version and backfill; vectors from different embedding spaces are never mixed. Float vectors are omitted from user exports because they are large, derived and reproducible, while their audit metadata is exported.
+
+At the current data volume exact cosine search is simpler and sufficiently fast. An HNSW index can be added later without changing the product or API contract if measured latency requires it.
+
+## Why not HelixDB yet
+
+Memoato's current relationships—raw entry → facts → entities → evidence-backed inferences—fit relational tables and joins cleanly. Adding a second database would introduce dual-write, backup, privacy/export and consistency costs before graph traversal is a proven bottleneck. HelixDB remains an option only if real product usage requires deep multi-hop graph retrieval that PostgreSQL cannot meet at the required latency.
 
 ## OpenRouter policy
 
@@ -145,7 +171,7 @@ The schema intentionally supports but the current UI does not yet pretend to sol
 - evidence-backed relationship/entity pages;
 - suggested patterns over time;
 - calendar, health and message context adapters;
-- semantic/vector recall;
+- measured HNSW indexing if exact vector search becomes slow;
 - user-approved inference promotion.
 
 Each extension must keep the same invariant: evidence remains inspectable, inference remains labeled, and raw memory remains owned by the user.

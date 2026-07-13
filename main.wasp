@@ -247,7 +247,7 @@ query getDayEvents {
 
 query getMemoryOverview {
   fn: import { getMemoryOverview } from "@src/memory/operations",
-  entities: [User, Event, Category, MemoryFact, MemoryProcessingRun]
+  entities: [User, Event, Category, MemoryFact, MemoryProcessingRun, MemoryEmbedding]
 }
 
 query getMemoryFeed {
@@ -257,7 +257,7 @@ query getMemoryFeed {
 
 query recallMemory {
   fn: import { recallMemory } from "@src/memory/operations",
-  entities: [User, Event, Category, MemoryFact]
+  entities: [User, Event, Category, MemoryFact, MemoryEmbedding]
 }
 
 query getPublicTotals {
@@ -282,7 +282,12 @@ action createRawLog {
 
 action reviewMemoryFact {
   fn: import { reviewMemoryFact } from "@src/memory/operations",
-  entities: [User, Event, Category, MemoryFact, MemoryCorrection, MemoryAlias]
+  entities: [User, Event, Category, MemoryFact, MemoryCorrection, MemoryAlias, MemoryEmbedding]
+}
+
+action answerMemoryRecall {
+  fn: import { answerMemoryRecall } from "@src/memory/operations",
+  entities: [User, Event, Category, MemoryFact]
 }
 
 action retryMemoryEntry {
@@ -408,7 +413,7 @@ action confirmAccountDeletion {
 
 action exportMyData {
   fn: import { exportMyData } from "@src/profile/export",
-  entities: [User, Category, Event, MemoryFact, MemoryProcessingRun, MemoryCorrection, MemoryAlias, MemoryEntity, MemoryInference]
+  entities: [User, Category, Event, MemoryFact, MemoryProcessingRun, MemoryCorrection, MemoryAlias, MemoryEntity, MemoryInference, MemoryEmbedding]
 }
 
 // analytics is handled client-side via Databuddy script in <head>
