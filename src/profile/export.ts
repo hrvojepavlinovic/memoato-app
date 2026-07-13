@@ -2,7 +2,7 @@ import { prisma, HttpError } from "wasp/server";
 import type { ExportMyData } from "wasp/server/operations";
 
 type MemoatoExport = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   exportedAt: string;
   user: {
     id: string;
@@ -52,6 +52,7 @@ type MemoatoExport = {
     aliases: any[];
     entities: any[];
     inferences: any[];
+    searchProjections: any[];
   };
 };
 
@@ -124,6 +125,7 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (
     aliases,
     entities,
     inferences,
+    searchProjections,
   ] = await Promise.all([
     context.entities.Category.findMany({
       where: { userId },
@@ -188,10 +190,29 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (
       where: { userId },
       orderBy: [{ createdAt: "asc" }],
     }),
+    prisma.memoryEmbedding.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        rawEntryId: true,
+        model: true,
+        version: true,
+        dimensions: true,
+        contentHash: true,
+        status: true,
+        attempt: true,
+        errorCode: true,
+        startedAt: true,
+        finishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [{ createdAt: "asc" }],
+    }),
   ]);
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     exportedAt: new Date().toISOString(),
     user: {
       id: user.id,
@@ -247,6 +268,9 @@ export const exportMyData: ExportMyData<void, MemoatoExport> = async (
       aliases,
       entities,
       inferences,
+      // Float vectors are derived, provider-specific, and intentionally omitted.
+      // The export carries enough metadata to audit or rebuild them.
+      searchProjections,
     },
   };
 };

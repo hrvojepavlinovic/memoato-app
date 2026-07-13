@@ -1,18 +1,31 @@
 import React from "react";
-import { recallMemory, useQuery } from "wasp/client/operations";
+import {
+  answerMemoryRecall,
+  recallMemory,
+  useQuery,
+} from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
 import { MemoryEntryCard } from "./components/MemoryEntryCard";
 
 const SUGGESTIONS = [
-  "When did I last play football?",
-  "body weight",
-  "low energy",
-  "pull ups",
+  "Kad sam zadnji put igrao nogomet?",
+  "body weight last 30 days",
+  "niska energija ovaj tjedan",
+  "pull ups / zgibovi",
 ];
+
+function modeLabel(mode: string | undefined) {
+  if (mode === "hybrid") return "Words + meaning";
+  if (mode === "semantic") return "Meaning";
+  return "Words";
+}
 
 export function RecallPage() {
   const [draft, setDraft] = React.useState("");
   const [query, setQuery] = React.useState("");
+  const [answer, setAnswer] = React.useState<any>(null);
+  const [answerError, setAnswerError] = React.useState("");
+  const [answering, setAnswering] = React.useState(false);
   const recall = useQuery(
     recallMemory,
     { query, take: 30 },
@@ -24,7 +37,34 @@ export function RecallPage() {
     const cleaned = value.trim();
     if (!cleaned) return;
     setDraft(cleaned);
+    setAnswer(null);
+    setAnswerError("");
     setQuery(cleaned);
+  }
+
+  async function answerFromEvidence() {
+    const entryIds = (data?.entries ?? [])
+      .filter((entry: any) => entry.processingStatus !== "legacy")
+      .map((entry: any) => entry.id)
+      .slice(0, 8);
+    if (entryIds.length === 0) return;
+    setAnswering(true);
+    setAnswerError("");
+    try {
+      const result = await answerMemoryRecall({ query, entryIds } as any);
+      setAnswer(result);
+      if (!(result as any)?.available) {
+        setAnswerError(
+          "AI synthesis is temporarily unavailable. Your evidence is still below.",
+        );
+      }
+    } catch {
+      setAnswerError(
+        "Couldn’t synthesize an answer right now. Your evidence is unchanged.",
+      );
+    } finally {
+      setAnswering(false);
+    }
   }
 
   return (
@@ -73,7 +113,19 @@ export function RecallPage() {
         <section className="mt-7">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <div className="label">Evidence</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="label">Evidence</div>
+                {!recall.isLoading && data ? (
+                  <span className="border border-neutral-300 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                    {modeLabel(data.mode)}
+                  </span>
+                ) : null}
+                {data?.range?.label ? (
+                  <span className="border border-neutral-300 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                    {data.range.label}
+                  </span>
+                ) : null}
+              </div>
               <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em]">
                 {recall.isLoading
                   ? "Searching…"
@@ -93,9 +145,76 @@ export function RecallPage() {
             ) : null}
           </div>
 
+          {!recall.isLoading && (data?.entries ?? []).length > 0 ? (
+            <div className="mt-4 border-2 border-neutral-950 bg-[#f7f4ed] p-4 dark:border-neutral-100 dark:bg-neutral-900 sm:flex sm:items-center sm:justify-between sm:gap-5">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#ff5c35]">
+                  Grounded synthesis
+                </div>
+                <p className="mt-1 max-w-2xl text-sm leading-5 text-neutral-600 dark:text-neutral-300">
+                  Ask AI to summarize only the evidence below. Raw entries stay
+                  visible and every claim must cite one of them.
+                </p>
+              </div>
+              <Button
+                className="mt-3 w-full flex-none sm:mt-0 sm:w-auto"
+                onClick={answerFromEvidence}
+                disabled={answering}
+              >
+                {answering ? "Reading evidence…" : "Answer from evidence"}
+              </Button>
+            </div>
+          ) : null}
+
+          {answer?.available ? (
+            <article className="mt-3 border-l-4 border-[#ff5c35] bg-neutral-950 p-5 text-white dark:bg-neutral-100 dark:text-neutral-950">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#ff8a6d] dark:text-[#d94724]">
+                  Answer grounded in your entries
+                </div>
+                <div className="text-[9px] font-bold uppercase tracking-[0.1em] opacity-60">
+                  {answer.confidence} confidence · AI synthesis
+                </div>
+              </div>
+              <p className="mt-3 whitespace-pre-wrap text-base font-medium leading-7">
+                {answer.answer}
+              </p>
+              {answer.citations?.length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {answer.citations.map((id: string) => {
+                    const index = (data?.entries ?? []).findIndex(
+                      (entry: any) => entry.id === id,
+                    );
+                    return (
+                      <a
+                        key={id}
+                        href={`#evidence-${id}`}
+                        className="border border-white/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] hover:border-[#ff8a6d] dark:border-neutral-950/30"
+                      >
+                        Evidence {index >= 0 ? index + 1 : ""}
+                      </a>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </article>
+          ) : null}
+
+          {answerError ? (
+            <div className="mt-3 border border-amber-400 bg-amber-50 p-3 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+              {answerError}
+            </div>
+          ) : null}
+
           <div className="mt-4 space-y-3">
             {(data?.entries ?? []).map((entry: any) => (
-              <MemoryEntryCard key={entry.id} entry={entry} compact />
+              <div
+                key={entry.id}
+                id={`evidence-${entry.id}`}
+                className="scroll-mt-24"
+              >
+                <MemoryEntryCard entry={entry} compact />
+              </div>
             ))}
             {!recall.isLoading && (data?.entries ?? []).length === 0 ? (
               <div className="card p-10 text-center">

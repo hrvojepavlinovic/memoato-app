@@ -11,6 +11,7 @@ import {
 } from "./openRouterExtractor";
 import { hashApiKeyToken, scopeAllowsRawEntryWrite } from "./apiKeys";
 import { createHash, randomUUID } from "node:crypto";
+import { triggerMemoryEmbeddingProjection } from "./embeddingQueue";
 
 type PrismaLike = any;
 
@@ -665,6 +666,9 @@ export async function processRawMemoryEntry(args: {
   const apiKeyId = rawEntry?.data?.memoatoMemory?.apiKeyId ?? null;
   const processingRun = await claimProcessingRun(args.prisma, rawEntry);
   if (!processingRun) {
+    if (rawEntry?.data?.memoatoMemory?.processingStatus === "complete") {
+      triggerMemoryEmbeddingProjection(args.prisma, rawEntry.id);
+    }
     return {
       rawEntryId: rawEntry.id,
       processingStatus:
@@ -886,6 +890,7 @@ export async function processRawMemoryEntry(args: {
       },
     );
 
+    triggerMemoryEmbeddingProjection(args.prisma, rawEntry.id);
     return {
       rawEntryId: rawEntry.id,
       processingStatus: "complete",

@@ -1,9 +1,18 @@
 # Dev setup
 
-## Database (Postgres)
+## Database (Postgres + Recall extensions)
 
-Memoato works with any Postgres instance. On some servers it’s convenient to use passwordless local connections over the
-Postgres UNIX socket (peer auth).
+Memoato uses PostgreSQL as its source of truth and Recall engine. Install the `vector` extension package for the same PostgreSQL major version before running migrations. `unaccent` and `pg_trgm` are bundled PostgreSQL extensions and are enabled by the migration.
+
+On macOS with Homebrew:
+
+```bash
+brew install postgresql@18 pgvector
+```
+
+On Linux, install a current pgvector package for the server's PostgreSQL major version or build the extension from its official source. Do this before deployment; `CREATE EXTENSION vector` intentionally fails instead of leaving a half-working Recall schema.
+
+On some servers it’s convenient to use passwordless local connections over the Postgres UNIX socket (peer auth).
 
 Example socket setup:
 
@@ -83,6 +92,9 @@ Optional background interpretation via OpenRouter:
 OPENROUTER_API_KEY="..."
 MEMOATO_AI_MODEL="google/gemini-3.1-flash-lite"
 MEMOATO_AI_FALLBACK_MODEL="openai/gpt-4.1-mini"
+MEMOATO_EMBEDDING_MODEL="qwen/qwen3-embedding-8b"
+MEMOATO_EMBEDDING_DIMENSIONS="1024"
+MEMOATO_EMBEDDING_VERSION="memory-search-v1"
 ```
 
 Do not commit real values. The API endpoint is:
@@ -104,6 +116,8 @@ Payload:
 ```
 
 The server always stores the raw note and a durable processing run in one transaction before interpretation starts. Local deterministic extraction runs first. OpenRouter is called only when the local reading is empty, uncertain, or a longer entry appears to contain multiple facts. A timeout or provider failure cannot remove the original entry.
+
+The same OpenRouter key enables semantic Recall. The search projection and embedding worker are independent of raw-entry processing: lexical Recall still works when the provider is unavailable, and failed vectors are safely retried. Keep the embedding dimensions aligned with the `vector(1024)` migration. Changing the model should also change `MEMOATO_EMBEDDING_VERSION` and trigger a controlled backfill.
 
 Local MCP server:
 

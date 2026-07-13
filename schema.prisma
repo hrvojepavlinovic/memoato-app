@@ -37,6 +37,7 @@ model User {
   MemoryAlias         MemoryAlias[]
   MemoryEntity        MemoryEntity[]
   MemoryInference     MemoryInference[]
+  MemoryEmbedding     MemoryEmbedding[]
 }
 
 enum EventKind {
@@ -152,6 +153,7 @@ model Event {
   derivedMemoryFacts   MemoryFact[]          @relation("DerivedMemoryFacts")
   memoryProcessingRuns MemoryProcessingRun[]
   memoryCorrections    MemoryCorrection[]
+  memoryEmbeddings     MemoryEmbedding[]
 
   @@unique([source, kind, sourceId])
   @@index([userId])
@@ -332,6 +334,40 @@ model MemoryInference {
 
   @@index([userId, status])
   @@index([userId, kind])
+}
+
+// A rebuildable search projection. The raw NOTE and MemoryFact rows remain the
+// source of truth; changing an embedding model never rewrites either of them.
+model MemoryEmbedding {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  rawEntry   Event  @relation(fields: [rawEntryId], references: [id], onDelete: Cascade)
+  rawEntryId String
+
+  model       String
+  version     String
+  dimensions  Int
+  searchText  String
+  contentHash String
+  status      String    @default("queued")
+  attempt     Int       @default(0)
+  errorCode   String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Prisma keeps metadata CRUD available while vector similarity is handled
+  // through parameterized SQL, because pgvector is not a native Prisma scalar.
+  embedding Unsupported("vector")?
+
+  @@unique([rawEntryId, model, version])
+  @@index([userId, status])
+  @@index([userId, model, version])
+  @@index([rawEntryId])
 }
 
 model ApiKey {

@@ -2,13 +2,18 @@ import { HttpError, prisma } from "wasp/server";
 import type {
   GetMemoryFeed,
   GetMemoryOverview,
+  AnswerMemoryRecall,
   RecallMemory,
   RetryMemoryEntry,
   ReviewMemoryFact,
 } from "wasp/server/operations";
 import { isOpenRouterExtractorConfigured } from "./openRouterExtractor";
 import { queueMemoryReprocessing } from "./ingest";
-import { searchMemoryTerms } from "./recallTerms";
+import { parseRecallQuery } from "./recallTerms";
+import { hybridRecallCandidates } from "./recallSearch";
+import { answerRecallWithOpenRouter } from "./openRouterRecall";
+import { triggerMemoryEmbeddingProjection } from "./embeddingQueue";
+import { getEmbeddingConfig, isEmbeddingConfigured } from "./embedding";
 
 const MAX_FEED_TAKE = 50;
 const DEFAULT_FEED_TAKE = 20;
@@ -132,28 +137,58 @@ export const getMemoryOverview: GetMemoryOverview<void, any> = async (
 ) => {
   if (!context.user) throw new HttpError(401);
   const userId = context.user.id;
+  const embeddingConfig = getEmbeddingConfig();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [capturedToday, reviewCount, failedCount, recent] = await Promise.all([
-    prisma.event.count({
-      where: { userId, kind: "NOTE", occurredAt: { gte: today } },
-    }),
-    prisma.memoryFact.count({ where: { userId, status: "needs_review" } }),
-    prisma.event.count({
-      where: {
-        userId,
-        kind: "NOTE",
-        data: { path: ["memoatoMemory", "processingStatus"], equals: "failed" },
-      },
-    }),
-    prisma.event.findMany({
-      where: { userId, kind: "NOTE" },
-      select: memoryEntrySelect,
-      orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
-      take: 4,
-    }),
-  ]);
+  const [capturedToday, reviewCount, failedCount, recent, searchStates] =
+    await Promise.all([
+      prisma.event.count({
+        where: { userId, kind: "NOTE", occurredAt: { gte: today } },
+      }),
+      prisma.memoryFact.count({ where: { userId, status: "needs_review" } }),
+      prisma.event.count({
+        where: {
+          userId,
+          kind: "NOTE",
+          data: {
+            path: ["memoatoMemory", "processingStatus"],
+            equals: "failed",
+          },
+        },
+      }),
+      prisma.event.findMany({
+        where: { userId, kind: "NOTE" },
+        select: memoryEntrySelect,
+        orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+        take: 4,
+      }),
+      prisma.memoryEmbedding.groupBy({
+        by: ["status"],
+        where: {
+          userId,
+          model: embeddingConfig.model,
+          version: embeddingConfig.version,
+        },
+        _count: { _all: true },
+      }),
+    ]);
+  const searchCounts = Object.fromEntries(
+    (searchStates as any[]).map((row) => [
+      String(row.status),
+      Number(row?._count?._all ?? 0),
+    ]),
+  );
+  const searchPending =
+    (searchCounts.queued ?? 0) + (searchCounts.processing ?? 0);
+  const searchFailed = searchCounts.failed ?? 0;
+  const searchStatus = !isEmbeddingConfigured()
+    ? "words-only"
+    : searchFailed > 0
+      ? "degraded"
+      : searchPending > 0
+        ? "indexing"
+        : "ready";
 
   return {
     capturedToday,
@@ -166,6 +201,16 @@ export const getMemoryOverview: GetMemoryOverview<void, any> = async (
       model: String(
         process.env.MEMOATO_AI_MODEL ?? "google/gemini-3.1-flash-lite",
       ),
+      recall: {
+        semanticConfigured: isEmbeddingConfigured(),
+        model: embeddingConfig.model,
+        version: embeddingConfig.version,
+        status: searchStatus,
+        queued: searchCounts.queued ?? 0,
+        processing: searchCounts.processing ?? 0,
+        complete: searchCounts.complete ?? 0,
+        failed: searchFailed,
+      },
     },
   };
 };
@@ -228,10 +273,15 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
   const query = String(args?.query ?? "")
     .trim()
     .slice(0, 240);
-  const terms = searchMemoryTerms(query);
+  if (!query) throw new HttpError(400, "Missing query");
+  const parsed = parseRecallQuery(query);
+  const terms = parsed.terms;
   const take = clampTake(args?.take);
-  const termConditions: any[] = terms.map((term) => ({
-    OR: [
+  const dateWhere = parsed.range
+    ? { occurredAt: { gte: parsed.range.from, lt: parsed.range.to } }
+    : {};
+  const groupConditions: any[] = parsed.groups.map((group) => ({
+    OR: group.flatMap((term) => [
       { rawText: { contains: term, mode: "insensitive" } },
       {
         rawMemoryFacts: {
@@ -249,15 +299,42 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
           },
         },
       },
-    ],
+    ]),
   }));
+
+  let hybrid: Awaited<ReturnType<typeof hybridRecallCandidates>> = {
+    ranks: [],
+    mode: "lexical",
+    semanticAvailable: false,
+  };
+  try {
+    hybrid = await hybridRecallCandidates({
+      prisma,
+      userId: context.user.id,
+      query,
+      parsed,
+      take,
+    });
+  } catch {
+    // The projection is disposable. Recall falls back to source-of-truth rows
+    // during migrations, provider incidents, or a projection rebuild.
+  }
+  const rankById = new Map(
+    hybrid.ranks.map((rank, index) => [rank.rawEntryId, { ...rank, index }]),
+  );
+  const rankedIds = hybrid.ranks.map((rank) => rank.rawEntryId);
 
   const [rawRows, legacyRows] = await Promise.all([
     prisma.event.findMany({
       where: {
         userId: context.user.id,
         kind: "NOTE",
-        ...(termConditions.length > 0 ? { AND: termConditions } : {}),
+        ...dateWhere,
+        ...(rankedIds.length > 0
+          ? { id: { in: rankedIds } }
+          : groupConditions.length > 0
+            ? { AND: groupConditions }
+            : {}),
       } as any,
       select: memoryEntrySelect,
       orderBy: [{ occurredAt: "desc" }],
@@ -267,10 +344,11 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
       where: {
         userId: context.user.id,
         kind: "SESSION",
-        ...(terms.length > 0
+        ...dateWhere,
+        ...(parsed.groups.length > 0
           ? {
-              AND: terms.map((term) => ({
-                OR: [
+              AND: parsed.groups.map((group) => ({
+                OR: group.flatMap((term) => [
                   { rawText: { contains: term, mode: "insensitive" } },
                   {
                     category: {
@@ -278,9 +356,11 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
                     },
                   },
                   {
-                    category: { slug: { contains: term, mode: "insensitive" } },
+                    category: {
+                      slug: { contains: term, mode: "insensitive" },
+                    },
                   },
-                ],
+                ]),
               })),
             }
           : {}),
@@ -304,7 +384,17 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
   const rawIds = new Set<string>(
     (rawRows as any[]).map((row: any) => String(row.id)),
   );
-  const entries: any[] = rawRows.map(entryDto);
+  const entries: any[] = rawRows.map((row: any) => ({
+    ...entryDto(row),
+    recallMatch: rankById.get(String(row.id)) ?? null,
+  }));
+  if (rankedIds.length > 0) {
+    entries.sort(
+      (a, b) =>
+        (rankById.get(a.id)?.index ?? Number.MAX_SAFE_INTEGER) -
+        (rankById.get(b.id)?.index ?? Number.MAX_SAFE_INTEGER),
+    );
+  }
   for (const event of legacyRows) {
     const rawEntryId = (event?.data as any)?.rawEntryId;
     if (typeof rawEntryId === "string" && rawIds.has(rawEntryId)) continue;
@@ -334,12 +424,15 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
           data: event.data,
         },
       ],
+      recallMatch: null,
     });
   }
-  entries.sort(
-    (a, b) =>
-      new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
-  );
+  if (rankedIds.length === 0) {
+    entries.sort(
+      (a, b) =>
+        new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
+    );
+  }
 
   const acceptedFacts = entries
     .flatMap((entry) =>
@@ -358,11 +451,25 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
   }
   const strongest =
     Array.from(group.values()).sort((a, b) => b.length - a.length)[0] ?? [];
-  const latest = strongest[0] ?? null;
+  const latest =
+    [...strongest].sort(
+      (a, b) =>
+        new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
+    )[0] ?? null;
 
   return {
     query,
     terms,
+    mode: hybrid.mode,
+    semanticAvailable: hybrid.semanticAvailable,
+    range: parsed.range
+      ? {
+          key: parsed.range.key,
+          label: parsed.range.label,
+          from: parsed.range.from,
+          to: parsed.range.to,
+        }
+      : null,
     count: Math.min(entries.length, take),
     entries: entries.slice(0, take),
     signal: latest
@@ -375,6 +482,66 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
         }
       : null,
   };
+};
+
+type AnswerRecallArgs = { query: string; entryIds: string[] };
+
+export const answerMemoryRecall: AnswerMemoryRecall<
+  AnswerRecallArgs,
+  any
+> = async (args, context) => {
+  if (!context.user) throw new HttpError(401);
+  const query = String(args?.query ?? "")
+    .trim()
+    .slice(0, 240);
+  const entryIds = Array.from(
+    new Set(
+      (Array.isArray(args?.entryIds) ? args.entryIds : [])
+        .map((id) => String(id).trim())
+        .filter(Boolean),
+    ),
+  ).slice(0, 8);
+  if (!query || entryIds.length === 0) {
+    throw new HttpError(400, "Question and evidence are required");
+  }
+  const rows = await prisma.event.findMany({
+    where: {
+      id: { in: entryIds },
+      userId: context.user.id,
+      kind: "NOTE",
+    },
+    select: memoryEntrySelect,
+  });
+  const byId = new Map(rows.map((row: any) => [String(row.id), row]));
+  const evidence = entryIds
+    .map((id) => byId.get(id))
+    .filter(Boolean)
+    .map((row: any) => ({
+      id: row.id,
+      occurredAt: row.occurredAt.toISOString(),
+      rawText: String(row.rawText ?? ""),
+      facts: (row.rawMemoryFacts ?? [])
+        .filter((fact: any) => fact.status !== "rejected")
+        .map((fact: any) => ({
+          label: fact.label,
+          canonical: fact.canonical,
+          amount: fact.amount,
+          unit: fact.unit,
+          status: fact.status,
+        })),
+    }));
+  if (evidence.length === 0) throw new HttpError(404);
+  const answer = await answerRecallWithOpenRouter({ query, evidence });
+  if (!answer) {
+    return {
+      available: false,
+      answer: null,
+      citations: [],
+      confidence: null,
+      model: null,
+    };
+  }
+  return { available: true, ...answer };
 };
 
 type ReviewArgs = {
@@ -603,6 +770,7 @@ export const reviewMemoryFact: ReviewMemoryFact<ReviewArgs, any> = async (
     }
     return result;
   });
+  triggerMemoryEmbeddingProjection(prisma, fact.rawEntryId);
   return factDto({ ...updated, category: null });
 };
 

@@ -1089,6 +1089,15 @@ export function ProfilePage() {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-300 bg-white/50 px-4 py-3 text-xs dark:border-neutral-700 dark:bg-neutral-950/30">
             <span className="font-semibold">OpenRouter: {memoryOverviewQuery.data?.processing?.openRouterConfigured ? "Connected" : "Not configured"}</span>
+            <span className="font-semibold">
+              Recall: {memoryOverviewQuery.data?.processing?.recall?.status === "ready"
+                ? "Semantic ready"
+                : memoryOverviewQuery.data?.processing?.recall?.status === "indexing"
+                  ? `Indexing (${(memoryOverviewQuery.data?.processing?.recall?.queued ?? 0) + (memoryOverviewQuery.data?.processing?.recall?.processing ?? 0)})`
+                  : memoryOverviewQuery.data?.processing?.recall?.status === "degraded"
+                    ? `Words available · ${memoryOverviewQuery.data?.processing?.recall?.failed ?? 0} retries needed`
+                    : "Words only"}
+            </span>
             <span className="max-w-full truncate font-mono text-[10px] text-neutral-500">{memoryOverviewQuery.data?.processing?.model ?? "Local only"}</span>
           </div>
         </div>

@@ -26,6 +26,19 @@ For each change:
    - `./scripts/deploy_prod.sh`
    - This builds Wasp artifacts, runs Prisma migrations (`migrate deploy`), publishes a new immutable release under `deploy/releases/`, repoints `deploy/current`, then restarts PM2 processes.
 
+## Recall database prerequisite
+
+Before the first deployment containing `20260713203000_add_hybrid_recall`, take a verified PostgreSQL backup and install a current pgvector build for the server's PostgreSQL major version. The migration enables `vector`, `unaccent` and `pg_trgm` and intentionally stops if pgvector is unavailable; it never edits existing `Event` or `MemoryFact` rows.
+
+Preflight with the production database URL:
+
+```bash
+psql "$DATABASE_URL" -c "show server_version;"
+psql "$DATABASE_URL" -c "select name, default_version, installed_version from pg_available_extensions where name in ('vector', 'unaccent', 'pg_trgm') order by name;"
+```
+
+After deploy, verify that `vector` is installed, `MemoryEmbedding.embedding` is `vector(1024)`, and both `MemoryEmbedding_searchText_*` GIN indexes exist. The API starts the idempotent projection backfill in the background; raw capture and lexical Recall remain available while embeddings are queued.
+
 ## Environment
 
 Create `.env.server` based on `.env.server.example` and fill:
@@ -34,6 +47,7 @@ Create `.env.server` based on `.env.server.example` and fill:
 - `WASP_SERVER_URL`, `WASP_WEB_CLIENT_URL`, `JWT_SECRET`
 - `SMTP_*` (required for email verification + password reset emails)
 - (optional) `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (Google login)
+- `OPENROUTER_API_KEY` plus the pinned Recall embedding model/dimensions/version from `.env.server.example`
 
 Create `.env.client` based on `.env.client.example` (used at build time):
 
