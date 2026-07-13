@@ -5,11 +5,19 @@ type Props = {
   canonicalPath?: string;
   ogType?: "website" | "article";
   ogImagePath?: string;
+  bodyClass?: string;
 };
 
 import "../styles/global.css";
 
-const { title, description, canonicalPath, ogType = "website", ogImagePath = "/og.png" } = Astro.props;
+const {
+  title,
+  description,
+  canonicalPath,
+  ogType = "website",
+  ogImagePath = "/og.png",
+  bodyClass,
+} = Astro.props;
 const databuddyClientId =
   import.meta.env.PUBLIC_DATABUDDY_CLIENT_ID?.trim() || "c1678578-eedf-4cbc-bbc6-8dfa541712dc";
 
@@ -90,7 +98,7 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
         async></script>`}
     />
   </head>
-  <body>
+  <body class={bodyClass}>
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="/">
