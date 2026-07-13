@@ -1,5 +1,5 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 
 const faqJsonLd = {
   "@context": "https://schema.org",
@@ -7,50 +7,34 @@ const faqJsonLd = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "How do I get started?",
+      name: "How do I log something in Memoato?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "On first run, memoato suggests a few starter trackers (templates) like Weight, Water, and Push ups. You can always edit goals, chart type, and colors later.",
+        text: "Open Quick Log and write what happened naturally. Memoato saves the raw note first, then processes useful categories and details in the background.",
       },
     },
     {
       "@type": "Question",
-      name: "What are templates (starter trackers)?",
+      name: "What happens to my original note?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Templates are prefilled categories with sensible defaults (emoji, unit, chart, period, goal, and how multiple entries are counted). You can use them during onboarding or when creating a new category.",
+        text: "The original raw entry is preserved. Derived events and labels stay linked to it so corrections do not duplicate the source log.",
       },
     },
     {
       "@type": "Question",
-      name: "What is Notes?",
+      name: "What are categories?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Notes is a built-in system category that is created automatically and cannot be deleted. In the Timeline, each note shows its own timestamp.",
+        text: "Categories are views and metrics such as Weight, Pull ups, Football, or Notes. They help organize facts extracted from raw entries and can also be logged directly.",
       },
     },
     {
       "@type": "Question",
-      name: "How do I log something quickly?",
+      name: "Can I edit or delete my history?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Open a category and add a value (or a note for Notes). On Home, you can also tap the + button on a category tile to quick-add.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Can I edit or delete history?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes. Open a category, scroll to history, then edit values or delete entries. System categories (like Notes) cannot be deleted, but their entries can be edited/deleted.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What is the Timeline?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Timeline groups your day into readable summaries so you can see what happened at a glance, including totals and individual entries where relevant.",
+        text: "Yes. You can edit and delete entries from category history. You can also export your data or delete your account from Profile.",
       },
     },
     {
@@ -58,15 +42,15 @@ const faqJsonLd = {
       name: "What privacy options are available?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "memoato supports cloud sync, encrypted cloud, and local-only storage. Open the app and go to Profile → Privacy to switch modes.",
+        text: "Memoato supports cloud sync, encrypted cloud, and local-only storage. Change the mode under Profile and Privacy.",
       },
     },
     {
       "@type": "Question",
-      name: "Where do I send feedback?",
+      name: "Can I connect Codex or Claude?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Email hello@memoato.com or open an issue on the GitHub repo.",
+        text: "Yes. Create a scoped API key in Profile and connect to the hosted Memoato MCP endpoint.",
       },
     },
   ],
@@ -74,93 +58,74 @@ const faqJsonLd = {
 const faqJsonLdString = JSON.stringify(faqJsonLd);
 ---
 
-<BaseLayout title="Help · memoato" description="FAQ and quick start." canonicalPath="/help">
+<EditorialPageLayout
+  title="Help · memoato"
+  description="How to capture, organize, review, and protect your memories in Memoato."
+  canonicalPath="/help"
+  eyebrow="Help & FAQ"
+  heading="Start with what happened."
+  deck="You do not need to design a tracking system before using Memoato. One honest sentence is enough to begin."
+  accent="sage"
+>
   <script slot="head" type="application/ld+json" set:html={faqJsonLdString} />
 
-  <section class="section">
-    <div class="container prose">
-      <h1 class="page-title">Help & FAQ</h1>
-      <p>
-        Quick links: <a href="https://app.memoato.com">Open the app</a> · <a href="/privacy">Privacy</a> ·
-        <a href="/open-source">Open source</a>
-      </p>
+  <p>
+    Open <a href="https://app.memoato.com">Quick Log</a>, write the thing in your own words, and submit it. Memoato saves
+    the original note immediately. Useful structure can appear afterward without making you wait at capture time.
+  </p>
 
-      <h2>Getting started</h2>
-      <p>
-        On your first run, memoato helps you pick a few common trackers (templates) like Weight, Water, and Push ups.
-        You can always change goals, chart type, and colors later.
-      </p>
-      <p>
-        Curious what “ADHD-friendly” means here? Read: <a href="/adhd">What makes memoato ADHD-friendly</a>.
-      </p>
+  <h2>What can I write?</h2>
+  <p>Anything that might matter later. Short is fine. Messy is fine. A few examples:</p>
+  <ul>
+    <li><code>Low energy, skipped gym, walked 20 minutes after lunch</code></li>
+    <li><code>89.8 kg</code></li>
+    <li><code>Pull ups 2 2 3</code></li>
+    <li><code>Bought car battery, 59 EUR, two year warranty</code></li>
+  </ul>
 
-      <h2>Templates (starter trackers)</h2>
-      <p>
-        Templates are prefilled categories with sensible defaults (emoji, accent color, chart type, period, goal, and how
-        multiple entries are counted). You can use them:
-      </p>
-      <ul>
-        <li><strong>Onboarding</strong>: shown automatically when you have no non-system categories.</li>
-        <li><strong>New category</strong>: choose a template from the Template dropdown.</li>
-      </ul>
+  <h2>What happens to the raw note?</h2>
+  <p>
+    It stays intact. Memoato may derive categories, values, timestamps, and context from it, but the original source is
+    preserved. Derived entries remain linked to the raw log so later corrections update the meaning without duplicating
+    what you wrote.
+  </p>
 
-      <h2>Notes (built-in)</h2>
-      <p>
-        Notes is a built-in system category. It’s always created automatically and <strong>can’t be deleted</strong>.
-        Use it for quick daily notes. In the Timeline, each note shows its own timestamp.
-      </p>
+  <h2>What are categories?</h2>
+  <p>
+    Categories are useful views and metrics — Weight, Pull ups, Football, Energy, Notes, and anything personal to you.
+    They are no longer the only way to begin a log. You can write naturally and let Memoato match existing categories,
+    or open a category directly when you already know exactly what you want to add.
+  </p>
 
-      <h2>How do I log something?</h2>
-      <p>
-        Open a category and add a number (or a note for Notes). On Home, you can also tap the <strong>+</strong> button
-        on a category tile to quick-add. You can backfill by changing the date before adding.
-      </p>
+  <h2>How does the Timeline work?</h2>
+  <p>
+    Timeline gives you a day-by-day view of what happened. It groups related entries, keeps notes readable, and lets you
+    move backward through your history without opening every category individually.
+  </p>
 
-      <h2>Can I edit or delete history?</h2>
-      <p>
-        Yes. Open a category, scroll to history, then edit values or delete entries. System categories (like Notes) can’t
-        be deleted, but their entries can be edited/deleted.
-      </p>
+  <h2>Can I edit, delete, or reorder things?</h2>
+  <p>
+    Yes. Category history supports editing and deletion. Home categories can be reordered from Edit mode. Your profile
+    also includes data export and account deletion controls.
+  </p>
 
-      <h2>Can I reorder categories on Home?</h2>
-      <p>
-        Yes. On Home, tap <strong>Edit</strong> to enter reorder mode, then drag the handle to rearrange categories. You
-        can reset back to automatic ordering from the same screen.
-      </p>
+  <h2>Privacy modes</h2>
+  <ul>
+    <li><strong>Cloud sync</strong> — the simplest multi-device experience.</li>
+    <li><strong>Encrypted cloud</strong> — category titles and notes are encrypted on your device before saving.</li>
+    <li><strong>Local-only</strong> — data stays in the browser on that device.</li>
+  </ul>
+  <p>Open <strong>Profile → Privacy</strong> to review or switch modes. Read the full <a href="/privacy">privacy policy</a>.</p>
 
-      <h2>What is the Timeline?</h2>
-      <p>
-        Timeline groups your day into readable summaries (totals and entries) so you can see what happened at a glance.
-        Notes show individual timestamps per note.
-      </p>
+  <h2>Can Codex or Claude log for me?</h2>
+  <p>
+    Yes. Create a scoped, revocable API key under <strong>Profile → API keys</strong>, then connect the hosted Memoato
+    MCP. Agents can read category metadata and create labeled raw entries without receiving your account password.
+  </p>
 
-      <h2>Privacy options</h2>
-      <p>
-        memoato supports three storage modes: cloud sync, encrypted cloud, and local-only. Open the app, then go to
-        <strong>Profile → Privacy</strong>.
-      </p>
-      <ul>
-        <li><strong>Cloud sync</strong>: normal server storage for multi-device access.</li>
-        <li><strong>Encrypted cloud</strong>: category titles and notes are encrypted client-side before saving.</li>
-        <li><strong>Local-only</strong>: data stays on your device.</li>
-      </ul>
-
-      <h2>What’s coming next (Coach Mode)</h2>
-      <p>
-        We’re exploring an optional “Coach Mode” that turns goals into a small daily plan and a weekly review (opt-in,
-        privacy-conscious).
-      </p>
-
-      <h2>Where do I send feedback?</h2>
-      <p>
-        Email <a href="mailto:hello@memoato.com">hello@memoato.com</a> or open an issue on the
-        <a href="https://github.com/hrvojepavlinovic/memoato-app" rel="noopener noreferrer">GitHub repo</a>.
-      </p>
-
-      <h2>Changelog</h2>
-      <p>
-        See what’s new: <a href="/changelog">Changelog</a>.
-      </p>
-    </div>
-  </section>
-</BaseLayout>
+  <h2>Still stuck?</h2>
+  <p>
+    Email <a href="mailto:hello@memoato.com">hello@memoato.com</a> or open an issue in the
+    <a href="https://github.com/hrvojepavlinovic/memoato-app/issues" rel="noopener noreferrer">GitHub repository</a>.
+  </p>
+</EditorialPageLayout>

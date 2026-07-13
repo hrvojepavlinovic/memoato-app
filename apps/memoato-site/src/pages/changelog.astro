@@ -1,55 +1,54 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 
-const updates: Array<{ date: string; items: string[] }> = [
+const updates: Array<{ date: string; title: string; items: string[] }> = [
+  {
+    date: "2026-07-13",
+    title: "A new public face for Memoato",
+    items: [
+      "Reframed Memoato around personal memory and missing context instead of habit tracking.",
+      "Introduced a new human-first editorial design across the landing, journal, help, and project pages.",
+      "Moved AI and MCP details out of the spotlight while keeping them available as quiet infrastructure.",
+    ],
+  },
   {
     date: "2026-02-08",
+    title: "Better discovery and sharing",
     items: [
-      "Improved SEO basics: social share previews (OpenGraph/Twitter) and better meta descriptions.",
-      "Added robots.txt, sitemap.xml, llms.txt, and structured data (JSON-LD) for search engines and LLMs.",
+      "Improved social share previews and page descriptions.",
+      "Added robots.txt, sitemap.xml, llms.txt, and structured data for search engines and language models.",
     ],
   },
 ];
 ---
 
-<BaseLayout
+<EditorialPageLayout
   title="Changelog · memoato"
-  description="Product updates and changes."
+  description="Small Memoato product updates, design changes, and improvements."
   canonicalPath="/changelog"
+  eyebrow="Changelog"
+  heading="Small changes. A clearer memory."
+  deck="Memoato evolves through frequent, practical improvements driven by real use rather than a theatrical roadmap."
+  accent="rust"
 >
-  <section class="section">
-    <div class="container prose">
-      <h1 class="page-title">Changelog</h1>
-      <p class="muted">Small, frequent updates. No fluff.</p>
-
-      {updates.map((u) => (
-        <div class="card changelog-card">
-          <div class="changelog-head">
-            <div class="changelog-date">{u.date}</div>
-            <a class="muted" href="https://x.com/memoatoo" target="_blank" rel="noopener noreferrer">
-              Follow updates on X
-            </a>
-          </div>
-          <ul class="changelog-list">
-            {u.items.map((item) => (
-              <li>{item}</li>
-            ))}
-          </ul>
+  {updates.map((update) => (
+    <section class="card changelog-card">
+      <div class="changelog-head">
+        <div>
+          <div class="changelog-date">{update.date}</div>
+          <h2>{update.title}</h2>
         </div>
-      ))}
-
-      <h2 class="changelog-more">More details</h2>
-      <ul>
-        <li>
-          Blog: <a href="/blog">product notes and guides</a>
-        </li>
-        <li>
-          GitHub:{" "}
-          <a href="https://github.com/hrvojepavlinovic/memoato-app" rel="noopener noreferrer" target="_blank">
-            source code and issues
-          </a>
-        </li>
+        <a class="muted" href="https://x.com/memoatoo" target="_blank" rel="noopener noreferrer">Follow on X</a>
+      </div>
+      <ul class="changelog-list">
+        {update.items.map((item) => <li>{item}</li>)}
       </ul>
-    </div>
-  </section>
-</BaseLayout>
+    </section>
+  ))}
+
+  <h2 class="changelog-more">Keep following</h2>
+  <p>
+    Longer product thinking lives in the <a href="/blog">Memoato journal</a>. Source changes and issues stay visible on
+    <a href="https://github.com/hrvojepavlinovic/memoato-app" rel="noopener noreferrer">GitHub</a>.
+  </p>
+</EditorialPageLayout>

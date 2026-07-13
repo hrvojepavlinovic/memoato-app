@@ -1,47 +1,35 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 ---
 
-<BaseLayout
+<EditorialPageLayout
   title="Contact · memoato"
-  description="Contact memoato: email, GitHub issues, and social."
+  description="Talk to the person building Memoato. Share feedback, report friction, or ask about the project."
   canonicalPath="/contact"
+  eyebrow="A direct line"
+  heading="Tell us what real life broke."
+  deck="The most useful product feedback is rarely a feature list. Tell us what you tried to remember, where the flow got in your way, or what would make Memoato earn a place in your day."
+  accent="rust"
 >
-  <section class="section">
-    <div class="container prose">
-      <h1 class="page-title">Contact</h1>
-      <div class="card contact-card">
-        <div class="contact-grid">
-          <a
-            class="btn"
-            href="mailto:hello@memoato.com"
-            style="justify-content: flex-start"
-            aria-label="Email hello@memoato.com"
-          >
-            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5L4 8V6l8 5 8-5v2Z"
-              />
-            </svg>
-            <span>hello@memoato.com</span>
-          </a>
-          <a
-            class="btn"
-            href="https://x.com/memoatoo"
-            rel="noopener noreferrer"
-            target="_blank"
-            style="justify-content: flex-start"
-            aria-label="X profile"
-          >
-            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M18.9 2H22l-6.8 7.8L23.2 22h-6.4l-5-6.5L6 22H2.8l7.3-8.4L1 2h6.6l4.6 6 6.7-6Zm-1.1 18h1.8L7.5 3.9H5.6L17.8 20Z"
-              />
-            </svg>
-            <span>x.com/memoatoo</span>
-          </a>
-        </div>
-      </div>
+  <p>
+    Memoato is still early and actively shaped by real use. Short, honest feedback is welcome — especially the tiny
+    moments of friction that are easy to dismiss and impossible to invent from a roadmap.
+  </p>
+
+  <div class="card contact-card">
+    <div class="contact-grid">
+      <a class="btn" href="mailto:hello@memoato.com" aria-label="Email hello@memoato.com">
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5L4 8V6l8 5 8-5v2Z" /></svg>
+        <span>hello@memoato.com</span>
+      </a>
+      <a class="btn" href="https://x.com/memoatoo" rel="noopener noreferrer" target="_blank" aria-label="Memoato on X">
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.4l-5-6.5L6 22H2.8l7.3-8.4L1 2h6.6l4.6 6 6.7-6Zm-1.1 18h1.8L7.5 3.9H5.6L17.8 20Z" /></svg>
+        <span>x.com/memoatoo</span>
+      </a>
+      <a class="btn" href="https://github.com/hrvojepavlinovic/memoato-app/issues" rel="noopener noreferrer" target="_blank" aria-label="Memoato GitHub issues">
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.5v-2c-3.3.7-4-1.4-4-1.4-.6-1.5-1.4-1.9-1.4-1.9-1.2-.8.1-.8.1-.8 1.3.1 2 .1 2.8 1.9 1.1 1.9 2.9 1.4 3.6 1.1.1-.8.4-1.4.7-1.7-2.7-.3-5.4-1.4-5.4-6.1 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.6.1-3.3 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.7.2 3 .1 3.3.8.8 1.2 1.9 1.2 3.2 0 4.7-2.7 5.8-5.4 6.1.4.3.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A12 12 0 0 0 12 .5Z" /></svg>
+        <span>GitHub issues</span>
+      </a>
     </div>
-  </section>
-</BaseLayout>
+  </div>
+</EditorialPageLayout>

@@ -1,60 +1,66 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 ---
 
-<BaseLayout
+<EditorialPageLayout
   title="Privacy · memoato"
-  description="Privacy policy and storage modes: cloud sync, encrypted cloud, and local-only."
+  description="Memoato privacy policy and storage modes: cloud sync, encrypted cloud, and local-only."
   canonicalPath="/privacy"
+  eyebrow="Privacy policy · 31 January 2026"
+  heading="Your memories are not an advertising product."
+  deck="Memoato stores what is needed to run the service. We do not sell your data, and we give you practical control over how your entries are stored."
+  accent="ink"
 >
-  <section class="section">
-    <div class="container prose">
-      <h1 class="page-title">Privacy policy</h1>
-      <p class="muted">Effective date: 2026-01-31</p>
-      <p>
-        memoato stores only what’s needed to run the app: your account and the data you log. We don’t sell your data.
-      </p>
-      <h2>Privacy modes</h2>
-      <ul>
-        <li><strong>Cloud sync</strong>: data is stored normally to power charts, history, and multi-device access.</li>
-        <li>
-          <strong>Encrypted cloud</strong>: tracker titles and per-entry notes are encrypted on your device before saving to the
-          database. You unlock with a passphrase on each device.
-        </li>
-        <li><strong>Local-only</strong>: data stays on the device (IndexedDB). Switching to local-only wipes server data for that account.</li>
-      </ul>
-      <p>
-        Encrypted cloud uses client-side encryption. If you lose your passphrase, memoato can’t recover encrypted content.
-      </p>
-      <h2>Data we store</h2>
-      <ul>
-        <li>Account details: email and username.</li>
-        <li>Your trackers (categories): name, emoji, color, goals.</li>
-        <li>Your logged entries: numbers and timestamps (and optional per-entry notes).</li>
-      </ul>
-      <h2>Data you control</h2>
-      <ul>
-        <li>You can edit and delete entries.</li>
-        <li>You can export your data from the profile page.</li>
-        <li>You can delete your account, which removes your account and logged data.</li>
-      </ul>
-      <h2>Analytics</h2>
-      <p>
-        We use Databuddy for privacy-friendly analytics on memoato.com and app.memoato.com to understand product usage
-        (not to identify you). Analytics requests may be blocked by common privacy tools.
-      </p>
-      <h2>Service providers</h2>
-      <ul>
-        <li>Cloudflare (DNS, Pages, and networking).</li>
-        <li>Zoho SMTP (transactional emails for verification and password resets).</li>
-        <li>Databuddy (website and app analytics).</li>
-      </ul>
-      <h2>Emails</h2>
-      <p>
-        We send transactional emails for account verification and password resets. We do not send marketing emails.
-      </p>
-      <h2>Contact</h2>
-      <p>Questions or requests: <a href="mailto:hello@memoato.com">hello@memoato.com</a>.</p>
-    </div>
-  </section>
-</BaseLayout>
+  <p>
+    This policy explains what Memoato stores, the privacy modes available in the app, the service providers involved,
+    and the controls available to you.
+  </p>
+
+  <h2>Privacy modes</h2>
+  <ul>
+    <li><strong>Cloud sync</strong> — data is stored normally to power history, views, and multi-device access.</li>
+    <li><strong>Encrypted cloud</strong> — category titles and per-entry notes are encrypted on your device before saving to the database. You unlock them with a passphrase on each device.</li>
+    <li><strong>Local-only</strong> — data stays on the device in IndexedDB. Switching to local-only wipes server data for that account.</li>
+  </ul>
+  <p>
+    If you lose the encrypted-cloud passphrase, Memoato cannot recover the encrypted content. Local-only data may be
+    lost if browser storage is cleared or the device is lost.
+  </p>
+
+  <h2>Data we store</h2>
+  <ul>
+    <li>Account details such as email and username.</li>
+    <li>Your categories, including names, emoji, colors, goals, and display preferences.</li>
+    <li>Your raw logs and derived entries, including values, timestamps, notes, and linked context.</li>
+    <li>Scoped API key metadata; API key secrets are stored hashed rather than as readable values.</li>
+  </ul>
+
+  <h2>Data you control</h2>
+  <ul>
+    <li>You can edit and delete entries.</li>
+    <li>You can export your data from Profile.</li>
+    <li>You can revoke API keys.</li>
+    <li>You can delete your account and associated logged data.</li>
+  </ul>
+
+  <h2>Analytics</h2>
+  <p>
+    Memoato uses Databuddy for privacy-friendly analytics on memoato.com and app.memoato.com to understand product
+    usage, not to build advertising profiles. Common privacy tools may block these requests.
+  </p>
+
+  <h2>Service providers</h2>
+  <ul>
+    <li>Hetzner for production application and database hosting.</li>
+    <li>Cloudflare for DNS, caching, and networking.</li>
+    <li>Zoho SMTP for transactional verification and password-reset email.</li>
+    <li>Databuddy for product and website analytics.</li>
+    <li>AI processing providers when cloud-assisted extraction is enabled for a raw entry.</li>
+  </ul>
+
+  <h2>Emails</h2>
+  <p>Memoato sends transactional account emails. We do not currently send marketing email.</p>
+
+  <h2>Contact</h2>
+  <p>Privacy questions and data requests can be sent to <a href="mailto:hello@memoato.com">hello@memoato.com</a>.</p>
+</EditorialPageLayout>
