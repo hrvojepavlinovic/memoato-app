@@ -2,12 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { backfillMemoryConcepts } from "./ingest";
 
 describe("memory concept backfill", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   it("attaches a stable concept to an existing fact without replacing it", async () => {
-    vi.spyOn(globalThis, "setTimeout").mockImplementation(
-      (() => 0) as typeof setTimeout,
-    );
+    vi.useFakeTimers();
     const prisma: any = {
       memoryFact: {
         findMany: vi.fn().mockResolvedValue([
