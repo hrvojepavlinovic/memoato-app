@@ -4,6 +4,7 @@ import { addMemoryIngestRoutes } from "../memory/routes";
 import { addMcpRoutes } from "../memory/mcp";
 import {
   backfillLegacyMemoryFacts,
+  backfillMemoryConcepts,
   recoverPendingMemoryEntries,
 } from "../memory/ingest";
 import { initializeMemoryEmbeddings } from "../memory/embeddingQueue";
@@ -435,6 +436,7 @@ export const setupPublicStatsRoutes: ServerSetupFn = async ({ app }) => {
     console.error("Memoato pending memory recovery failed", error);
   });
   void backfillLegacyMemoryFacts(prisma)
+    .then(() => backfillMemoryConcepts(prisma))
     .then(() =>
       Promise.all([
         initializeMemoryEmbeddings(prisma),
