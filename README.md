@@ -9,6 +9,7 @@ A private memory layer for the details of your life. Write what happened in your
 - Architecture: `docs/ARCHITECTURE.md`
 - Memoato 2.0 product + technical architecture: `docs/MEMOATO_2_PRODUCT_ARCHITECTURE.md`
 - Trustworthy context product direction: `docs/TRUSTWORTHY_CONTEXT_PRODUCT.md`
+- Trustworthy context schema/migration review: `docs/TRUSTWORTHY_CONTEXT_SCHEMA_PLAN.md`
 - Trustworthy context handover: `docs/TRUSTWORTHY_CONTEXT_HANDOVER.md`
 - Self-hosting: `docs/SELF_HOSTING.md`
 - Landing handover (Astro + Cloudflare Pages): `docs/LANDING_HANDOVER.md`

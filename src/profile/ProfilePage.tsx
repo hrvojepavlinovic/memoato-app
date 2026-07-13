@@ -113,7 +113,7 @@ export function ProfilePage() {
   const [lastName, setLastName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [apiKeyName, setApiKeyName] = useState("ChatGPT MCP");
-  const [apiKeyAccess, setApiKeyAccess] = useState<"agent" | "logging" | "recall">("agent");
+  const [apiKeyAccess, setApiKeyAccess] = useState<"agent" | "logging" | "recall" | "context">("agent");
   const [apiKeyHasExpiry, setApiKeyHasExpiry] = useState(false);
   const [apiKeyExpiresAt, setApiKeyExpiresAt] = useState("");
   const [createdApiKeyToken, setCreatedApiKeyToken] = useState<string | null>(null);
@@ -1130,12 +1130,13 @@ export function ProfilePage() {
                   <span className="label">Access</span>
                   <select
                     value={apiKeyAccess}
-                    onChange={(e) => setApiKeyAccess(e.target.value as "agent" | "logging" | "recall")}
+                    onChange={(e) => setApiKeyAccess(e.target.value as "agent" | "logging" | "recall" | "context")}
                     className={inputClassName}
                   >
                     <option value="agent">Log and recall</option>
                     <option value="logging">Logging only</option>
                     <option value="recall">Recall only</option>
+                    <option value="context">Context packets only</option>
                   </select>
                 </label>
                 <Button

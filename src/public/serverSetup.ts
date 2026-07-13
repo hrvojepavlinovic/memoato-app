@@ -9,6 +9,7 @@ import {
 } from "../memory/ingest";
 import { initializeMemoryEmbeddings } from "../memory/embeddingQueue";
 import { initializeMemoryConceptEmbeddings } from "../memory/conceptEmbeddingQueue";
+import { addContextRoutes } from "../context/routes";
 
 function setCors(res: any): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -432,6 +433,7 @@ export const setupPublicStatsRoutes: ServerSetupFn = async ({ app }) => {
   addPublicStatsRoutes(app as any);
   addMemoryIngestRoutes(app as any);
   addMcpRoutes(app as any);
+  addContextRoutes(app as any);
   void recoverPendingMemoryEntries(prisma).catch((error) => {
     console.error("Memoato pending memory recovery failed", error);
   });

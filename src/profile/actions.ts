@@ -25,6 +25,7 @@ import type {
   UpdateProfile,
 } from "wasp/server/operations";
 import { createPasswordResetLink, sendPasswordResetEmail } from "wasp/server/auth/email/utils";
+import { contextWorkspacesForAccountDeletion } from "../context/accountDeletion";
 
 function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
@@ -395,7 +396,7 @@ export const createApiKey: CreateApiKey<
   }
 > = async (args, context) => {
   const { userId } = requireAuth(context);
-  const access: ApiKeyAccess = ["agent", "logging", "recall"].includes(String(args.access))
+  const access: ApiKeyAccess = ["agent", "logging", "recall", "context"].includes(String(args.access))
     ? (args.access as ApiKeyAccess)
     : "logging";
   const activeCount = await prisma.apiKey.count({
@@ -636,11 +637,77 @@ export const confirmAccountDeletion: ConfirmAccountDeletion<{ token: string }, {
 
     const userId = payload.userId;
 
-    await prisma.$transaction([
-      prisma.event.deleteMany({ where: { userId } }),
-      prisma.category.deleteMany({ where: { userId } }),
-      prisma.user.deleteMany({ where: { id: userId } }),
-    ]);
+    await prisma.$transaction(async (tx) => {
+      const memberships = await tx.workspaceMember.findMany({
+        where: { userId },
+        select: {
+          workspaceId: true,
+          workspace: {
+            select: {
+              creatorId: true,
+              _count: { select: { members: true } },
+            },
+          },
+        },
+      });
+      const contextDeletion = contextWorkspacesForAccountDeletion(
+        userId,
+        memberships,
+      );
+      if (contextDeletion.blocked) {
+        throw new HttpError(
+          409,
+          "Transfer or leave shared workspaces before deleting your account.",
+        );
+      }
+
+      const workspaceIds = contextDeletion.workspaceIds;
+      if (workspaceIds.length > 0) {
+        // Context evidence is immutable during normal product operation. A
+        // verified account deletion is the explicit privacy purge boundary.
+        await tx.$executeRaw`SELECT set_config('memoato.allow_context_purge', 'on', true)`;
+        await tx.contextPacketClaim.deleteMany({
+          where: { contextPacket: { workspaceId: { in: workspaceIds } } },
+        });
+        await tx.contextPacket.deleteMany({
+          where: { workspaceId: { in: workspaceIds } },
+        });
+        await tx.retrievalTrace.deleteMany({
+          where: { workspaceId: { in: workspaceIds } },
+        });
+        await tx.claimEvidence.deleteMany({
+          where: { claim: { workspaceId: { in: workspaceIds } } },
+        });
+        await tx.claim.deleteMany({
+          where: { workspaceId: { in: workspaceIds } },
+        });
+        await tx.sourceVersion.deleteMany({
+          where: { workspaceId: { in: workspaceIds } },
+        });
+        await tx.sourceObjectAccess.deleteMany({
+          where: { sourceObject: { workspaceId: { in: workspaceIds } } },
+        });
+        await tx.sourceObject.deleteMany({
+          where: { workspaceId: { in: workspaceIds } },
+        });
+        await tx.sourceConnectionAccess.deleteMany({
+          where: { sourceConnection: { workspaceId: { in: workspaceIds } } },
+        });
+        await tx.sourceConnection.deleteMany({
+          where: { workspaceId: { in: workspaceIds } },
+        });
+        await tx.workspaceMember.deleteMany({
+          where: { workspaceId: { in: workspaceIds } },
+        });
+        await tx.workspace.deleteMany({
+          where: { id: { in: workspaceIds } },
+        });
+      }
+
+      await tx.event.deleteMany({ where: { userId } });
+      await tx.category.deleteMany({ where: { userId } });
+      await tx.user.deleteMany({ where: { id: userId } });
+    });
 
     return { success: true };
   };

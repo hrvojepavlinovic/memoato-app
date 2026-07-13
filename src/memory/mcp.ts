@@ -2,6 +2,8 @@ import { prisma } from "wasp/server";
 import { authAllowsScope, authenticateApiRequest, createRawMemoryEntry, type ApiAuthContext } from "./ingest";
 import { filterMcpToolsForScopes, requiredScopeForMcpTool } from "./mcpCapabilities";
 import { searchMemoryEntries, summarizeMemoryMetric } from "./query";
+import { requireWorkspaceMember } from "../context/auth";
+import { buildPermissionFilteredContextPacket } from "../context/packet";
 
 type AuthContext = ApiAuthContext;
 
@@ -167,6 +169,34 @@ const tools = [
         },
       },
       required: ["metric"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "memoato_build_context_packet",
+    description:
+      "Build a fresh permission-filtered context packet from human-accepted GitHub and Linear claims. Permissions and freshness are enforced before ranking.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        workspaceId: {
+          type: "string",
+          minLength: 1,
+          description: "Memoato workspace id the API key owner belongs to.",
+        },
+        query: {
+          type: "string",
+          maxLength: 240,
+          description: "Coding/project context question or search text.",
+        },
+        take: {
+          type: "number",
+          minimum: 1,
+          maximum: 20,
+          description: "Maximum accepted claims in the packet.",
+        },
+      },
+      required: ["workspaceId", "query"],
       additionalProperties: false,
     },
   },
@@ -388,6 +418,23 @@ async function callTool(auth: AuthContext, params: unknown): Promise<unknown> {
 
   if (name === "memoato_summarize_metric") {
     const result = await summarizeMemoryMetric({ prisma, userId: auth.userId, body: args });
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  }
+
+  if (name === "memoato_build_context_packet") {
+    const workspaceId = String(args.workspaceId ?? "").trim();
+    if (!workspaceId) throw new Error("workspace_required");
+    const member = await requireWorkspaceMember({
+      prisma,
+      userId: auth.userId,
+      workspaceId,
+    });
+    const result = await buildPermissionFilteredContextPacket({
+      prisma,
+      member,
+      query: String(args.query ?? "").trim(),
+      take: Number(args.take),
+    });
     return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
   }
 
