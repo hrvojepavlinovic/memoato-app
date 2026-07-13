@@ -1331,7 +1331,6 @@ a:hover:not(.btn):not(.icon-btn) {
 .editorial-page .logo {
   width: 30px;
   height: 30px;
-  background: var(--editorial-forest);
 }
 
 .editorial-page .navlinks {
