@@ -1284,3 +1284,130 @@ export async function backfillLegacyMemoryFacts(
   }
   return created;
 }
+
+// Existing normalized facts can predate the concept layer. Attach concepts in
+// place without changing their raw entry, status, category or derived events.
+export async function backfillMemoryConcepts(
+  prisma: PrismaLike,
+  take = 2_000,
+): Promise<number> {
+  const facts = await prisma.memoryFact.findMany({
+    where: {
+      conceptId: null,
+      status: { not: "rejected" },
+      rawEntry: { kind: "NOTE", userId: { not: null } },
+    },
+    select: {
+      id: true,
+      userId: true,
+      rawEntryId: true,
+      categoryId: true,
+      position: true,
+      kind: true,
+      label: true,
+      canonical: true,
+      amount: true,
+      unit: true,
+      durationMinutes: true,
+      confidence: true,
+      origin: true,
+      data: true,
+      rawEntry: { select: { rawText: true } },
+    },
+    orderBy: [{ createdAt: "asc" }],
+    take: Math.max(1, Math.min(5_000, take)),
+  });
+  let attached = 0;
+  const entryIds = new Set<string>();
+  const userIds = new Set<string>();
+
+  for (const fact of facts) {
+    const stored =
+      fact.data &&
+      typeof fact.data === "object" &&
+      !Array.isArray(fact.data) &&
+      (fact.data as any).fact &&
+      typeof (fact.data as any).fact === "object"
+        ? (fact.data as any).fact
+        : {};
+    const normalized = ensureLabeledMemoryExtraction(
+      String(fact.rawEntry.rawText ?? ""),
+      {
+        parser: "deterministic",
+        parserVersion: "memory-concept-attachment-v1",
+        facts: [
+          {
+            ...stored,
+            kind: fact.kind as MemoryFact["kind"],
+            label: fact.label,
+            canonical: fact.canonical ?? stored.canonical,
+            amount: fact.amount ?? stored.amount,
+            unit: fact.unit ?? stored.unit,
+            durationMinutes: fact.durationMinutes ?? stored.durationMinutes,
+            confidence: fact.confidence,
+            origin: (fact.origin ||
+              stored.origin ||
+              "deterministic") as MemoryFact["origin"],
+          },
+        ],
+        unknowns: [],
+      },
+    ).facts[0];
+    if (!normalized) continue;
+
+    const wasAttached = await prisma.$transaction(async (tx: PrismaLike) => {
+      const concept = await ensureMemoryConcept({
+        prisma: tx,
+        userId: fact.userId,
+        fact: normalized,
+        categoryId: fact.categoryId,
+      });
+      const updated = await tx.memoryFact.updateMany({
+        where: { id: fact.id, conceptId: null },
+        data: {
+          conceptId: concept.id,
+          data: jsonValue({
+            ...((fact.data as any) ?? {}),
+            fact: normalized,
+            conceptBackfill: true,
+          }),
+        },
+      });
+      if (updated.count === 0) return false;
+      await tx.memoryEntryConcept.upsert({
+        where: {
+          rawEntryId_conceptId: {
+            rawEntryId: fact.rawEntryId,
+            conceptId: concept.id,
+          },
+        },
+        create: {
+          userId: fact.userId,
+          rawEntryId: fact.rawEntryId,
+          conceptId: concept.id,
+          role: fact.position === 0 ? "primary" : "secondary",
+          confidence: fact.confidence,
+          origin: fact.origin,
+        },
+        update: {
+          ...(fact.position === 0 ? { role: "primary" } : {}),
+          confidence: fact.confidence,
+          origin: fact.origin,
+        },
+      });
+      return true;
+    });
+    if (!wasAttached) continue;
+    attached += 1;
+    entryIds.add(fact.rawEntryId);
+    userIds.add(fact.userId);
+  }
+
+  for (const entryId of entryIds) {
+    triggerMemoryEmbeddingProjection(prisma, entryId);
+  }
+  for (const userId of userIds) {
+    triggerMemoryConceptEmbeddingProjection(prisma, userId);
+  }
+  return attached;
+}
