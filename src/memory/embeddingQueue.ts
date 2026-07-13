@@ -25,7 +25,7 @@ export function buildEmbeddingSearchText(entry: any): string {
     : [];
   const lines = [String(entry?.rawText ?? "").trim()];
   for (const fact of facts) {
-    if (fact?.status === "rejected") continue;
+    if (fact?.status !== "accepted") continue;
     const values = [
       fact?.label,
       fact?.canonical,
@@ -69,7 +69,7 @@ export async function enqueueMemoryEmbedding(
       kind: true,
       rawText: true,
       rawMemoryFacts: {
-        where: { status: { not: "rejected" } },
+        where: { status: "accepted" },
         select: {
           label: true,
           canonical: true,

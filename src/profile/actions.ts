@@ -4,7 +4,7 @@ import { HttpError, prisma } from "wasp/server";
 import { emailSender } from "wasp/server/email";
 import { config as waspServerConfig } from "wasp/server";
 import { randomBytes } from "node:crypto";
-import { generateApiKeyToken, getApiKeyPrefix, hashApiKeyToken, RAW_ENTRY_WRITE_SCOPE } from "../memory/apiKeys";
+import { generateApiKeyToken, getApiKeyPrefix, hashApiKeyToken, scopesForApiKeyAccess, type ApiKeyAccess } from "../memory/apiKeys";
 import type {
   ConfirmAccountDeletion,
   ConfirmEmailChange,
@@ -383,7 +383,7 @@ export const setPublicStatsCategories: SetPublicStatsCategories<{ categoryIds: s
 };
 
 export const createApiKey: CreateApiKey<
-  { name?: string | null; expiresAt?: string | null },
+  { name?: string | null; expiresAt?: string | null; access?: ApiKeyAccess },
   {
     id: string;
     name: string;
@@ -395,6 +395,9 @@ export const createApiKey: CreateApiKey<
   }
 > = async (args, context) => {
   const { userId } = requireAuth(context);
+  const access: ApiKeyAccess = ["agent", "logging", "recall"].includes(String(args.access))
+    ? (args.access as ApiKeyAccess)
+    : "logging";
   const activeCount = await prisma.apiKey.count({
     where: { userId, revokedAt: null },
   });
@@ -409,7 +412,7 @@ export const createApiKey: CreateApiKey<
       name: normalizeApiKeyName(args.name),
       tokenHash: hashApiKeyToken(token),
       tokenPrefix: getApiKeyPrefix(token),
-      scope: RAW_ENTRY_WRITE_SCOPE,
+      scope: scopesForApiKeyAccess(access),
       expiresAt: normalizeApiKeyExpiry(args.expiresAt),
     },
     select: {

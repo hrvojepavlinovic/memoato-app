@@ -8,6 +8,8 @@ A private memory layer for the details of your life. Write what happened in your
 - Deploy (Hetzner + systemd + Caddy): `docs/DEPLOY.md`
 - Architecture: `docs/ARCHITECTURE.md`
 - Memoato 2.0 product + technical architecture: `docs/MEMOATO_2_PRODUCT_ARCHITECTURE.md`
+- Trustworthy context product direction: `docs/TRUSTWORTHY_CONTEXT_PRODUCT.md`
+- Trustworthy context handover: `docs/TRUSTWORTHY_CONTEXT_HANDOVER.md`
 - Self-hosting: `docs/SELF_HOSTING.md`
 - Landing handover (Astro + Cloudflare Pages): `docs/LANDING_HANDOVER.md`
 - Mobile apps (Capacitor + TestFlight/Play): `docs/MOBILE.md`
@@ -24,8 +26,10 @@ A private memory layer for the details of your life. Write what happened in your
 - **Views** with the existing categories, goals, charts and schedules
 - **Deterministic-first processing** with OpenRouter only when useful
 - **Privacy options** (cloud sync / encrypted cloud / local-only)
-- **MCP/API capture** through revocable raw-write keys
+- **Scoped MCP/API access** for logging, recall, or both
 - **PWA-ready** (Add to Home Screen)
+
+The current personal memory product is the first workspace in a broader trustworthy context system. The research behind that direction is public at [guide.hills-lab.hr](https://guide.hills-lab.hr).
 
 ## Prerequisites
 
@@ -40,6 +44,7 @@ A private memory layer for the details of your life. Write what happened in your
 ## Codex usage (local)
 
 If you use Codex CLI to work on this repo, see `docs/CODEX_HANDOVER.md` for:
+
 - Running Codex with full permissions (no approvals/sandbox)
 - Telegram notification helper (`send-telegram-message`)
 

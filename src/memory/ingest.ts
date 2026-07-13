@@ -9,7 +9,13 @@ import {
   extractWithOpenRouter,
   isOpenRouterExtractorConfigured,
 } from "./openRouterExtractor";
-import { hashApiKeyToken, scopeAllowsRawEntryWrite } from "./apiKeys";
+import {
+  hashApiKeyToken,
+  MEMORY_READ_SCOPE,
+  parseApiKeyScopes,
+  RAW_ENTRY_WRITE_SCOPE,
+  scopeAllows,
+} from "./apiKeys";
 import { createHash, randomUUID } from "node:crypto";
 import { triggerMemoryEmbeddingProjection } from "./embeddingQueue";
 
@@ -165,10 +171,16 @@ function getBearerToken(req: any): string | null {
   return token.length > 0 ? token : null;
 }
 
-export async function authenticateRawEntryRequest(
+export type ApiAuthContext = {
+  userId: string;
+  apiKeyId: string | null;
+  scopes: string[];
+};
+
+export async function authenticateApiRequest(
   prisma: PrismaLike,
   req: any,
-): Promise<{ userId: string; apiKeyId: string | null } | null> {
+): Promise<ApiAuthContext | null> {
   const token = getBearerToken(req);
   if (!token) return null;
 
@@ -191,23 +203,44 @@ export async function authenticateRawEntryRequest(
       new Date(apiKey.expiresAt).getTime() <= now.getTime()
     )
       return null;
-    if (!scopeAllowsRawEntryWrite(apiKey.scope)) return null;
-
     await prisma.apiKey.update({
       where: { id: apiKey.id },
       data: { lastUsedAt: now },
     });
-    return { userId: apiKey.userId, apiKeyId: apiKey.id };
+    return {
+      userId: apiKey.userId,
+      apiKeyId: apiKey.id,
+      scopes: parseApiKeyScopes(apiKey.scope),
+    };
   }
 
   // Legacy bootstrap path. Prefer database-backed ApiKey records for real use.
   if (isAuthorizedRawEntryRequest(req)) {
     const user = await findIngestUser(prisma);
     if (!user) return null;
-    return { userId: user.id, apiKeyId: null };
+    return {
+      userId: user.id,
+      apiKeyId: null,
+      scopes: [RAW_ENTRY_WRITE_SCOPE, MEMORY_READ_SCOPE],
+    };
   }
 
   return null;
+}
+
+export function authAllowsScope(
+  auth: ApiAuthContext,
+  requiredScope: string,
+): boolean {
+  return scopeAllows(auth.scopes, requiredScope);
+}
+
+export async function authenticateRawEntryRequest(
+  prisma: PrismaLike,
+  req: any,
+): Promise<ApiAuthContext | null> {
+  const auth = await authenticateApiRequest(prisma, req);
+  return auth && authAllowsScope(auth, RAW_ENTRY_WRITE_SCOPE) ? auth : null;
 }
 
 async function findIngestUser(prisma: PrismaLike) {

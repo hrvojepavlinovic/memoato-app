@@ -521,7 +521,7 @@ export const answerMemoryRecall: AnswerMemoryRecall<
       occurredAt: row.occurredAt.toISOString(),
       rawText: String(row.rawText ?? ""),
       facts: (row.rawMemoryFacts ?? [])
-        .filter((fact: any) => fact.status !== "rejected")
+        .filter((fact: any) => fact.status === "accepted")
         .map((fact: any) => ({
           label: fact.label,
           canonical: fact.canonical,

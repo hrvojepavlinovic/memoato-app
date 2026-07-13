@@ -157,7 +157,7 @@ Rollback is code-first: the previous release can run against the expanded schema
 - feelings/context without unsafe diagnosis;
 - manual category logging and existing charts/goals;
 - scheduled check-ins;
-- MCP/API/automation capture with revocable raw-write keys;
+- MCP/API/automation access with revocable logging, recall or combined keys;
 - low-confidence review and correction learning;
 - OpenRouter outage, timeout and server restart;
 - legacy entries that predate normalized memory;
@@ -175,3 +175,7 @@ The schema intentionally supports but the current UI does not yet pretend to sol
 - user-approved inference promotion.
 
 Each extension must keep the same invariant: evidence remains inspectable, inference remains labeled, and raw memory remains owned by the user.
+
+## Product extension: trustworthy context
+
+Memoato's raw evidence, reviewed facts, correction history and evidence-first recall are also the base of a broader context system for people and teams. The bounded product decision, missing primitives and first milestone are in [`TRUSTWORTHY_CONTEXT_PRODUCT.md`](./TRUSTWORTHY_CONTEXT_PRODUCT.md). The personal memory app remains the first workspace; it is not being replaced by a separate product.

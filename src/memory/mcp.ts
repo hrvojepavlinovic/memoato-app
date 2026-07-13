@@ -1,11 +1,9 @@
 import { prisma } from "wasp/server";
-import { authenticateRawEntryRequest, createRawMemoryEntry } from "./ingest";
+import { authAllowsScope, authenticateApiRequest, createRawMemoryEntry, type ApiAuthContext } from "./ingest";
+import { filterMcpToolsForScopes, requiredScopeForMcpTool } from "./mcpCapabilities";
 import { searchMemoryEntries, summarizeMemoryMetric } from "./query";
 
-type AuthContext = {
-  userId: string;
-  apiKeyId: string | null;
-};
+type AuthContext = ApiAuthContext;
 
 type JsonRpcRequest = {
   jsonrpc?: unknown;
@@ -173,6 +171,10 @@ const tools = [
     },
   },
 ];
+
+export function mcpToolsForScopes(scopes: string[]) {
+  return filterMcpToolsForScopes(tools, scopes);
+}
 
 function clampTake(value: unknown, fallback: number, max: number): number {
   const n = typeof value === "number" ? value : Number(value);
@@ -350,6 +352,9 @@ function argsObject(params: unknown): Record<string, unknown> {
 async function callTool(auth: AuthContext, params: unknown): Promise<unknown> {
   const name = params && typeof params === "object" && !Array.isArray(params) ? String((params as any).name ?? "") : "";
   const args = argsObject(params);
+  const requiredScope = requiredScopeForMcpTool(name);
+  if (!requiredScope) throw new Error("unknown_tool");
+  if (!authAllowsScope(auth, requiredScope)) throw new Error("forbidden");
 
   if (name === "memoato_logging_guide") {
     return { content: [{ type: "text", text: memoatoLoggingSkill }] };
@@ -407,14 +412,14 @@ async function handleRpcRequest(auth: AuthContext, request: JsonRpcRequest): Pro
   }
 
   if (request.method === "ping") return rpcResult(request.id, {});
-  if (request.method === "tools/list") return rpcResult(request.id, { tools });
+  if (request.method === "tools/list") return rpcResult(request.id, { tools: mcpToolsForScopes(auth.scopes) });
 
   if (request.method === "tools/call") {
     try {
       return rpcResult(request.id, await callTool(auth, request.params));
     } catch (error) {
       const message = error instanceof Error ? error.message : "tool_error";
-      const code = message === "unknown_tool" ? -32602 : -32603;
+      const code = message === "unknown_tool" ? -32602 : message === "forbidden" ? -32003 : -32603;
       return rpcError(request.id, code, message);
     }
   }
@@ -437,7 +442,7 @@ export function addMcpRoutes(app: any): void {
   app.post("/mcp", async (req: any, res: any) => {
     setMcpHeaders(res);
 
-    const auth = await authenticateRawEntryRequest(prisma, req);
+    const auth = await authenticateApiRequest(prisma, req);
     if (!auth) {
       res.setHeader("WWW-Authenticate", "Bearer realm=\"memoato\"");
       res.status(401).end(JSON.stringify({ error: "unauthorized" }));
