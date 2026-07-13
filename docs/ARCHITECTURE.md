@@ -19,6 +19,14 @@
   - Optional `sortOrder` supports manual ordering on the Home dashboard.
 - `CategoryTemplate`: preset category definitions used on “New category” (defaults, emoji, accent, goals, aggregation).
 - `Event`: a logged data point (amount + timestamps) tied to a category
+  - `Event(kind=NOTE)` is also the durable raw-memory source of truth.
+- `MemoryFact`: normalized, reviewable interpretation linked back to a raw event.
+- `MemoryProcessingRun`: durable extraction attempt and recovery state.
+- `MemoryCorrection` + `MemoryAlias`: human correction audit and personal language mappings.
+- `MemoryEntity` + `MemoryFactEntity`: extensible people/place/activity/topic graph.
+- `MemoryInference`: evidence-backed suggestions kept separate from facts.
+
+The memory tables are additive and rebuildable. They never replace `Event.rawText`. See `MEMOATO_2_PRODUCT_ARCHITECTURE.md` for the full contract and migration strategy.
 
 Key timestamps:
 - `createdAt`: when the record is created in memoato

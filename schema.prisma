@@ -11,26 +11,32 @@ generator client {
 // Run `wasp db migrate-dev` in the CLI to create the database tables,
 // then run `wasp db studio` to open Prisma Studio and view your db models.
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  email     String?  @unique
-  role      String   @default("user")
-  firstName String?
-  lastName  String?
-  nextUpEnabled Boolean @default(false)
-  themePreference String?
-  quickLogFabSide String @default("right")
-  homeCategoryLayout String @default("list")
+  id                      String   @id @default(uuid())
+  username                String   @unique
+  email                   String?  @unique
+  role                    String   @default("user")
+  firstName               String?
+  lastName                String?
+  nextUpEnabled           Boolean  @default(false)
+  themePreference         String?
+  quickLogFabSide         String   @default("right")
+  homeCategoryLayout      String   @default("list")
   activeKcalRollupEnabled Boolean?
-  publicStatsEnabled Boolean @default(false)
-  publicStatsToken String? @unique
-  publicStatsCategoryIds Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  publicStatsEnabled      Boolean  @default(false)
+  publicStatsToken        String?  @unique
+  publicStatsCategoryIds  Json?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
-  Category Category[]
-  Event    Event[]
-  ApiKey   ApiKey[]
+  Category            Category[]
+  Event               Event[]
+  ApiKey              ApiKey[]
+  MemoryFact          MemoryFact[]
+  MemoryProcessingRun MemoryProcessingRun[]
+  MemoryCorrection    MemoryCorrection[]
+  MemoryAlias         MemoryAlias[]
+  MemoryEntity        MemoryEntity[]
+  MemoryInference     MemoryInference[]
 }
 
 enum EventKind {
@@ -54,30 +60,30 @@ model Category {
   source   String @default("focus")
   sourceId Int?
 
-  title          String
-  slug           String?
-  type           String?
-  kind           String?
-  unit           String?
-  chartType      String?
-  categoryType   CategoryType @default(NUMBER)
-  accentHex      String @default("#0A0A0A")
-  emoji          String?
-  isSystem       Boolean @default(false)
-  sortOrder      Int?
-  bucketAggregation String?
-  goalDirection  String?
-  goalWeekly     Float?
-  goalValue      Float?
-  targetCount    Int?
-  period         String?
-  targetDuration Int?
-  fieldsSchema   Json?
-  rollupToActiveKcal Boolean @default(false)
-  scheduleEnabled Boolean @default(false)
-  scheduleType   String?
-  scheduleDays   Json?
-  scheduleTime   String?
+  title              String
+  slug               String?
+  type               String?
+  kind               String?
+  unit               String?
+  chartType          String?
+  categoryType       CategoryType @default(NUMBER)
+  accentHex          String       @default("#0A0A0A")
+  emoji              String?
+  isSystem           Boolean      @default(false)
+  sortOrder          Int?
+  bucketAggregation  String?
+  goalDirection      String?
+  goalWeekly         Float?
+  goalValue          Float?
+  targetCount        Int?
+  period             String?
+  targetDuration     Int?
+  fieldsSchema       Json?
+  rollupToActiveKcal Boolean      @default(false)
+  scheduleEnabled    Boolean      @default(false)
+  scheduleType       String?
+  scheduleDays       Json?
+  scheduleTime       String?
 
   sourceCreatedAt  DateTime?
   sourceArchivedAt DateTime?
@@ -85,30 +91,32 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  events Event[]
+  events        Event[]
+  memoryFacts   MemoryFact[]
+  memoryAliases MemoryAlias[]
 
-  @@index([userId])
   @@unique([source, sourceId])
   @@unique([userId, slug])
+  @@index([userId])
 }
 
 model CategoryTemplate {
   id String @id
 
-  key String @unique
+  key   String @unique
   title String
 
-  categoryType CategoryType @default(NUMBER)
-  chartType String?
-  period String?
-  unit String?
+  categoryType      CategoryType @default(NUMBER)
+  chartType         String?
+  period            String?
+  unit              String?
   bucketAggregation String?
-  goalDirection String?
-  goalWeekly Float?
-  goalValue Float?
-  accentHex String @default("#0A0A0A")
-  emoji String?
-  fieldsSchema Json?
+  goalDirection     String?
+  goalWeekly        Float?
+  goalValue         Float?
+  accentHex         String       @default("#0A0A0A")
+  emoji             String?
+  fieldsSchema      Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -120,8 +128,8 @@ model Event {
   user   User?   @relation(fields: [userId], references: [id])
   userId String?
 
-  source String @default("focus")
-  kind   EventKind
+  source   String    @default("focus")
+  kind     EventKind
   sourceId Int?
 
   category   Category? @relation(fields: [categoryId], references: [id])
@@ -137,13 +145,193 @@ model Event {
 
   createdAt  DateTime @default(now())
   occurredAt DateTime @default(now())
-  occurredOn DateTime @db.Date @default(dbgenerated("CURRENT_DATE"))
+  occurredOn DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
   updatedAt  DateTime @updatedAt
 
-  @@index([userId])
+  rawMemoryFacts       MemoryFact[]          @relation("RawMemoryFacts")
+  derivedMemoryFacts   MemoryFact[]          @relation("DerivedMemoryFacts")
+  memoryProcessingRuns MemoryProcessingRun[]
+  memoryCorrections    MemoryCorrection[]
+
   @@unique([source, kind, sourceId])
+  @@index([userId])
   @@index([occurredOn])
   @@index([occurredAt])
+}
+
+// The raw Event(kind=NOTE) remains the source of truth. These rows are a
+// rebuildable, reviewable interpretation layer and never replace rawText.
+model MemoryFact {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  rawEntry   Event  @relation("RawMemoryFacts", fields: [rawEntryId], references: [id], onDelete: Cascade)
+  rawEntryId String
+
+  derivedEvent   Event?  @relation("DerivedMemoryFacts", fields: [derivedEventId], references: [id], onDelete: SetNull)
+  derivedEventId String?
+
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId String?
+
+  position        Int     @default(0)
+  fingerprint     String
+  kind            String
+  label           String
+  canonical       String?
+  amount          Float?
+  unit            String?
+  durationMinutes Float?
+  confidence      Float   @default(0.5)
+  origin          String
+  status          String  @default("accepted")
+  data            Json?
+  evidence        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  corrections MemoryCorrection[]
+  entities    MemoryFactEntity[]
+
+  @@unique([rawEntryId, fingerprint])
+  @@index([userId, status])
+  @@index([userId, kind])
+  @@index([userId, canonical])
+  @@index([rawEntryId])
+  @@index([categoryId])
+}
+
+// A durable audit trail for every extraction/reprocessing attempt. The app can
+// recover queued or interrupted runs after a restart without risking raw data.
+model MemoryProcessingRun {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  rawEntry   Event  @relation(fields: [rawEntryId], references: [id], onDelete: Cascade)
+  rawEntryId String
+
+  attempt       Int       @default(1)
+  status        String    @default("queued")
+  parserVersion String?
+  provider      String?
+  model         String?
+  errorCode     String?
+  result        Json?
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([rawEntryId, attempt])
+  @@index([userId, status])
+  @@index([rawEntryId, createdAt])
+}
+
+model MemoryCorrection {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  rawEntry   Event  @relation(fields: [rawEntryId], references: [id], onDelete: Cascade)
+  rawEntryId String
+
+  fact   MemoryFact? @relation(fields: [factId], references: [id], onDelete: SetNull)
+  factId String?
+
+  action    String
+  before    Json?
+  after     Json?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([rawEntryId])
+  @@index([factId])
+}
+
+// Personal aliases are learned only from explicit user corrections.
+model MemoryAlias {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId String?
+
+  phrase           String
+  normalizedPhrase String
+  canonical        String
+  kind             String?
+  confidence       Float    @default(1)
+  source           String   @default("correction")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, normalizedPhrase])
+  @@index([userId, canonical])
+  @@index([categoryId])
+}
+
+model MemoryEntity {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  kind           String
+  name           String
+  normalizedName String
+  aliases        Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  facts MemoryFactEntity[]
+
+  @@unique([userId, kind, normalizedName])
+  @@index([userId, normalizedName])
+}
+
+model MemoryFactEntity {
+  fact   MemoryFact @relation(fields: [factId], references: [id], onDelete: Cascade)
+  factId String
+
+  entity   MemoryEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId String
+
+  role       String?
+  confidence Float   @default(1)
+
+  @@id([factId, entityId])
+  @@index([entityId])
+}
+
+// Inferences are deliberately separate from facts and always carry evidence.
+model MemoryInference {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  kind             String
+  statement        String
+  confidence       Float     @default(0.5)
+  status           String    @default("suggested")
+  evidenceEntryIds Json
+  data             Json?
+  validFrom        DateTime?
+  validTo          DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, kind])
 }
 
 model ApiKey {

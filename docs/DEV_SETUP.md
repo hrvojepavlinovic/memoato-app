@@ -77,7 +77,7 @@ Use exactly one user selector when using the legacy server env token:
 - `MEMOATO_MCP_USER_EMAIL`
 - `MEMOATO_MCP_USERNAME`
 
-Optional AI fallback via OpenRouter:
+Optional background interpretation via OpenRouter:
 
 ```bash
 OPENROUTER_API_KEY="..."
@@ -103,7 +103,7 @@ Payload:
 }
 ```
 
-The server always stores the raw note first. It only creates derived category events when a parsed fact confidently matches an existing category.
+The server always stores the raw note and a durable processing run in one transaction before interpretation starts. Local deterministic extraction runs first. OpenRouter is called only when the local reading is empty, uncertain, or a longer entry appears to contain multiple facts. A timeout or provider failure cannot remove the original entry.
 
 Local MCP server:
 
