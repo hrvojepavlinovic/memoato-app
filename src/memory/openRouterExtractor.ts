@@ -28,6 +28,19 @@ function extractionSchema() {
               enum: ["movement", "metric", "energy", "context", "note"],
             },
             label: { type: "string" },
+            domain: {
+              type: "string",
+              enum: [
+                "movement",
+                "health",
+                "family",
+                "work",
+                "finance",
+                "social",
+                "personal",
+              ],
+            },
+            conceptKey: { type: "string" },
             canonical: { type: "string" },
             categoryCandidates: { type: "array", items: { type: "string" } },
             amount: { type: "number" },
@@ -66,6 +79,21 @@ export function normalizeOpenRouterExtraction(value: any): MemoryExtraction {
           ? fact.kind
           : "note",
         label: String(fact.label).trim(),
+        domain: [
+          "movement",
+          "health",
+          "family",
+          "work",
+          "finance",
+          "social",
+          "personal",
+        ].includes(fact.domain)
+          ? fact.domain
+          : undefined,
+        conceptKey:
+          typeof fact.conceptKey === "string"
+            ? fact.conceptKey.trim().toLowerCase()
+            : undefined,
         canonical:
           typeof fact.canonical === "string"
             ? fact.canonical.trim()
@@ -170,7 +198,7 @@ export async function extractWithOpenRouter(args: {
             {
               role: "system",
               content:
-                "You are Memoato's conservative memory parser, not a coach or chatbot. Extract atomic personal memory facts from a raw life log. Preserve the human meaning and return only facts that are explicit in the text. Prefer matching existing categories and their units. Use kind=metric for scalar measurements such as body weight or temperature. For exercise set lists such as 'pull ups 2 2 3', use setValues. Context and feelings may be facts, but never diagnose, judge, recommend, or invent medical, money, relationship, identity, or account details. Use confidence below 0.85 whenever wording or mapping is ambiguous.",
+                "You are Memoato's conservative memory parser, not a coach or chatbot. Extract atomic personal memory facts from a raw life log. Preserve the human meaning and return only facts that are explicit in the text. Give each fact a broad domain and a stable lowercase conceptKey such as movement.football, health.sleep, family.sleepover or work.reflection. Prefer matching existing categories and their units. Use kind=metric for scalar measurements such as body weight or temperature. For exercise set lists such as 'pull ups 2 2 3', use setValues. Context and feelings may be facts, but never diagnose, judge, recommend, or invent medical, money, relationship, identity, or account details. Use confidence below 0.85 whenever wording or mapping is ambiguous.",
             },
             {
               role: "user",

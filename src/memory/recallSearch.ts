@@ -30,6 +30,23 @@ function normalizedRanks(rows: any[]): RecallRank[] {
     .filter((row) => row.rawEntryId.length > 0 && Number.isFinite(row.score));
 }
 
+export function mergeRecallRanks(
+  ...rankSets: Array<RecallRank[] | undefined>
+): RecallRank[] {
+  const merged = new Map<string, RecallRank>();
+  for (const ranks of rankSets) {
+    for (const rank of ranks ?? []) {
+      const current = merged.get(rank.rawEntryId);
+      if (!current || rank.score > current.score) {
+        merged.set(rank.rawEntryId, rank);
+      }
+    }
+  }
+  return Array.from(merged.values()).sort(
+    (a, b) => b.score - a.score || a.rawEntryId.localeCompare(b.rawEntryId),
+  );
+}
+
 export function fuseRecallRanks(
   lexical: RecallRank[],
   semantic: RecallRank[],
@@ -75,14 +92,20 @@ async function lexicalCandidates(args: {
   parsed: ParsedRecallQuery;
   limit: number;
 }): Promise<RecallRank[]> {
-  const config = getEmbeddingConfig();
   const rows = await args.prisma.$queryRawUnsafe(
     `WITH recall_query AS (
        SELECT
-         CASE WHEN $4::text = '' THEN NULL
-              ELSE to_tsquery('simple', $4::text)
+         CASE WHEN $2::text = '' THEN NULL
+              ELSE to_tsquery('simple', $2::text)
          END AS tsq,
-         $5::text AS fuzzy
+         $3::text AS fuzzy
+     ), latest_projection AS (
+       SELECT DISTINCT ON ("rawEntryId")
+         "rawEntryId",
+         "searchText"
+       FROM "MemoryEmbedding"
+       WHERE "userId" = $1
+       ORDER BY "rawEntryId", "updatedAt" DESC
      )
      SELECT
        me."rawEntryId",
@@ -98,14 +121,11 @@ async function lexicalCandidates(args: {
               )
             )
        END AS score
-     FROM "MemoryEmbedding" me
+     FROM latest_projection me
      JOIN "Event" e ON e."id" = me."rawEntryId"
      CROSS JOIN recall_query q
-     WHERE me."userId" = $1
-       AND me."model" = $2
-       AND me."version" = $3
-       AND ($6::timestamptz IS NULL OR e."occurredAt" >= $6::timestamptz)
-       AND ($7::timestamptz IS NULL OR e."occurredAt" < $7::timestamptz)
+     WHERE ($4::timestamptz IS NULL OR e."occurredAt" >= $4::timestamptz)
+       AND ($5::timestamptz IS NULL OR e."occurredAt" < $5::timestamptz)
        AND (
          q.tsq IS NULL
          OR to_tsvector(
@@ -116,12 +136,10 @@ async function lexicalCandidates(args: {
               q.fuzzy,
               public.memoato_unaccent(lower(me."searchText"))
             ) >= 0.2
-       )
+     )
      ORDER BY score DESC, e."occurredAt" DESC
-     LIMIT $8`,
+     LIMIT $6`,
     args.userId,
-    config.model,
-    config.version,
     args.parsed.tsQuery ?? "",
     args.parsed.fuzzyText,
     args.parsed.range?.from ?? null,
@@ -165,19 +183,68 @@ async function semanticCandidates(args: {
   return normalizedRanks(rows as any[]);
 }
 
+async function semanticConceptCandidates(args: {
+  prisma: PrismaLike;
+  userId: string;
+  parsed: ParsedRecallQuery;
+  vector: number[];
+  limit: number;
+}): Promise<RecallRank[]> {
+  const config = getEmbeddingConfig();
+  const rows = await args.prisma.$queryRawUnsafe(
+    `WITH nearest_concepts AS (
+       SELECT
+         mce."conceptId",
+         1 - (mce."embedding" <=> $4::vector) AS concept_score
+       FROM "MemoryConceptEmbedding" mce
+       WHERE mce."userId" = $1
+         AND mce."model" = $2
+         AND mce."version" = $3
+         AND mce."status" = 'complete'
+         AND mce."embedding" IS NOT NULL
+       ORDER BY mce."embedding" <=> $4::vector
+       LIMIT 4
+     )
+     SELECT
+       mec."rawEntryId",
+       MAX(nc.concept_score) AS score
+     FROM nearest_concepts nc
+     JOIN "MemoryEntryConcept" mec ON mec."conceptId" = nc."conceptId"
+     JOIN "Event" e ON e."id" = mec."rawEntryId"
+     WHERE nc.concept_score >= 0.35
+       AND ($5::timestamptz IS NULL OR e."occurredAt" >= $5::timestamptz)
+       AND ($6::timestamptz IS NULL OR e."occurredAt" < $6::timestamptz)
+     GROUP BY mec."rawEntryId"
+     ORDER BY score DESC
+     LIMIT $7`,
+    args.userId,
+    config.model,
+    config.version,
+    toPgVector(args.vector, config.dimensions),
+    args.parsed.range?.from ?? null,
+    args.parsed.range?.to ?? null,
+    args.limit,
+  );
+  return normalizedRanks(rows as any[]);
+}
+
 export async function hybridRecallCandidates(args: {
   prisma: PrismaLike;
   userId: string;
   query: string;
   parsed: ParsedRecallQuery;
   take: number;
+  includeSemantic?: boolean;
 }): Promise<{
   ranks: FusedRecallRank[];
   mode: "hybrid" | "semantic" | "lexical";
   semanticAvailable: boolean;
 }> {
   const candidateLimit = Math.max(40, Math.min(100, args.take * 3));
-  const shouldEmbed = isEmbeddingConfigured() && args.parsed.terms.length > 0;
+  const shouldEmbed =
+    args.includeSemantic === true &&
+    isEmbeddingConfigured() &&
+    args.parsed.terms.length > 0;
   const [lexicalResult, embeddingResult] = await Promise.allSettled([
     lexicalCandidates({
       prisma: args.prisma,
@@ -198,18 +265,29 @@ export async function hybridRecallCandidates(args: {
   let semantic: RecallRank[] = [];
   let semanticAvailable = false;
   if (embeddingResult.status === "fulfilled" && embeddingResult.value) {
-    try {
-      semantic = await semanticCandidates({
+    const [entryResult, conceptResult] = await Promise.allSettled([
+      semanticCandidates({
         prisma: args.prisma,
         userId: args.userId,
         parsed: args.parsed,
         vector: embeddingResult.value,
         limit: candidateLimit,
-      });
-      semanticAvailable = true;
-    } catch {
-      semantic = [];
-    }
+      }),
+      semanticConceptCandidates({
+        prisma: args.prisma,
+        userId: args.userId,
+        parsed: args.parsed,
+        vector: embeddingResult.value,
+        limit: candidateLimit,
+      }),
+    ]);
+    semantic = mergeRecallRanks(
+      entryResult.status === "fulfilled" ? entryResult.value : [],
+      conceptResult.status === "fulfilled" ? conceptResult.value : [],
+    ).slice(0, candidateLimit);
+    semanticAvailable =
+      entryResult.status === "fulfilled" ||
+      conceptResult.status === "fulfilled";
   }
 
   const mode =

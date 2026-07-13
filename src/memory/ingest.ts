@@ -18,6 +18,12 @@ import {
 } from "./apiKeys";
 import { createHash, randomUUID } from "node:crypto";
 import { triggerMemoryEmbeddingProjection } from "./embeddingQueue";
+import {
+  ensureLabeledMemoryExtraction,
+  ensureMemoryConcept,
+  extractCatalogMemoryFacts,
+} from "./labeling";
+import { triggerMemoryConceptEmbeddingProjection } from "./conceptEmbeddingQueue";
 
 type PrismaLike = any;
 
@@ -100,6 +106,10 @@ function parseClientLabels(input: unknown): MemoryFact[] {
           confidence == null ? 0.9 : Math.max(0, Math.min(1, confidence)),
         origin: "client",
       };
+      if (typeof raw.domain === "string" && raw.domain.trim())
+        fact.domain = raw.domain.trim().toLowerCase() as MemoryFact["domain"];
+      if (typeof raw.conceptKey === "string" && raw.conceptKey.trim())
+        fact.conceptKey = raw.conceptKey.trim().toLowerCase();
       if (typeof raw.categoryId === "string" && raw.categoryId.trim())
         fact.categoryId = raw.categoryId.trim();
       if (typeof raw.canonical === "string" && raw.canonical.trim())
@@ -737,14 +747,20 @@ export async function processRawMemoryEntry(args: {
             unknowns: [],
           }
         : null;
-    const deterministic = extractDeterministicMemoryFacts(request.text);
+    const deterministic = mergeExtractions(
+      extractDeterministicMemoryFacts(request.text),
+      extractCatalogMemoryFacts(request.text),
+    );
     const baseExtraction = clientExtraction
       ? mergeExtractions(clientExtraction, deterministic)
       : deterministic;
     const aiExtraction = shouldUseOpenRouter(request.text, baseExtraction)
       ? await extractWithOpenRouter({ rawText: request.text, categories })
       : null;
-    const extraction = mergeExtractions(baseExtraction, aiExtraction);
+    const extraction = ensureLabeledMemoryExtraction(
+      request.text,
+      mergeExtractions(baseExtraction, aiExtraction),
+    );
     const derivedEvents = await args.prisma.$transaction(
       async (tx: PrismaLike) => {
         const createdEvents: Array<{
@@ -757,6 +773,9 @@ export async function processRawMemoryEntry(args: {
         // Reprocessing swaps only derived state, and does so atomically. rawText is
         // never deleted or rewritten.
         await tx.memoryFact.deleteMany({ where: { rawEntryId: rawEntry.id } });
+        await tx.memoryEntryConcept.deleteMany({
+          where: { rawEntryId: rawEntry.id },
+        });
         await tx.event.deleteMany({
           where: {
             userId: rawEntry.userId,
@@ -776,6 +795,12 @@ export async function processRawMemoryEntry(args: {
                 aliases,
               )
             : null;
+          const concept = await ensureMemoryConcept({
+            prisma: tx,
+            userId: rawEntry.userId,
+            fact,
+            categoryId: category?.id ?? null,
+          });
 
           if (category) {
             for (const eventFact of factsForDerivedEvents(fact)) {
@@ -828,6 +853,7 @@ export async function processRawMemoryEntry(args: {
               rawEntryId: rawEntry.id,
               derivedEventId: factDerivedIds[0] ?? null,
               categoryId: category?.id ?? null,
+              conceptId: concept.id,
               position,
               fingerprint: factFingerprint(fact, position),
               kind: fact.kind,
@@ -851,6 +877,27 @@ export async function processRawMemoryEntry(args: {
                   : "needs_review",
               data: jsonValue({ fact, derivedEventIds: factDerivedIds }),
               evidence: { source: "raw_entry" },
+            },
+          });
+          await tx.memoryEntryConcept.upsert({
+            where: {
+              rawEntryId_conceptId: {
+                rawEntryId: rawEntry.id,
+                conceptId: concept.id,
+              },
+            },
+            create: {
+              userId: rawEntry.userId,
+              rawEntryId: rawEntry.id,
+              conceptId: concept.id,
+              role: position === 0 ? "primary" : "secondary",
+              confidence: Math.max(0, Math.min(1, fact.confidence)),
+              origin: factOrigin(fact, extraction),
+            },
+            update: {
+              confidence: Math.max(0, Math.min(1, fact.confidence)),
+              origin: factOrigin(fact, extraction),
+              ...(position === 0 ? { role: "primary" } : {}),
             },
           });
         }
@@ -924,6 +971,7 @@ export async function processRawMemoryEntry(args: {
     );
 
     triggerMemoryEmbeddingProjection(args.prisma, rawEntry.id);
+    triggerMemoryConceptEmbeddingProjection(args.prisma, rawEntry.userId);
     return {
       rawEntryId: rawEntry.id,
       processingStatus: "complete",
@@ -1103,7 +1151,8 @@ export async function recoverPendingMemoryEntries(
 }
 
 // Safe, idempotent compatibility backfill: it copies already-stored extraction
-// JSON into the normalized read model. It never changes Event or Category rows.
+// JSON into the normalized read model and attaches stable concepts. It never
+// changes Event or Category rows.
 export async function backfillLegacyMemoryFacts(
   prisma: PrismaLike,
   take = 500,
@@ -1114,23 +1163,29 @@ export async function backfillLegacyMemoryFacts(
       userId: { not: null },
       rawMemoryFacts: { none: {} },
     },
-    select: { id: true, userId: true, data: true },
+    select: { id: true, userId: true, rawText: true, data: true },
     orderBy: [{ occurredAt: "desc" }],
     take: Math.max(1, Math.min(2_000, take)),
   });
   let created = 0;
+  const conceptUsers = new Set<string>();
 
   for (const entry of entries) {
     if (!entry.userId) continue;
-    const extraction = entry?.data?.memoatoMemory?.extraction as
+    const storedExtraction = entry?.data?.memoatoMemory?.extraction as
       | MemoryExtraction
       | undefined;
-    if (
-      !extraction ||
-      !Array.isArray(extraction.facts) ||
-      extraction.facts.length === 0
-    )
-      continue;
+    const extraction = ensureLabeledMemoryExtraction(
+      String(entry.rawText ?? ""),
+      storedExtraction && Array.isArray(storedExtraction.facts)
+        ? storedExtraction
+        : {
+            parser: "deterministic",
+            parserVersion: "memory-label-backfill-v1",
+            facts: [],
+            unknowns: [],
+          },
+    );
     const categoryIds = extraction.facts
       .map((fact) => fact.categoryId)
       .filter((id): id is string => typeof id === "string" && id.length > 0);
@@ -1146,11 +1201,25 @@ export async function backfillLegacyMemoryFacts(
           )
         : new Set<string>();
 
+    const conceptByPosition = new Map<number, any>();
+    for (const [position, fact] of extraction.facts.entries()) {
+      const concept = await ensureMemoryConcept({
+        prisma,
+        userId: entry.userId,
+        fact,
+        categoryId:
+          fact.categoryId && validCategories.has(fact.categoryId)
+            ? fact.categoryId
+            : null,
+      });
+      conceptByPosition.set(position, concept);
+    }
     const result = await prisma.memoryFact.createMany({
       data: extraction.facts.map((fact, position) => ({
         id: randomUUID(),
         userId: entry.userId,
         rawEntryId: entry.id,
+        conceptId: conceptByPosition.get(position)?.id ?? null,
         categoryId:
           fact.categoryId && validCategories.has(fact.categoryId)
             ? fact.categoryId
@@ -1181,7 +1250,37 @@ export async function backfillLegacyMemoryFacts(
       })),
       skipDuplicates: true,
     });
+    for (const [position, fact] of extraction.facts.entries()) {
+      const concept = conceptByPosition.get(position);
+      if (!concept) continue;
+      await prisma.memoryEntryConcept.upsert({
+        where: {
+          rawEntryId_conceptId: {
+            rawEntryId: entry.id,
+            conceptId: concept.id,
+          },
+        },
+        create: {
+          userId: entry.userId,
+          rawEntryId: entry.id,
+          conceptId: concept.id,
+          role: position === 0 ? "primary" : "secondary",
+          confidence: fact.confidence,
+          origin: factOrigin(fact, extraction),
+        },
+        update: {
+          ...(position === 0 ? { role: "primary" } : {}),
+          confidence: fact.confidence,
+          origin: factOrigin(fact, extraction),
+        },
+      });
+    }
     created += result.count;
+    triggerMemoryEmbeddingProjection(prisma, entry.id);
+    conceptUsers.add(entry.userId);
+  }
+  for (const userId of conceptUsers) {
+    triggerMemoryConceptEmbeddingProjection(prisma, userId);
   }
   return created;
 }

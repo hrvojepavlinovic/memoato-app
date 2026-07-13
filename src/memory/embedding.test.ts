@@ -26,7 +26,7 @@ describe("Memoato embeddings", () => {
   });
 
   it("allows slower background indexing without slowing interactive Recall", () => {
-    expect(embeddingRequestTimeoutMs("search_query")).toBe(12_000);
+    expect(embeddingRequestTimeoutMs("search_query")).toBe(2_000);
     expect(embeddingRequestTimeoutMs("search_document")).toBe(30_000);
   });
 
@@ -40,12 +40,17 @@ describe("Memoato embeddings", () => {
           amount: 7,
           unit: "reps",
           status: "accepted",
+          data: {
+            fact: { domain: "movement", conceptKey: "movement.pull_ups" },
+          },
         },
         { label: "wrong", status: "rejected" },
       ],
     });
     expect(text).toContain("Zgibovi 2 2 3");
-    expect(text).toContain("pull ups · pull · 7 · reps");
+    expect(text).toContain(
+      "pull ups · pull · movement · movement.pull_ups · 7 · reps",
+    );
     expect(text).not.toContain("wrong");
     expect(embeddingContentHash(text)).toHaveLength(64);
     expect(embeddingContentHash(text)).toBe(embeddingContentHash(text));

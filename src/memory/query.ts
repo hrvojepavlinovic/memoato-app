@@ -5,7 +5,9 @@ const MAX_SEARCH_TAKE = 50;
 const MAX_SCAN = 2000;
 
 function cleanText(value: unknown): string {
-  return String(value ?? "").trim().replace(/\s+/g, " ");
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function normalize(value: unknown): string {
@@ -48,24 +50,39 @@ function rangeForPreset(raw: unknown): { from: Date; to: Date } | null {
     const y = addDays(today, -1);
     return { from: y, to: endOfLocalDay(y) };
   }
-  if (preset === "last_7_days") return { from: addDays(today, -6), to: endOfLocalDay(today) };
-  if (preset === "last_30_days") return { from: addDays(today, -29), to: endOfLocalDay(today) };
-  if (preset === "this_week") return { from: thisWeekStart, to: endOfLocalDay(today) };
+  if (preset === "last_7_days")
+    return { from: addDays(today, -6), to: endOfLocalDay(today) };
+  if (preset === "last_30_days")
+    return { from: addDays(today, -29), to: endOfLocalDay(today) };
+  if (preset === "this_week")
+    return { from: thisWeekStart, to: endOfLocalDay(today) };
   if (preset === "last_week") {
     const start = addDays(thisWeekStart, -7);
     return { from: start, to: endOfLocalDay(addDays(thisWeekStart, -1)) };
   }
-  if (preset === "this_month") return { from: thisMonthStart, to: endOfLocalDay(today) };
+  if (preset === "this_month")
+    return { from: thisMonthStart, to: endOfLocalDay(today) };
   if (preset === "last_month") {
     const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const end = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
+    const end = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
     return { from: start, to: end };
   }
 
   return null;
 }
 
-function parseRange(args: { from?: unknown; to?: unknown; period?: unknown }): { from?: Date; to?: Date } {
+function parseRange(args: { from?: unknown; to?: unknown; period?: unknown }): {
+  from?: Date;
+  to?: Date;
+} {
   const preset = rangeForPreset(args.period);
   const from = parseDate(args.from) ?? preset?.from;
   const to = parseDate(args.to) ?? preset?.to;
@@ -81,7 +98,8 @@ function clampTake(value: unknown, max: number): number {
 function factFromData(data: unknown): any | null {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
   const direct = (data as any).fact;
-  if (direct && typeof direct === "object" && !Array.isArray(direct)) return direct;
+  if (direct && typeof direct === "object" && !Array.isArray(direct))
+    return direct;
   return null;
 }
 
@@ -90,7 +108,9 @@ function factsFromData(data: unknown): any[] {
   const direct = factFromData(data);
   if (direct) return [direct];
   const facts = (data as any)?.memoatoMemory?.extraction?.facts;
-  return Array.isArray(facts) ? facts.filter((f) => f && typeof f === "object") : [];
+  return Array.isArray(facts)
+    ? facts.filter((f) => f && typeof f === "object")
+    : [];
 }
 
 function memoryFactToResult(fact: any) {
@@ -100,6 +120,8 @@ function memoryFactToResult(fact: any) {
     kind: fact.kind,
     label: fact.label,
     canonical: fact.canonical,
+    domain: fact.concept?.domain ?? detail?.domain ?? null,
+    conceptKey: fact.concept?.key ?? detail?.conceptKey ?? null,
     amount: fact.amount,
     unit: fact.unit,
     durationMinutes: fact.durationMinutes,
@@ -107,7 +129,9 @@ function memoryFactToResult(fact: any) {
     origin: fact.origin,
     status: fact.status,
     note: typeof detail?.note === "string" ? detail.note : null,
-    categoryCandidates: Array.isArray(detail?.categoryCandidates) ? detail.categoryCandidates : [],
+    categoryCandidates: Array.isArray(detail?.categoryCandidates)
+      ? detail.categoryCandidates
+      : [],
     category: fact.category ?? null,
   };
 }
@@ -120,12 +144,16 @@ export function acceptedMemoryFacts(event: any): any[] {
 }
 
 export function isDerivedMemoryEvent(event: any): boolean {
-  return typeof event?.data?.rawEntryId === "string" || event?.data?.source === "memoato-memory";
+  return (
+    typeof event?.data?.rawEntryId === "string" ||
+    event?.data?.source === "memoato-memory"
+  );
 }
 
 export function trustedFactsForEvent(event: any): any[] {
   if (event?.kind === "NOTE") return acceptedMemoryFacts(event);
-  if (event?.kind === "SESSION" && !isDerivedMemoryEvent(event)) return factsFromData(event.data);
+  if (event?.kind === "SESSION" && !isDerivedMemoryEvent(event))
+    return factsFromData(event.data);
   return [];
 }
 
@@ -133,25 +161,42 @@ function tagsFromData(data: unknown): string[] {
   if (!data || typeof data !== "object" || Array.isArray(data)) return [];
   const direct = (data as any).tags;
   const memoato = (data as any)?.memoatoMemory?.tags;
-  const tags = Array.isArray(direct) ? direct : Array.isArray(memoato) ? memoato : [];
+  const tags = Array.isArray(direct)
+    ? direct
+    : Array.isArray(memoato)
+      ? memoato
+      : [];
   return tags.filter((x): x is string => typeof x === "string");
 }
 
 function eventHaystack(event: any): string {
   const facts = trustedFactsForEvent(event);
   const factText = facts
-    .map((f) => [f.kind, f.label, f.canonical, f.unit, f.note, ...(Array.isArray(f.categoryCandidates) ? f.categoryCandidates : [])].join(" "))
+    .map((f) =>
+      [
+        f.kind,
+        f.domain,
+        f.conceptKey,
+        f.label,
+        f.canonical,
+        f.unit,
+        f.note,
+        ...(Array.isArray(f.categoryCandidates) ? f.categoryCandidates : []),
+      ].join(" "),
+    )
     .join(" ");
-  return normalize([
-    event.rawText,
-    event.source,
-    event.kind,
-    event.category?.title,
-    event.category?.slug,
-    event.category?.unit,
-    tagsFromData(event.data).join(" "),
-    factText,
-  ].join(" "));
+  return normalize(
+    [
+      event.rawText,
+      event.source,
+      event.kind,
+      event.category?.title,
+      event.category?.slug,
+      event.category?.unit,
+      tagsFromData(event.data).join(" "),
+      factText,
+    ].join(" "),
+  );
 }
 
 function matchesQuery(event: any, terms: string[]): boolean {
@@ -207,20 +252,29 @@ function eventToResult(event: any) {
 
 function factsMatchingMetric(event: any, terms: string[]): any[] {
   return trustedFactsForEvent(event).filter((fact) => {
-    const haystack = normalize([
-      fact.kind,
-      fact.label,
-      fact.canonical,
-      fact.unit,
-      fact.note,
-      ...(Array.isArray(fact.categoryCandidates) ? fact.categoryCandidates : []),
-    ].join(" "));
+    const haystack = normalize(
+      [
+        fact.kind,
+        fact.domain,
+        fact.conceptKey,
+        fact.label,
+        fact.canonical,
+        fact.unit,
+        fact.note,
+        ...(Array.isArray(fact.categoryCandidates)
+          ? fact.categoryCandidates
+          : []),
+      ].join(" "),
+    );
     return terms.every((term) => haystack.includes(term));
   });
 }
 
 function isSearchableMemoryEvent(event: any): boolean {
-  return event?.kind === "NOTE" || (event?.kind === "SESSION" && !isDerivedMemoryEvent(event));
+  return (
+    event?.kind === "NOTE" ||
+    (event?.kind === "SESSION" && !isDerivedMemoryEvent(event))
+  );
 }
 
 const memoryEventInclude = {
@@ -232,6 +286,7 @@ const memoryEventInclude = {
       kind: true,
       label: true,
       canonical: true,
+      concept: { select: { key: true, displayName: true, domain: true } },
       amount: true,
       unit: true,
       durationMinutes: true,
@@ -250,10 +305,17 @@ export async function searchMemoryEntries(args: {
   userId: string;
   body: unknown;
 }) {
-  const body = args.body && typeof args.body === "object" && !Array.isArray(args.body) ? (args.body as any) : {};
+  const body =
+    args.body && typeof args.body === "object" && !Array.isArray(args.body)
+      ? (args.body as any)
+      : {};
   const terms = queryTerms(body.query);
   const take = clampTake(body.take, MAX_SEARCH_TAKE);
-  const range = parseRange({ from: body.from, to: body.to, period: body.period });
+  const range = parseRange({
+    from: body.from,
+    to: body.to,
+    period: body.period,
+  });
 
   const events = await args.prisma.event.findMany({
     where: eventWhere(args.userId, range),
@@ -262,7 +324,12 @@ export async function searchMemoryEntries(args: {
     take: MAX_SCAN,
   });
 
-  const matches = events.filter((event: any) => isSearchableMemoryEvent(event) && matchesQuery(event, terms)).slice(0, take);
+  const matches = events
+    .filter(
+      (event: any) =>
+        isSearchableMemoryEvent(event) && matchesQuery(event, terms),
+    )
+    .slice(0, take);
   return {
     query: cleanText(body.query),
     from: range.from?.toISOString() ?? null,
@@ -277,11 +344,18 @@ export async function summarizeMemoryMetric(args: {
   userId: string;
   body: unknown;
 }) {
-  const body = args.body && typeof args.body === "object" && !Array.isArray(args.body) ? (args.body as any) : {};
+  const body =
+    args.body && typeof args.body === "object" && !Array.isArray(args.body)
+      ? (args.body as any)
+      : {};
   const metric = cleanText(body.metric ?? body.query);
   if (!metric) throw new Error("missing_metric");
   const terms = queryTerms(metric);
-  const range = parseRange({ from: body.from, to: body.to, period: body.period ?? "last_30_days" });
+  const range = parseRange({
+    from: body.from,
+    to: body.to,
+    period: body.period ?? "last_30_days",
+  });
 
   const events = await args.prisma.event.findMany({
     where: eventWhere(args.userId, range),
@@ -290,29 +364,44 @@ export async function summarizeMemoryMetric(args: {
     take: MAX_SCAN,
   });
 
-  const sessionMatches = events.filter((event: any) => event.kind === "SESSION" && !isDerivedMemoryEvent(event) && matchesQuery(event, terms));
+  const sessionMatches = events.filter(
+    (event: any) =>
+      event.kind === "SESSION" &&
+      !isDerivedMemoryEvent(event) &&
+      matchesQuery(event, terms),
+  );
   const rawFactMatches = events.flatMap((event: any) => {
     if (event.kind !== "NOTE") return [];
     return factsMatchingMetric(event, terms).map((fact) => ({ event, fact }));
   });
 
   const sessionTotal = sessionMatches.reduce((sum: number, event: any) => {
-    const n = typeof event.amount === "number" && Number.isFinite(event.amount) ? event.amount : 0;
+    const n =
+      typeof event.amount === "number" && Number.isFinite(event.amount)
+        ? event.amount
+        : 0;
     return sum + n;
   }, 0);
   const rawFactTotal = rawFactMatches.reduce((sum: number, item: any) => {
-    const n = typeof item.fact.amount === "number" && Number.isFinite(item.fact.amount) ? item.fact.amount : 0;
+    const n =
+      typeof item.fact.amount === "number" && Number.isFinite(item.fact.amount)
+        ? item.fact.amount
+        : 0;
     return sum + n;
   }, 0);
   const total = sessionTotal + rawFactTotal;
   const durationMinutes =
     sessionMatches.reduce((sum: number, event: any) => {
-      const n = typeof event.duration === "number" && Number.isFinite(event.duration) ? event.duration : 0;
+      const n =
+        typeof event.duration === "number" && Number.isFinite(event.duration)
+          ? event.duration
+          : 0;
       return sum + n;
     }, 0) +
     rawFactMatches.reduce((sum: number, item: any) => {
       const n =
-        typeof item.fact.durationMinutes === "number" && Number.isFinite(item.fact.durationMinutes)
+        typeof item.fact.durationMinutes === "number" &&
+        Number.isFinite(item.fact.durationMinutes)
           ? item.fact.durationMinutes
           : 0;
       return sum + n;
@@ -330,20 +419,29 @@ export async function summarizeMemoryMetric(args: {
     if (!unit) continue;
     unitCounts.set(unit, (unitCounts.get(unit) ?? 0) + 1);
   }
-  const unit = Array.from(unitCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const unit =
+    Array.from(unitCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ??
+    null;
   const matchedEntries = [
     ...sessionMatches.map(eventToResult),
     ...rawFactMatches.map(({ event, fact }: any) => ({
       ...eventToResult(event),
-      amount: typeof fact.amount === "number" && Number.isFinite(fact.amount) ? fact.amount : null,
+      amount:
+        typeof fact.amount === "number" && Number.isFinite(fact.amount)
+          ? fact.amount
+          : null,
       duration:
-        typeof fact.durationMinutes === "number" && Number.isFinite(fact.durationMinutes)
+        typeof fact.durationMinutes === "number" &&
+        Number.isFinite(fact.durationMinutes)
           ? Math.round(fact.durationMinutes)
           : null,
       facts: [fact],
       matchedVia: "acceptedFact",
     })),
-  ].sort((a: any, b: any) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
+  ].sort(
+    (a: any, b: any) =>
+      new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
+  );
 
   return {
     metric,
@@ -354,7 +452,8 @@ export async function summarizeMemoryMetric(args: {
     unit,
     durationMinutes,
     firstOccurredAt: matchedEntries[0]?.occurredAt ?? null,
-    lastOccurredAt: matchedEntries[matchedEntries.length - 1]?.occurredAt ?? null,
+    lastOccurredAt:
+      matchedEntries[matchedEntries.length - 1]?.occurredAt ?? null,
     entries: matchedEntries.slice(-20),
   };
 }

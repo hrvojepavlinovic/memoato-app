@@ -1,3 +1,5 @@
+import { recallAliasesFromConceptCatalog } from "./labeling";
+
 const STOP_WORDS = new Set([
   "a",
   "an",
@@ -51,6 +53,7 @@ const STOP_WORDS = new Set([
 ]);
 
 const ALIAS_GROUPS: Record<string, string[]> = {
+  ...recallAliasesFromConceptCatalog(),
   weight: ["weight", "kila", "kilaza", "tezina", "vaga", "kg"],
   pull: ["pull", "pullup", "pullups", "zgib", "zgibovi", "zgibove", "zgibova"],
   push: [

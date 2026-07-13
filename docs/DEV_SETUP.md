@@ -92,9 +92,9 @@ Optional background interpretation via OpenRouter:
 OPENROUTER_API_KEY="..."
 MEMOATO_AI_MODEL="google/gemini-3.1-flash-lite"
 MEMOATO_AI_FALLBACK_MODEL="openai/gpt-4.1-mini"
-MEMOATO_EMBEDDING_MODEL="qwen/qwen3-embedding-8b"
+MEMOATO_EMBEDDING_MODEL="openai/text-embedding-3-small"
 MEMOATO_EMBEDDING_DIMENSIONS="1024"
-MEMOATO_EMBEDDING_VERSION="memory-search-v1"
+MEMOATO_EMBEDDING_VERSION="memory-search-v2-openai-small"
 ```
 
 Do not commit real values. The API endpoint is:
@@ -117,7 +117,7 @@ Payload:
 
 The server always stores the raw note and a durable processing run in one transaction before interpretation starts. Local deterministic extraction runs first. OpenRouter is called only when the local reading is empty, uncertain, or a longer entry appears to contain multiple facts. A timeout or provider failure cannot remove the original entry.
 
-The same OpenRouter key enables semantic Recall. The search projection and embedding worker are independent of raw-entry processing: lexical Recall still works when the provider is unavailable, and failed vectors are safely retried. Keep the embedding dimensions aligned with the `vector(1024)` migration. Changing the model should also change `MEMOATO_EMBEDDING_VERSION` and trigger a controlled backfill.
+The same OpenRouter key enables semantic Recall. Recall returns PostgreSQL word/fuzzy matches first and refines them with meaning in a second, non-blocking request, so a slow provider never holds the evidence screen open. Query embeddings are cached in-process; the search projection and embedding worker remain independent of raw-entry processing. Failed vectors are safely retried. Keep the embedding dimensions aligned with the `vector(1024)` migration. Changing the model should also change `MEMOATO_EMBEDDING_VERSION` and trigger a controlled backfill.
 
 Local MCP server:
 

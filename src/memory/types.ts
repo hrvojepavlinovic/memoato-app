@@ -8,6 +8,15 @@ export type MemoryFactKind =
 export type MemoryFact = {
   kind: MemoryFactKind;
   label: string;
+  domain?:
+    | "movement"
+    | "health"
+    | "family"
+    | "work"
+    | "finance"
+    | "social"
+    | "personal";
+  conceptKey?: string;
   categoryId?: string;
   canonical?: string;
   categoryCandidates?: string[];
@@ -21,7 +30,7 @@ export type MemoryFact = {
   setCount?: number;
   confidence: number;
   note?: string;
-  origin?: "deterministic" | "openrouter" | "client";
+  origin?: "deterministic" | "openrouter" | "client" | "catalog" | "human";
 };
 
 export type MemoryExtraction = {

@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { fuseRecallRanks } from "./recallSearch";
+import { describe, expect, it, vi } from "vitest";
+import { parseRecallQuery } from "./recallTerms";
+import {
+  fuseRecallRanks,
+  hybridRecallCandidates,
+  mergeRecallRanks,
+} from "./recallSearch";
 
 describe("hybrid Recall ranking", () => {
   it("rewards evidence found by both words and meaning", () => {
@@ -36,5 +41,41 @@ describe("hybrid Recall ranking", () => {
         semanticScore: null,
       }),
     ]);
+  });
+
+  it("keeps the strongest semantic score when entry and concept recall overlap", () => {
+    expect(
+      mergeRecallRanks(
+        [{ rawEntryId: "same-note", score: 0.61 }],
+        [
+          { rawEntryId: "same-note", score: 0.88 },
+          { rawEntryId: "concept-note", score: 0.72 },
+        ],
+      ),
+    ).toEqual([
+      { rawEntryId: "same-note", score: 0.88 },
+      { rawEntryId: "concept-note", score: 0.72 },
+    ]);
+  });
+
+  it("returns lexical evidence without touching the embedding provider", async () => {
+    const queryRaw = vi
+      .fn()
+      .mockResolvedValue([{ rawEntryId: "football-note", score: 0.92 }]);
+    const result = await hybridRecallCandidates({
+      prisma: { $queryRawUnsafe: queryRaw },
+      userId: "user-1",
+      query: "Kad sam igrao nogomet?",
+      parsed: parseRecallQuery("Kad sam igrao nogomet?"),
+      take: 10,
+      includeSemantic: false,
+    });
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(result.mode).toBe("lexical");
+    expect(result.semanticAvailable).toBe(false);
+    expect(result.ranks[0]).toEqual(
+      expect.objectContaining({ rawEntryId: "football-note" }),
+    );
   });
 });

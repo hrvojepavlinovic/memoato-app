@@ -26,12 +26,33 @@ export function RecallPage() {
   const [answer, setAnswer] = React.useState<any>(null);
   const [answerError, setAnswerError] = React.useState("");
   const [answering, setAnswering] = React.useState(false);
-  const recall = useQuery(
+  const fastRecall = useQuery(
     recallMemory,
-    { query, take: 30 },
-    { enabled: query.trim().length > 0 },
+    { query, take: 30, semantic: false },
+    {
+      enabled: query.trim().length > 0,
+      staleTime: 5 * 60_000,
+    },
   );
-  const data = recall.data as any;
+  const fastData =
+    (fastRecall.data as any)?.query === query ? (fastRecall.data as any) : null;
+  const semanticRecall = useQuery(
+    recallMemory,
+    { query, take: 30, semantic: true },
+    {
+      enabled: query.trim().length > 0 && fastData != null,
+      staleTime: 5 * 60_000,
+      retry: false,
+    },
+  );
+  const semanticData =
+    (semanticRecall.data as any)?.query === query
+      ? (semanticRecall.data as any)
+      : null;
+  const data = semanticData ?? fastData;
+  const isInitialLoading = query.length > 0 && !fastData;
+  const isAddingMeaning =
+    fastData != null && semanticData == null && semanticRecall.isFetching;
 
   function submit(value = draft) {
     const cleaned = value.trim();
@@ -115,9 +136,14 @@ export function RecallPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="label">Evidence</div>
-                {!recall.isLoading && data ? (
+                {!isInitialLoading && data ? (
                   <span className="border border-neutral-300 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
                     {modeLabel(data.mode)}
+                  </span>
+                ) : null}
+                {isAddingMeaning ? (
+                  <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">
+                    Adding meaning…
                   </span>
                 ) : null}
                 {data?.range?.label ? (
@@ -127,7 +153,7 @@ export function RecallPage() {
                 ) : null}
               </div>
               <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em]">
-                {recall.isLoading
+                {isInitialLoading
                   ? "Searching…"
                   : `${data?.count ?? 0} memories found`}
               </h3>
@@ -145,7 +171,7 @@ export function RecallPage() {
             ) : null}
           </div>
 
-          {!recall.isLoading && (data?.entries ?? []).length > 0 ? (
+          {!isInitialLoading && (data?.entries ?? []).length > 0 ? (
             <div className="mt-4 border-2 border-neutral-950 bg-[#f7f4ed] p-4 dark:border-neutral-100 dark:bg-neutral-900 sm:flex sm:items-center sm:justify-between sm:gap-5">
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#ff5c35]">
@@ -216,7 +242,9 @@ export function RecallPage() {
                 <MemoryEntryCard entry={entry} compact />
               </div>
             ))}
-            {!recall.isLoading && (data?.entries ?? []).length === 0 ? (
+            {!isInitialLoading &&
+            !isAddingMeaning &&
+            (data?.entries ?? []).length === 0 ? (
               <div className="card p-10 text-center">
                 <div className="text-xl font-semibold">
                   No matching evidence yet.

@@ -7,6 +7,7 @@ import {
   recoverPendingMemoryEntries,
 } from "../memory/ingest";
 import { initializeMemoryEmbeddings } from "../memory/embeddingQueue";
+import { initializeMemoryConceptEmbeddings } from "../memory/conceptEmbeddingQueue";
 
 function setCors(res: any): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -434,7 +435,12 @@ export const setupPublicStatsRoutes: ServerSetupFn = async ({ app }) => {
     console.error("Memoato pending memory recovery failed", error);
   });
   void backfillLegacyMemoryFacts(prisma)
-    .then(() => initializeMemoryEmbeddings(prisma))
+    .then(() =>
+      Promise.all([
+        initializeMemoryEmbeddings(prisma),
+        initializeMemoryConceptEmbeddings(prisma),
+      ]),
+    )
     .catch((error) => {
       console.error("Memoato Recall initialization failed", error);
     });

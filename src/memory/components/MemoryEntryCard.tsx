@@ -100,6 +100,16 @@ export function MemoryEntryCard({
               className={`h-1.5 w-1.5 flex-none ${entry.processingStatus === "failed" ? "bg-red-500" : entry.processingStatus === "complete" || entry.processingStatus === "legacy" ? "bg-emerald-500" : "animate-pulse bg-[#ff5c35]"}`}
             />
             <span>{statusLabel(entry.processingStatus)}</span>
+            {entry.primaryLabel?.label ? (
+              <>
+                <span className="text-neutral-300 dark:text-neutral-700">
+                  /
+                </span>
+                <span className="truncate text-neutral-700 dark:text-neutral-300">
+                  {entry.primaryLabel.domain} · {entry.primaryLabel.label}
+                </span>
+              </>
+            ) : null}
             <span className="text-neutral-300 dark:text-neutral-700">/</span>
             <span className="truncate">{entry.source || "app"}</span>
           </div>

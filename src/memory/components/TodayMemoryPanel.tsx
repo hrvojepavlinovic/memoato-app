@@ -22,6 +22,22 @@ function compactFact(fact: any): string {
   return name;
 }
 
+function compactEntryLabel(entry: any): string {
+  const primary = entry?.primaryLabel;
+  const fact = (entry?.facts ?? []).find(
+    (candidate: any) =>
+      candidate?.conceptKey && candidate.conceptKey === primary?.conceptKey,
+  );
+  if (fact && typeof fact.amount === "number") return compactFact(fact);
+  if (primary?.label) {
+    const domain = String(primary.domain || "personal").replace(/-/g, " ");
+    return `${domain} · ${primary.label}`;
+  }
+  return entry?.processingStatus === "complete"
+    ? "Life note"
+    : entry?.processingStatus;
+}
+
 export function TodayMemoryPanel({
   onOpenLegacyCapture,
 }: {
@@ -131,7 +147,7 @@ export function TodayMemoryPanel({
             to="/memory"
             size="xs"
             variant="ghost"
-            className="border-neutral-700 text-white hover:border-white hover:bg-neutral-900 dark:border-neutral-300 dark:text-neutral-950 dark:hover:border-neutral-950 dark:hover:bg-white"
+            className="!border-neutral-700 !text-white hover:!border-white hover:!bg-neutral-900 hover:!text-white dark:!border-neutral-300 dark:!text-neutral-950 dark:hover:!border-neutral-950 dark:hover:!bg-neutral-200 dark:hover:!text-neutral-950"
           >
             Open
           </ButtonLink>
@@ -147,19 +163,8 @@ export function TodayMemoryPanel({
               </div>
               <div className="mt-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400 dark:text-neutral-600">
                 <span>{timeOnly(entry.occurredAt)}</span>
-                {entry.facts?.[0] ? (
-                  <>
-                    <span>/</span>
-                    <span className="truncate">
-                      {compactFact(entry.facts[0])}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span>/</span>
-                    <span>{entry.processingStatus}</span>
-                  </>
-                )}
+                <span>/</span>
+                <span className="truncate">{compactEntryLabel(entry)}</span>
               </div>
             </div>
           ))}

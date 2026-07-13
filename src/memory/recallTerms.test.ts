@@ -32,6 +32,13 @@ describe("searchMemoryTerms", () => {
     expect(parsed.tsQuery).toContain("nogomet:*");
   });
 
+  it("maps catalog labels in Croatian and English to the same stable concepts", () => {
+    expect(searchMemoryTerms("Lea je na prespavancu")).toContain("sleepover");
+    expect(searchMemoryTerms("reflection about the firma")).toContain(
+      "reflection",
+    );
+  });
+
   it("extracts bilingual calendar ranges without turning them into terms", () => {
     const now = new Date(2026, 6, 13, 12, 0, 0);
     const hrvatski = parseRecallQuery("zgibovi prošli tjedan", now);
