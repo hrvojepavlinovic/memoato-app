@@ -53,12 +53,15 @@ Identity, privacy, export, integrations/API keys and visible memory-processing s
 The normalized layer is additive:
 
 - `MemoryFact`: atomic, queryable interpretation linked to its raw event and optional derived category event;
+- `MemoryConcept` + `MemoryConceptAlias`: stable language-neutral meaning such as `family.sleepover`, with Croatian and English phrases;
+- `MemoryEntryConcept`: primary and secondary concept labels attached to a raw entry;
 - `MemoryProcessingRun`: durable queue/audit row for every processing attempt;
 - `MemoryCorrection`: immutable before/after record for keep, fix and ignore actions;
 - `MemoryAlias`: personal language learned only from explicit correction;
 - `MemoryEntity` + `MemoryFactEntity`: people, places, activities and topics that can connect facts later;
 - `MemoryInference`: suggestions separated from facts, with evidence IDs and review status.
 - `MemoryEmbedding`: versioned, rebuildable search text and vector projection for one raw entry.
+- `MemoryConceptEmbedding`: versioned pgvector projection of the concept, description and aliases.
 
 Facts are rebuildable. Raw entries are not.
 
@@ -75,6 +78,7 @@ capture
       preserve raw Event
       record parser/model/run result
   → accepted facts or human review queue
+  → attach at least one stable concept label and broad domain
   → enqueue rebuildable search projection
   → single failure-safe embedding worker
   → lexical Recall is available even while vectors are queued or unavailable
@@ -93,6 +97,9 @@ PostgreSQL is the sole persistence and retrieval system:
 - PostgreSQL full-text search uses the language-neutral `simple` dictionary so Croatian and English can coexist;
 - pgvector stores a 1024-dimensional multilingual embedding produced through OpenRouter;
 - reciprocal-rank fusion combines lexical and semantic result lists without pretending their raw scores share one scale.
+- concept-vector recall finds the stable label first, then the entries attached to it, alongside direct entry-vector recall.
+
+Every raw note receives at least one human-readable concept. Specific known concepts are resolved locally before any generative call; unmatched notes safely become `personal.note` until a parser or person supplies a better label. Domains (`movement`, `health`, `family`, `work`, `finance`, `social`, `personal`) are broad navigation facets. Existing user categories remain optional views and tracking projections, so labels do not force a note into a chart.
 
 Embeddings are pinned by model, dimensions and projection version. A model change creates a new projection version and backfill; vectors from different embedding spaces are never mixed. Float vectors are omitted from user exports because they are large, derived and reproducible, while their audit metadata is exported.
 
@@ -119,7 +126,7 @@ OpenRouter is a conservative parser, not the product voice.
 - **Keep** accepts a fact.
 - **Fix** edits the normalized fact, sets confidence to 100% and records the before/after values.
 - **Ignore** rejects the fact and removes only its derived projection, never the raw entry.
-- A changed label creates or updates a personal alias so later entries understand the user's language.
+- A changed label updates the stable concept link, creates or updates a personal alias and rebuilds only the affected entry/concept projections.
 
 Inferences must never silently become facts. They live in `MemoryInference`, reference evidence and require an explicit product rule before promotion.
 
@@ -144,7 +151,7 @@ Moving between modes remains an explicit Profile action. Memoato never uses a re
 1. Take a verified PostgreSQL backup before production migration.
 2. Apply the additive table migration. It contains no `DROP`, `ALTER COLUMN` or update to existing rows.
 3. Deploy code that can read both legacy JSON extraction and normalized facts.
-4. At startup, idempotently copy already-stored extraction JSON into `MemoryFact`. This backfill does not modify events or categories.
+4. At startup, idempotently copy already-stored extraction JSON into `MemoryFact`, attach stable concepts and label previously unclassified raw notes. This backfill does not modify events or categories.
 5. Keep legacy category sessions live as Views and include orphan legacy sessions in Recall.
 6. Monitor failed processing runs and compare raw-event counts before and after deploy.
 

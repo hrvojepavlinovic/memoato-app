@@ -1,10 +1,18 @@
+import { createHash } from "node:crypto";
+
 const OPENROUTER_EMBEDDINGS_URL = "https://openrouter.ai/api/v1/embeddings";
-const DEFAULT_MODEL = "qwen/qwen3-embedding-8b";
+const DEFAULT_MODEL = "openai/text-embedding-3-small";
 const DEFAULT_DIMENSIONS = 1024;
-const DEFAULT_VERSION = "memory-search-v1";
-const QUERY_TIMEOUT_MS = 12_000;
+const DEFAULT_VERSION = "memory-search-v2-openai-small";
+const QUERY_TIMEOUT_MS = 2_000;
 const DOCUMENT_TIMEOUT_MS = 30_000;
+const QUERY_CACHE_TTL_MS = 24 * 60 * 60_000;
+const QUERY_CACHE_MAX_ENTRIES = 250;
 export const EMBEDDING_STORAGE_DIMENSIONS = 1024;
+
+type QueryCacheEntry = { expiresAt: number; vector: number[] };
+const queryEmbeddingCache = new Map<string, QueryCacheEntry>();
+const pendingQueryEmbeddings = new Map<string, Promise<number[]>>();
 
 function env(name: string): string {
   return String(process.env[name] ?? "").trim();
@@ -90,6 +98,37 @@ export function toPgVector(vector: number[], expectedDimensions?: number) {
   return `[${vector.map((value) => String(value)).join(",")}]`;
 }
 
+function queryCacheKey(config: EmbeddingConfig, text: string): string {
+  return createHash("sha256")
+    .update(`${config.model}\n${config.version}\n${config.dimensions}\n${text}`)
+    .digest("hex");
+}
+
+function cachedQueryEmbedding(key: string): number[] | null {
+  const cached = queryEmbeddingCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    queryEmbeddingCache.delete(key);
+    return null;
+  }
+  // Refresh insertion order so frequently used questions stay warm.
+  queryEmbeddingCache.delete(key);
+  queryEmbeddingCache.set(key, cached);
+  return cached.vector;
+}
+
+function cacheQueryEmbedding(key: string, vector: number[]) {
+  queryEmbeddingCache.set(key, {
+    expiresAt: Date.now() + QUERY_CACHE_TTL_MS,
+    vector,
+  });
+  while (queryEmbeddingCache.size > QUERY_CACHE_MAX_ENTRIES) {
+    const oldest = queryEmbeddingCache.keys().next().value;
+    if (typeof oldest !== "string") break;
+    queryEmbeddingCache.delete(oldest);
+  }
+}
+
 export async function embedMemoryText(args: {
   text: string;
   inputType: "search_document" | "search_query";
@@ -100,10 +139,39 @@ export async function embedMemoryText(args: {
   const text = args.text.trim().slice(0, 12_000);
   if (!text) throw new EmbeddingError("empty_embedding_input");
 
+  const cacheKey =
+    args.inputType === "search_query"
+      ? queryCacheKey(config, text.toLocaleLowerCase())
+      : null;
+  if (cacheKey) {
+    const cached = cachedQueryEmbedding(cacheKey);
+    if (cached) return cached;
+    const pending = pendingQueryEmbeddings.get(cacheKey);
+    if (pending) return pending;
+  }
+
+  const request = requestEmbedding({ config, text, inputType: args.inputType });
+  if (cacheKey) pendingQueryEmbeddings.set(cacheKey, request);
+  try {
+    const vector = await request;
+    if (cacheKey) cacheQueryEmbedding(cacheKey, vector);
+    return vector;
+  } finally {
+    if (cacheKey) pendingQueryEmbeddings.delete(cacheKey);
+  }
+}
+
+async function requestEmbedding(args: {
+  config: EmbeddingConfig;
+  text: string;
+  inputType: "search_document" | "search_query";
+}): Promise<number[]> {
+  const { config, text, inputType } = args;
+
   const controller = new AbortController();
   const timeout = globalThis.setTimeout(
     () => controller.abort(),
-    embeddingRequestTimeoutMs(args.inputType),
+    embeddingRequestTimeoutMs(inputType),
   );
   try {
     const response = await fetch(OPENROUTER_EMBEDDINGS_URL, {
@@ -119,7 +187,7 @@ export async function embedMemoryText(args: {
         model: config.model,
         input: [text],
         dimensions: config.dimensions,
-        input_type: args.inputType,
+        input_type: inputType,
         encoding_format: "float",
       }),
     });

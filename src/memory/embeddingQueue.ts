@@ -29,6 +29,8 @@ export function buildEmbeddingSearchText(entry: any): string {
     const values = [
       fact?.label,
       fact?.canonical,
+      fact?.data?.fact?.domain,
+      fact?.data?.fact?.conceptKey,
       typeof fact?.amount === "number" ? String(fact.amount) : null,
       fact?.unit,
       typeof fact?.durationMinutes === "number"

@@ -28,16 +28,20 @@ model User {
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
-  Category            Category[]
-  Event               Event[]
-  ApiKey              ApiKey[]
-  MemoryFact          MemoryFact[]
-  MemoryProcessingRun MemoryProcessingRun[]
-  MemoryCorrection    MemoryCorrection[]
-  MemoryAlias         MemoryAlias[]
-  MemoryEntity        MemoryEntity[]
-  MemoryInference     MemoryInference[]
-  MemoryEmbedding     MemoryEmbedding[]
+  Category               Category[]
+  Event                  Event[]
+  ApiKey                 ApiKey[]
+  MemoryFact             MemoryFact[]
+  MemoryProcessingRun    MemoryProcessingRun[]
+  MemoryCorrection       MemoryCorrection[]
+  MemoryAlias            MemoryAlias[]
+  MemoryEntity           MemoryEntity[]
+  MemoryInference        MemoryInference[]
+  MemoryEmbedding        MemoryEmbedding[]
+  MemoryConcept          MemoryConcept[]
+  MemoryConceptAlias     MemoryConceptAlias[]
+  MemoryEntryConcept     MemoryEntryConcept[]
+  MemoryConceptEmbedding MemoryConceptEmbedding[]
 }
 
 enum EventKind {
@@ -92,9 +96,10 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  events        Event[]
-  memoryFacts   MemoryFact[]
-  memoryAliases MemoryAlias[]
+  events         Event[]
+  memoryFacts    MemoryFact[]
+  memoryAliases  MemoryAlias[]
+  memoryConcepts MemoryConcept[]
 
   @@unique([source, sourceId])
   @@unique([userId, slug])
@@ -154,6 +159,7 @@ model Event {
   memoryProcessingRuns MemoryProcessingRun[]
   memoryCorrections    MemoryCorrection[]
   memoryEmbeddings     MemoryEmbedding[]
+  memoryConcepts       MemoryEntryConcept[]
 
   @@unique([source, kind, sourceId])
   @@index([userId])
@@ -177,6 +183,9 @@ model MemoryFact {
 
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId String?
+
+  concept   MemoryConcept? @relation(fields: [conceptId], references: [id], onDelete: SetNull)
+  conceptId String?
 
   position        Int     @default(0)
   fingerprint     String
@@ -204,6 +213,109 @@ model MemoryFact {
   @@index([userId, canonical])
   @@index([rawEntryId])
   @@index([categoryId])
+  @@index([conceptId])
+}
+
+// Stable, language-neutral labels. Categories remain user-facing views;
+// concepts describe what a fact means across Croatian, English and aliases.
+model MemoryConcept {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId String?
+
+  key         String
+  displayName String
+  domain      String
+  factKind    String
+  description String?
+  defaultUnit String?
+  source      String   @default("catalog")
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  aliases    MemoryConceptAlias[]
+  facts      MemoryFact[]
+  entries    MemoryEntryConcept[]
+  embeddings MemoryConceptEmbedding[]
+
+  @@unique([userId, key])
+  @@index([userId, domain])
+  @@index([categoryId])
+}
+
+model MemoryConceptAlias {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  concept   MemoryConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  conceptId String
+
+  phrase           String
+  normalizedPhrase String
+  language         String?
+  confidence       Float    @default(1)
+  source           String   @default("catalog")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, normalizedPhrase])
+  @@index([conceptId])
+}
+
+model MemoryEntryConcept {
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  rawEntry   Event  @relation(fields: [rawEntryId], references: [id], onDelete: Cascade)
+  rawEntryId String
+
+  concept   MemoryConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  conceptId String
+
+  role       String   @default("secondary")
+  confidence Float    @default(0.5)
+  origin     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@id([rawEntryId, conceptId])
+  @@index([userId, role])
+  @@index([conceptId])
+}
+
+model MemoryConceptEmbedding {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  concept   MemoryConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  conceptId String
+
+  model       String
+  version     String
+  dimensions  Int
+  searchText  String
+  contentHash String
+  status      String                 @default("queued")
+  attempt     Int                    @default(0)
+  errorCode   String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  embedding   Unsupported("vector")?
+
+  @@unique([conceptId, model, version])
+  @@index([userId, model, version])
+  @@index([userId, status])
 }
 
 // A durable audit trail for every extraction/reprocessing attempt. The app can

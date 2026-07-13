@@ -14,6 +14,12 @@ import { hybridRecallCandidates } from "./recallSearch";
 import { answerRecallWithOpenRouter } from "./openRouterRecall";
 import { triggerMemoryEmbeddingProjection } from "./embeddingQueue";
 import { getEmbeddingConfig, isEmbeddingConfigured } from "./embedding";
+import {
+  ensureMemoryConcept,
+  normalizeMemoryFactLabel,
+  primaryMemoryLabel,
+} from "./labeling";
+import { triggerMemoryConceptEmbeddingProjection } from "./conceptEmbeddingQueue";
 
 const MAX_FEED_TAKE = 50;
 const DEFAULT_FEED_TAKE = 20;
@@ -38,11 +44,14 @@ function legacyFacts(data: any): any[] {
 }
 
 function factDto(fact: any) {
+  const stored = fact?.data?.fact ?? {};
   return {
     id: fact.id,
     kind: fact.kind,
     label: fact.label,
     canonical: fact.canonical,
+    domain: fact.concept?.domain ?? stored.domain ?? null,
+    conceptKey: fact.concept?.key ?? stored.conceptKey ?? null,
     amount: fact.amount,
     unit: fact.unit,
     durationMinutes: fact.durationMinutes,
@@ -72,6 +81,8 @@ function entryDto(event: any) {
           kind: fact.kind ?? "note",
           label: fact.label ?? fact.canonical ?? "Memory",
           canonical: fact.canonical ?? null,
+          domain: fact.domain ?? null,
+          conceptKey: fact.conceptKey ?? null,
           amount: typeof fact.amount === "number" ? fact.amount : null,
           unit: typeof fact.unit === "string" ? fact.unit : null,
           durationMinutes:
@@ -90,6 +101,7 @@ function entryDto(event: any) {
         }))
       : [];
 
+  const facts = normalized.length > 0 ? normalized : fallback;
   return {
     id: event.id,
     rawText: event.rawText ?? "",
@@ -99,7 +111,8 @@ function entryDto(event: any) {
     processingError: memory.processingError ?? null,
     occurredAt: event.occurredAt,
     createdAt: event.createdAt,
-    facts: normalized.length > 0 ? normalized : fallback,
+    facts,
+    primaryLabel: primaryMemoryLabel(facts),
   };
 }
 
@@ -115,6 +128,7 @@ const memoryFactSelect: any = {
   origin: true,
   status: true,
   data: true,
+  concept: { select: { key: true, displayName: true, domain: true } },
   category: { select: { id: true, title: true, slug: true } },
 };
 
@@ -263,7 +277,7 @@ export const getMemoryFeed: GetMemoryFeed<MemoryFeedArgs, any> = async (
   };
 };
 
-type RecallArgs = { query: string; take?: number };
+type RecallArgs = { query: string; take?: number; semantic?: boolean };
 
 export const recallMemory: RecallMemory<RecallArgs, any> = async (
   args,
@@ -314,6 +328,7 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
       query,
       parsed,
       take,
+      includeSemantic: args?.semantic === true,
     });
   } catch {
     // The projection is disposable. Recall falls back to source-of-truth rows
@@ -651,18 +666,33 @@ export const reviewMemoryFact: ReviewMemoryFact<ReviewArgs, any> = async (
         data.confidence = 1;
 
         const storedFact = (fact.data as any)?.fact ?? {};
-        const correctedFact = JSON.parse(
-          JSON.stringify({
-            ...storedFact,
-            label: label ?? fact.label,
-            canonical: canonical === undefined ? fact.canonical : canonical,
-            amount: amount === undefined ? fact.amount : amount,
-            unit: unit === undefined ? fact.unit : unit,
-            confidence: 1,
-            origin: "human",
-            ...(amount !== undefined ? { setValues: undefined } : {}),
-          }),
+        const conceptWasEdited = label !== undefined || canonical !== undefined;
+        const correctedFact = normalizeMemoryFactLabel(
+          JSON.parse(
+            JSON.stringify({
+              ...storedFact,
+              kind: storedFact.kind ?? fact.kind,
+              label: label ?? fact.label,
+              canonical: canonical === undefined ? fact.canonical : canonical,
+              conceptKey: conceptWasEdited ? undefined : storedFact.conceptKey,
+              domain: conceptWasEdited ? undefined : storedFact.domain,
+              amount: amount === undefined ? fact.amount : amount,
+              unit: unit === undefined ? fact.unit : unit,
+              confidence: 1,
+              origin: "human",
+              ...(amount !== undefined ? { setValues: undefined } : {}),
+            }),
+          ),
         );
+        data.label = correctedFact.label;
+        data.canonical = correctedFact.canonical;
+        const correctedConcept = await ensureMemoryConcept({
+          prisma: tx,
+          userId: context.user!.id,
+          fact: correctedFact,
+          categoryId: fact.categoryId,
+        });
+        data.conceptId = correctedConcept.id;
         data.data = {
           ...((fact.data as any) ?? {}),
           fact: correctedFact,
@@ -721,6 +751,51 @@ export const reviewMemoryFact: ReviewMemoryFact<ReviewArgs, any> = async (
       result = await tx.memoryFact.update({ where: { id: fact.id }, data });
     }
 
+    if (args.action !== "reject" && result.conceptId) {
+      await tx.memoryEntryConcept.upsert({
+        where: {
+          rawEntryId_conceptId: {
+            rawEntryId: fact.rawEntryId,
+            conceptId: result.conceptId,
+          },
+        },
+        create: {
+          userId: context.user!.id,
+          rawEntryId: fact.rawEntryId,
+          conceptId: result.conceptId,
+          role: fact.position === 0 ? "primary" : "secondary",
+          confidence: result.confidence,
+          origin: result.origin,
+        },
+        update: {
+          ...(fact.position === 0 ? { role: "primary" } : {}),
+          confidence: result.confidence,
+          origin: result.origin,
+        },
+      });
+    }
+
+    if (
+      fact.conceptId &&
+      (args.action === "reject" || fact.conceptId !== result.conceptId)
+    ) {
+      const remaining = await tx.memoryFact.count({
+        where: {
+          rawEntryId: fact.rawEntryId,
+          conceptId: fact.conceptId,
+          status: "accepted",
+        },
+      });
+      if (remaining === 0) {
+        await tx.memoryEntryConcept.deleteMany({
+          where: {
+            rawEntryId: fact.rawEntryId,
+            conceptId: fact.conceptId,
+          },
+        });
+      }
+    }
+
     const after = {
       label: result.label,
       canonical: result.canonical,
@@ -771,6 +846,7 @@ export const reviewMemoryFact: ReviewMemoryFact<ReviewArgs, any> = async (
     return result;
   });
   triggerMemoryEmbeddingProjection(prisma, fact.rawEntryId);
+  triggerMemoryConceptEmbeddingProjection(prisma, context.user.id);
   return factDto({ ...updated, category: null });
 };
 
