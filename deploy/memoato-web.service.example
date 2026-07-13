@@ -16,6 +16,8 @@ MemoryHigh=512M
 MemoryMax=1G
 CPUQuota=100%
 TasksMax=256
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=200
 
 [Install]
 WantedBy=multi-user.target
