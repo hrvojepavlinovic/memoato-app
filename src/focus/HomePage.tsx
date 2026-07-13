@@ -543,7 +543,6 @@ export function HomePage() {
   const isLoading = privacy.mode === "local" ? localLoading : categoriesQuery.isLoading;
   const isSuccess = privacy.mode === "local" ? true : categoriesQuery.isSuccess;
   const nextUpEnabled = privacy.mode === "local" ? false : (profileQuery.data?.nextUpEnabled ?? false);
-  const quickLogFabSide = privacy.mode === "local" ? "right" : (profileQuery.data?.quickLogFabSide ?? "right");
   const homeCategoryLayout = privacy.mode === "local" ? "list" : (profileQuery.data?.homeCategoryLayout ?? "list");
   const ensuredOnceRef = useRef(false);
   const [titleById, setTitleById] = useState<Record<string, string>>({});
@@ -900,7 +899,26 @@ export function HomePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-screen-lg px-4 pt-6 pb-24 sm:pb-6">
+    <div className="mx-auto w-full max-w-screen-lg px-4 pb-24 pt-6 sm:px-6 sm:pb-8 sm:pt-10">
+      <section className="mb-6 grid border-b border-neutral-300 pb-6 dark:border-neutral-700 sm:grid-cols-[1fr_auto] sm:items-end">
+        <div>
+          <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-neutral-400">
+            <span className="h-2 w-2 bg-[#ff5c35]" aria-hidden="true" />
+            {new Intl.DateTimeFormat("en", { weekday: "long", month: "short", day: "numeric" }).format(new Date())}
+          </div>
+          <h2 className="mt-3 text-[2rem] font-semibold leading-none tracking-[-0.055em] text-neutral-950 dark:text-neutral-100 sm:text-[2.7rem]">
+            What happened today?
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-600 dark:text-neutral-400">
+            Write it as it happened. Memoato keeps the context, not just the count.
+          </p>
+        </div>
+        <Button className="mt-5 hidden h-11 min-w-36 gap-2 sm:inline-flex" onClick={() => openQuickLog(null)}>
+          <span className="text-lg leading-none">+</span>
+          Quick log
+        </Button>
+      </section>
+
       <CoachCard
         categories={orderedCategories}
         displayTitleById={displayTitleById}
@@ -961,7 +979,7 @@ export function HomePage() {
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold tracking-tight">Categories</h2>
+            <h2 className="text-xl font-semibold tracking-[-0.035em]">Memory views</h2>
             {!orderMode ? (
               <div className="hidden items-center gap-2 sm:flex">
                 <Button
@@ -987,7 +1005,7 @@ export function HomePage() {
               </div>
             ) : null}
           </div>
-          <p className="text-sm text-neutral-500">{orderMode ? "Reorder categories." : "Tap to add and view history."}</p>
+          <p className="mt-1 text-sm text-neutral-500">{orderMode ? "Reorder your views." : "The same life, organized when you need it."}</p>
         </div>
         <div className="flex items-center gap-2">
           {orderMode ? (
@@ -1062,9 +1080,7 @@ export function HomePage() {
                   Add
                 </ButtonLink>
               </div>
-              <Button size="sm" className="hidden h-10 px-4 sm:inline-flex" onClick={() => openQuickLog(null)}>
-                Log
-              </Button>
+              <div className="hidden text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500 sm:block">Select a view</div>
             </>
           )}
         </div>
@@ -1145,7 +1161,7 @@ export function HomePage() {
               return (
                 <div
                   key={c.id}
-                  className="card relative z-0 flex min-h-24 flex-col justify-between gap-3 p-4 sm:min-h-28"
+                  className="card group relative z-0 flex min-h-24 flex-col justify-between gap-3 overflow-hidden p-4 hover:border-neutral-950 dark:hover:border-neutral-200 sm:min-h-28"
                   style={{
                     borderColor: goalReached ? accent : undefined,
                     backgroundColor: goalBg ?? undefined,
@@ -1154,14 +1170,16 @@ export function HomePage() {
                   <Link
                     to={routes.CategoryRoute.to}
                     params={{ categorySlug: c.slug }}
-                    className="absolute inset-0 z-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20 dark:focus:ring-white/20"
+                    className="absolute inset-0 z-10 rounded-[4px] focus:outline-none"
                     aria-label={`Open ${displayTitle}`}
                   />
+
+                  <div className="absolute inset-x-0 top-0 h-[2px] opacity-70 transition-opacity group-hover:opacity-100" style={{ backgroundColor: accent }} aria-hidden="true" />
 
                   <div className="relative flex items-start gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <div
-                        className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                        className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-[3px] border bg-white dark:bg-neutral-950"
                         style={{ borderColor: accent }}
                         aria-hidden="true"
                       >
@@ -1176,7 +1194,7 @@ export function HomePage() {
 	                            {displayTitle}
 	                          </div>
 	                          {unitChip ? (
-	                            <div className="inline-flex flex-none rounded-md border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
+	                            <div className="inline-flex flex-none rounded-[3px] border border-neutral-300 bg-transparent px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-600 dark:border-neutral-700 dark:text-neutral-300">
 	                              {unitChip}
 	                            </div>
 	                          ) : null}
@@ -1231,44 +1249,16 @@ export function HomePage() {
       )}
 
       {!orderMode && !quickLogOpen ? (
-        <div
-          className={[
-            "fixed top-[calc(50%+130px)] z-40 -translate-y-1/2 sm:hidden",
-            quickLogFabSide === "left" ? "left-0" : "right-0",
-          ].join(" ")}
-        >
-          <div
-            className={[
-              "pointer-events-none bg-neutral-950/[0.06] py-4 backdrop-blur-lg ring-1 ring-neutral-950/10 dark:bg-neutral-950/30 dark:ring-white/10",
-              quickLogFabSide === "left" ? "rounded-r-3xl pl-4 pr-3" : "rounded-l-3xl pr-4 pl-3",
-            ].join(" ")}
+        <div className="fixed inset-x-4 bottom-[calc(16px+var(--memoato-install-banner-h))] z-40 sm:hidden">
+          <button
+            type="button"
+            onClick={() => openQuickLog(null)}
+            className="flex h-14 w-full items-center justify-between rounded-[4px] border border-neutral-950 bg-neutral-950 px-5 text-sm font-bold text-white shadow-[4px_4px_0_#ff5c35] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#ff5c35] dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
+            aria-label="Quick log"
           >
-            <div className="relative">
-              <div
-                className="pointer-events-none absolute -inset-14 rounded-full bg-neutral-950/10 opacity-50 blur-3xl dark:bg-white/10"
-                aria-hidden="true"
-              />
-              <button
-                type="button"
-                onClick={() => openQuickLog(null)}
-                className="pointer-events-auto relative flex h-14 w-14 items-center justify-center rounded-full bg-neutral-950 text-white shadow-lg hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:active:bg-neutral-300"
-                aria-label="Quick log"
-                title="Log"
-              >
-                <svg
-                  className="h-6 w-6"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  aria-hidden="true"
-                >
-                  <path d="M12 5v14" />
-                  <path d="M5 12h14" />
-                </svg>
-              </button>
-            </div>
-          </div>
+            <span>Quick log</span>
+            <span className="text-xl leading-none">+</span>
+          </button>
         </div>
       ) : null}
     </div>
