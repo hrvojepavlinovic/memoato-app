@@ -89,9 +89,10 @@ export function SignupPage() {
 
   return (
     <AuthLayout>
+      <div className="memoato-auth memoato-auth--signup">
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Create a new account</h2>
-        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">memoato</p>
+        <h2 className="text-2xl font-semibold tracking-tight">Create your memory</h2>
+        <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">A quiet place for the details that matter later.</p>
       </div>
 
       {isSuccess ? (
@@ -105,7 +106,7 @@ export function SignupPage() {
         <>
           <a
             href={googleSignInUrl}
-            className="flex h-10 w-full items-center justify-center gap-3 rounded-lg border border-[#DADCE0] bg-white px-4 text-sm font-semibold text-neutral-900 hover:bg-[#F8F9FA] dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-[4px] border border-[#DADCE0] bg-white px-4 text-sm font-semibold text-neutral-900 hover:border-neutral-950 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:border-neutral-200"
           >
             <GoogleMark />
             Continue with Google
@@ -177,14 +178,13 @@ export function SignupPage() {
           </form>
         </>
       )}
-      <br />
-      <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-        {"Already have an account? "}
-        <Link to="/login" className="font-semibold underline">
-          Go to login
+      <div className="mt-6 border-t border-neutral-200 pt-5 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-400">
+        Already have an account?{" "}
+        <Link to="/login" className="font-bold text-neutral-950 underline decoration-neutral-300 underline-offset-4 dark:text-neutral-100">
+          Log in
         </Link>
-        .
-      </span>
+      </div>
+      </div>
     </AuthLayout>
   );
 }

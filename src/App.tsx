@@ -11,6 +11,7 @@ import { InstallBanner } from "./pwa/InstallBanner";
 
 export function App() {
   useEffect(() => {
+    if (import.meta.env.DEV) return;
     if (!("serviceWorker" in navigator)) return;
     const register = async () => {
       try {
@@ -26,7 +27,7 @@ export function App() {
     <>
       <ThemeProvider>
         <PrivacyProvider>
-          <main className="flex min-h-screen w-full flex-col bg-neutral-50 pb-[var(--memoato-install-banner-h)] text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+          <main className="memoato-app-shell flex min-h-screen w-full flex-col pb-[var(--memoato-install-banner-h)] text-neutral-950 dark:text-neutral-100">
             <Header />
             <Databuddy />
             <Outlet />

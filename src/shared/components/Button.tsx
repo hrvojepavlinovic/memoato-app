@@ -68,7 +68,7 @@ function getButtonClasses({
   className: ClassNameValue;
 }): string {
   return twJoin(
-    "inline-flex items-center justify-center rounded-md font-semibold leading-none",
+    "inline-flex items-center justify-center rounded-[4px] border border-transparent font-bold leading-none disabled:pointer-events-none disabled:opacity-50",
     variantStyles[variant],
     sizeStyles[size],
     className,
@@ -76,15 +76,15 @@ function getButtonClasses({
 }
 
 const sizeStyles: Record<ButtonSize, ClassNameValue> = {
-  md: "px-4 py-2",
-  sm: "px-3 py-1.5 text-sm",
-  xs: "px-2 py-1 text-xs",
+  md: "min-h-10 px-4 py-2 text-sm",
+  sm: "min-h-9 px-3 py-1.5 text-sm",
+  xs: "min-h-8 px-2.5 py-1 text-xs",
 };
 
 const variantStyles: Record<ButtonVariant, ClassNameValue> = {
   primary:
-    "bg-neutral-950 text-white hover:bg-neutral-900 active:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:active:bg-neutral-300",
+    "bg-neutral-950 text-white hover:border-[#ff5c35] hover:bg-neutral-950 active:translate-y-px dark:bg-neutral-100 dark:text-neutral-950 dark:hover:border-[#ff6b45] dark:hover:bg-white",
   danger: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800",
   ghost:
-    "bg-neutral-100 text-neutral-900 hover:bg-neutral-200 active:bg-neutral-300 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 dark:active:bg-neutral-600",
+    "border-neutral-300 bg-transparent text-neutral-900 hover:border-neutral-950 hover:bg-white active:translate-y-px dark:border-neutral-700 dark:text-neutral-100 dark:hover:border-neutral-300 dark:hover:bg-neutral-900",
 };

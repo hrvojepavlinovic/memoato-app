@@ -4,6 +4,12 @@
 
 :root {
   --memoato-install-banner-h: 0px;
+  --memoato-bg: #f3f1ec;
+  --memoato-panel: #fbfaf7;
+  --memoato-ink: #171713;
+  --memoato-muted: #706f68;
+  --memoato-line: #d8d5cc;
+  --memoato-accent: #ff5c35;
 }
 
 html {
@@ -12,6 +18,11 @@ html {
 
 body {
   overflow-y: scroll;
+  margin: 0;
+  background: var(--memoato-bg);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
 }
 
 :root {
@@ -22,17 +33,61 @@ body {
 }
 
 .dark {
+  --memoato-bg: #11110f;
+  --memoato-panel: #181816;
+  --memoato-ink: #f3f1ea;
+  --memoato-muted: #9b9a92;
+  --memoato-line: #34332e;
+  --memoato-accent: #ff6b45;
   --chart-text: rgba(255, 255, 255, 0.88);
   --chart-muted: rgba(255, 255, 255, 0.6);
   --goal-fallback-stroke: rgba(255, 255, 255, 0.25);
   --goal-fallback-label: rgba(255, 255, 255, 0.6);
 }
 
-/* Override Wasp auth form theme (default is yellow). */
+::selection {
+  background: var(--memoato-accent);
+  color: #11110f;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  transition-duration: 140ms;
+  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+  transition-timing-function: ease-out;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--memoato-accent);
+  outline-offset: 2px;
+}
+
+.memoato-app-shell {
+  background-color: var(--memoato-bg);
+  background-image:
+    linear-gradient(rgba(23, 23, 19, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 23, 19, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.dark .memoato-app-shell {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+}
+
+/* Override Wasp auth form theme. */
 :root {
-  --color-waspYellow: #0a0a0a !important;
-  --color-brand: #0a0a0a !important;
-  --color-brandAccent: #111827 !important;
+  --color-waspYellow: #ff5c35 !important;
+  --color-brand: #171713 !important;
+  --color-brandAccent: #ff5c35 !important;
   --color-submitButtonText: #ffffff !important;
 }
 
@@ -72,12 +127,57 @@ a[href$="/auth/google/login"]::before {
   display: none !important;
 }
 
+/* Auth components come from Wasp; keep their product styling centralized here. */
+
+.memoato-auth h2,
+.memoato-auth h1 {
+  margin-top: 0 !important;
+  color: var(--memoato-ink) !important;
+  font-size: 1.75rem !important;
+  font-weight: 680 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.memoato-auth input,
+.memoato-auth button,
+.memoato-auth a[href$="/auth/google/login"] {
+  min-height: 46px !important;
+  border-radius: 4px !important;
+}
+
+.memoato-auth input {
+  border: 1px solid var(--memoato-line) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.memoato-auth button[type="submit"] {
+  background: var(--memoato-ink) !important;
+  color: var(--memoato-panel) !important;
+  box-shadow: none !important;
+}
+
+.memoato-auth label {
+  color: var(--memoato-muted) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+.memoato-auth a {
+  color: var(--memoato-ink) !important;
+}
+
 @layer components {
   .card {
-    @apply rounded-xl border border-neutral-200 bg-white shadow-sm transition-all duration-200 dark:border-neutral-800 dark:bg-neutral-950;
+    @apply rounded-md border shadow-none transition-colors duration-150;
+    border-color: var(--memoato-line);
+    background: var(--memoato-panel);
   }
 
   .label {
-    @apply text-sm font-medium text-neutral-700 dark:text-neutral-300;
+    @apply text-xs font-bold uppercase tracking-[0.08em];
+    color: var(--memoato-muted);
   }
 }

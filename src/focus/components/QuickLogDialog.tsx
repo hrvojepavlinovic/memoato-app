@@ -1389,21 +1389,24 @@ export function QuickLogDialog({
         style={isMobile && mobileViewport.height > 0 ? { top: mobileViewport.top, height: mobileViewport.height } : undefined}
       >
         <div className="mx-auto h-full w-full max-w-lg sm:mt-[14vh] sm:h-auto sm:w-[92vw]">
-          <div className="card flex h-full flex-col overflow-hidden shadow-lg sm:h-auto sm:rounded-2xl">
-            <div className="sticky top-0 z-10 border-b border-neutral-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:rounded-t-2xl">
+          <div className="card flex h-full flex-col overflow-hidden border-neutral-300 shadow-[6px_6px_0_rgba(23,23,19,0.12)] dark:border-neutral-700 dark:shadow-[6px_6px_0_rgba(255,255,255,0.06)] sm:h-auto sm:rounded-[4px]">
+            <div className="sticky top-0 z-10 border-b border-neutral-300 bg-[#fbfaf7]/95 px-4 py-3 backdrop-blur dark:border-neutral-700 dark:bg-[#181816]/95">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-base font-semibold text-neutral-950 dark:text-neutral-100">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-neutral-400">
+                    Capture
+                  </div>
+                  <div className="mt-1 text-lg font-semibold tracking-[-0.035em] text-neutral-950 dark:text-neutral-100">
                     {seededNotes ? "Quick note" : "Quick log"}
                   </div>
                   <div className="mt-0.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                    {rawFirstMode ? "Write what happened. Memoato will sort it out." : seededNotes ? "Write a note." : "Type a number, a category, or a note."}
+                    {rawFirstMode ? "Start with what happened. Organize it only if useful." : seededNotes ? "Write it down before the detail disappears." : "Type a number, a category, or a note."}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-md p-2 text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
+                  className="rounded-[3px] border border-transparent p-2 text-neutral-600 hover:border-neutral-300 hover:bg-white active:translate-y-px dark:text-neutral-300 dark:hover:border-neutral-700 dark:hover:bg-neutral-900"
                   aria-label="Close"
                   disabled={saving}
                 >
@@ -1431,13 +1434,13 @@ export function QuickLogDialog({
 
               {!rawFirstMode && selected ? (
                 <div
-                  className="mt-3 rounded-xl border bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950"
+                  className="mt-3 rounded-[4px] border bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950"
                   style={{ borderColor: selectedAccent }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <div
-                        className="flex h-9 w-9 flex-none items-center justify-center rounded-full border bg-white dark:bg-neutral-950"
+                        className="flex h-9 w-9 flex-none items-center justify-center rounded-[3px] border bg-white dark:bg-neutral-950"
                         style={{ borderColor: selectedAccent }}
                         aria-hidden="true"
                       >
@@ -1455,7 +1458,7 @@ export function QuickLogDialog({
 	                      {!seededNotes ? (
 	                        <button
 	                          type="button"
-	                          className="inline-flex h-10 flex-none items-center gap-2 rounded-full border bg-white px-3 text-sm font-semibold text-neutral-950 shadow-sm hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+	                          className="inline-flex h-10 flex-none items-center gap-2 rounded-[3px] border bg-white px-3 text-sm font-semibold text-neutral-950 shadow-none hover:border-neutral-950 active:translate-y-px dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:border-neutral-200"
 	                          style={{ borderColor: selectedAccent }}
 	                          aria-label="Change category"
 	                          title="Change category"
@@ -1477,7 +1480,7 @@ export function QuickLogDialog({
                       {recent.last != null ? (
                         <button
                           type="button"
-                          className="rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                          className="rounded-[3px] border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:border-neutral-950 active:translate-y-px dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:border-neutral-200"
                           onClick={() => setQuickAmount(recent.last!)}
                           disabled={saving}
                           title="Use last value"
@@ -1488,7 +1491,7 @@ export function QuickLogDialog({
                       {recent.avg5 != null ? (
                         <button
                           type="button"
-                          className="rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                          className="rounded-[3px] border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:border-neutral-950 active:translate-y-px dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:border-neutral-200"
                           onClick={() => setQuickAmount(recent.avg5!)}
                           disabled={saving}
                           title="Use average of recent values"
@@ -1502,7 +1505,7 @@ export function QuickLogDialog({
                         return (
                           <button
                             type="button"
-                            className="rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                            className="rounded-[3px] border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-950 hover:border-neutral-950 active:translate-y-px dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:border-neutral-200"
                             onClick={() => setQuickAmount(goalWeekly / 7)}
                             disabled={saving}
                             title="Use a daily split of your weekly goal"
@@ -1515,11 +1518,11 @@ export function QuickLogDialog({
                   ) : null}
                 </div>
               ) : seededNotes ? (
-                <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
+                <div className="mt-3 rounded-[4px] border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <div
-                        className="flex h-9 w-9 flex-none items-center justify-center rounded-full border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950"
+                        className="flex h-9 w-9 flex-none items-center justify-center rounded-[3px] border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950"
                         aria-hidden="true"
                       >
                         <div className="text-lg leading-none">📝</div>
@@ -1556,7 +1559,7 @@ export function QuickLogDialog({
                         key={r.c.id}
                         type="button"
                         className={
-                          "flex w-full items-center gap-3 rounded-xl border p-3 text-left " +
+                          "flex w-full items-center gap-3 rounded-[4px] border p-3 text-left " +
                           (active
                             ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
                             : "border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900 dark:active:bg-neutral-800")
@@ -1570,7 +1573,7 @@ export function QuickLogDialog({
                       >
                         <div
                           className={
-                            "flex h-9 w-9 flex-none items-center justify-center rounded-full border " +
+                            "flex h-9 w-9 flex-none items-center justify-center rounded-[3px] border " +
                             (active ? "border-white/40 bg-white/10 dark:border-neutral-950/20 dark:bg-neutral-950/10" : "bg-white dark:bg-neutral-950")
                           }
                           style={{ borderColor: active ? undefined : r.accent }}
@@ -1632,7 +1635,7 @@ export function QuickLogDialog({
                             inputMode={def.type === "number" ? "decimal" : "text"}
                             placeholder={def.placeholder ?? def.label}
                             className={
-                              "block h-10 w-full rounded-xl border border-neutral-300 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 " +
+                              "block h-10 w-full rounded-[4px] border border-neutral-300 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 " +
                               (def.unit ? "pr-12" : "")
                             }
                             disabled={saving}
@@ -1688,7 +1691,7 @@ export function QuickLogDialog({
                     enterKeyHint="done"
                     placeholder={rawFirstMode ? "e.g. Zgibovi 2 2 3, bolia lakat" : seededNotes ? "Write a note…" : "Type a log or a note"}
                     className={[
-                      "block h-12 w-full min-w-0 max-w-full rounded-xl border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500",
+                      "block h-12 w-full min-w-0 max-w-full rounded-[4px] border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500",
                       !rawFirstMode && selectedUnit && !selectedIsNotes ? "pr-12" : "",
                     ].join(" ")}
                     disabled={saving}
@@ -1721,11 +1724,11 @@ export function QuickLogDialog({
                       autoCorrect="on"
                       spellCheck
                       placeholder="Note (optional)…"
-                      className="block h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                      className="block h-11 w-full rounded-[4px] border border-neutral-200 bg-white px-3 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                       disabled={saving}
                     />
                   ) : (
-                    <div className="h-11 w-full rounded-xl bg-white dark:bg-neutral-950" aria-hidden="true" />
+                    <div className="h-11 w-full rounded-[4px] bg-white dark:bg-neutral-950" aria-hidden="true" />
                   )}
                 </div>
               ) : null}
@@ -1734,7 +1737,7 @@ export function QuickLogDialog({
                   <button
                     type="button"
                     onClick={() => setCapturedTime(null)}
-                    className="inline-flex items-center rounded-full bg-neutral-900 px-2.5 py-1 text-xs font-bold text-white dark:bg-neutral-100 dark:text-neutral-950"
+                    className="inline-flex items-center rounded-[3px] bg-neutral-900 px-2.5 py-1 text-xs font-bold text-white dark:bg-neutral-100 dark:text-neutral-950"
                     title="Detected time. Tap to remove timestamp."
                     disabled={saving}
                   >
