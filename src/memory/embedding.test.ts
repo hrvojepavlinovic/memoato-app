@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   EmbeddingError,
+  embeddingRequestTimeoutMs,
   normalizeEmbeddingResponse,
   toPgVector,
 } from "./embedding";
@@ -22,6 +23,11 @@ describe("Memoato embeddings", () => {
 
   it("serializes a validated pgvector parameter", () => {
     expect(toPgVector([0.1, -0.2, 0], 3)).toBe("[0.1,-0.2,0]");
+  });
+
+  it("allows slower background indexing without slowing interactive Recall", () => {
+    expect(embeddingRequestTimeoutMs("search_query")).toBe(12_000);
+    expect(embeddingRequestTimeoutMs("search_document")).toBe(30_000);
   });
 
   it("projects raw evidence and non-rejected facts deterministically", () => {

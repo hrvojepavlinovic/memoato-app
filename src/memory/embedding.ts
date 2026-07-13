@@ -2,7 +2,8 @@ const OPENROUTER_EMBEDDINGS_URL = "https://openrouter.ai/api/v1/embeddings";
 const DEFAULT_MODEL = "qwen/qwen3-embedding-8b";
 const DEFAULT_DIMENSIONS = 1024;
 const DEFAULT_VERSION = "memory-search-v1";
-const REQUEST_TIMEOUT_MS = 12_000;
+const QUERY_TIMEOUT_MS = 12_000;
+const DOCUMENT_TIMEOUT_MS = 30_000;
 export const EMBEDDING_STORAGE_DIMENSIONS = 1024;
 
 function env(name: string): string {
@@ -41,6 +42,14 @@ export function getEmbeddingConfig(): EmbeddingConfig {
 
 export function isEmbeddingConfigured(): boolean {
   return embeddingConfigurationError() == null;
+}
+
+export function embeddingRequestTimeoutMs(
+  inputType: "search_document" | "search_query",
+): number {
+  return inputType === "search_document"
+    ? DOCUMENT_TIMEOUT_MS
+    : QUERY_TIMEOUT_MS;
 }
 
 export function embeddingConfigurationError(): string | null {
@@ -94,7 +103,7 @@ export async function embedMemoryText(args: {
   const controller = new AbortController();
   const timeout = globalThis.setTimeout(
     () => controller.abort(),
-    REQUEST_TIMEOUT_MS,
+    embeddingRequestTimeoutMs(args.inputType),
   );
   try {
     const response = await fetch(OPENROUTER_EMBEDDINGS_URL, {
