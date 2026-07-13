@@ -1,22 +1,40 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 ---
 
-<BaseLayout title="Terms · memoato" description="Terms of service for memoato." canonicalPath="/terms">
-  <section class="section">
-    <div class="container prose">
-      <h1 class="page-title">Terms</h1>
-      <p>
-        memoato is provided “as is”, without warranty. By using the service you agree not to abuse it or attempt to
-        disrupt it.
-      </p>
-      <p>
-        If you create an account, you’re responsible for keeping your login link/password reset emails safe. You can
-        delete your account at any time from your profile.
-      </p>
-      <p>
-        For questions: <a href="mailto:hello@memoato.com">hello@memoato.com</a>.
-      </p>
-    </div>
-  </section>
-</BaseLayout>
+<EditorialPageLayout
+  title="Terms · memoato"
+  description="Terms of service for Memoato."
+  canonicalPath="/terms"
+  eyebrow="Terms of service"
+  heading="Use Memoato like a good neighbour."
+  deck="A short, plain-language agreement for an early product: use the service responsibly, protect your account, and remember that the software is provided as is."
+  accent="sage"
+>
+  <p>
+    Memoato is provided “as is” and without warranty. The service is still evolving, so features may change and
+    temporary interruptions may happen.
+  </p>
+
+  <h2>Responsible use</h2>
+  <p>
+    By using Memoato, you agree not to abuse the service, attempt to disrupt it, access another person's data, or use
+    the API and MCP endpoints in ways that create unreasonable load or harm.
+  </p>
+
+  <h2>Your account</h2>
+  <p>
+    You are responsible for protecting your password, verification links, password-reset emails, and API keys. Scoped
+    API keys can be revoked from Profile. You can delete your account at any time.
+  </p>
+
+  <h2>Your data</h2>
+  <p>
+    You keep ownership of the content you log. You give Memoato only the permission needed to store and process that
+    content to provide the service you selected. Storage and processing details are described in the
+    <a href="/privacy">privacy policy</a>.
+  </p>
+
+  <h2>Questions</h2>
+  <p>Contact <a href="mailto:hello@memoato.com">hello@memoato.com</a>.</p>
+</EditorialPageLayout>

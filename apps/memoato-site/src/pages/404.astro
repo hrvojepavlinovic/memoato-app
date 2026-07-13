@@ -1,13 +1,19 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 ---
 
-<BaseLayout title="Not found · memoato" description="This page does not exist." canonicalPath="/404">
-  <section class="section">
-    <div class="container prose">
-      <h1 class="page-title">404</h1>
-      <p>That page doesn’t exist.</p>
-      <p><a class="btn" href="/">Go home</a></p>
-    </div>
-  </section>
-</BaseLayout>
+<EditorialPageLayout
+  title="Not found · memoato"
+  description="This Memoato page does not exist."
+  canonicalPath="/404"
+  eyebrow="404 · Missing page"
+  heading="Some things are meant to be forgotten."
+  deck="This page is not part of the memory. The rest of Memoato is still exactly where you left it."
+  accent="rust"
+>
+  <p>The address may have changed, or the page may never have existed.</p>
+  <div class="cta-row">
+    <a class="btn primary" href="/">Return home</a>
+    <a class="btn" href="https://app.memoato.com">Open Memoato</a>
+  </div>
+</EditorialPageLayout>

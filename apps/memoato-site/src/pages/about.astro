@@ -1,53 +1,62 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 ---
 
-<BaseLayout
+<EditorialPageLayout
   title="About · memoato"
-  description="Why memoato exists: a minimal, ADHD-friendly habit tracker focused on fast logging, clear progress, and a simple daily timeline."
+  description="Why Memoato exists: to keep the small, human context that trackers, calendars, and notes leave behind."
   canonicalPath="/about"
+  eyebrow="Why Memoato exists"
+  heading="Life is more than the data it leaves behind."
+  deck="Most tools remember the workout, the meeting, or the task. Memoato remembers what happened around it — the part that makes the data mean something."
+  accent="rust"
 >
-  <section class="section">
-    <div class="container prose">
-      <h1 class="page-title">About</h1>
-      <p>
-        memoato is a minimal habit tracker for people who want results without the overhead. It’s designed for low
-        friction and ADHD brains: fewer decisions, fast logging, and progress you can understand at a glance.
-      </p>
+  <p>
+    Memoato is a low-friction memory for everyday life. You write what happened in your own words. The original note
+    stays intact, while useful details become easier to find, connect, and understand later.
+  </p>
 
-      <h2>What memoato optimizes for</h2>
-      <ul>
-        <li><strong>Fast capture</strong>: log in seconds, not minutes.</li>
-        <li><strong>Clear feedback</strong>: charts, totals, and a daily timeline you can scan.</li>
-        <li><strong>Forgiving workflow</strong>: miss a day, keep going.</li>
-        <li><strong>Privacy options</strong>: cloud sync, encrypted cloud, or local-only.</li>
-        <li><strong>Open source</strong>: transparent code and a project you can self-host.</li>
-      </ul>
+  <blockquote class="editorial-quote">Do not track more. Remember the missing context.</blockquote>
 
-      <h2>Privacy</h2>
-      <p>
-        memoato supports three storage modes: cloud sync, encrypted cloud, and local-only. Details are in the
-        <a href="/privacy">Privacy policy</a>.
-      </p>
+  <h2>The gap between the apps</h2>
+  <p>
+    Trackers are excellent at objective activity. Calendars hold plans. Todo apps hold obligations. Email holds
+    conversations, and notes hold long-form thinking. But real life happens between those systems.
+  </p>
+  <p>
+    Why you skipped the gym. What hurt during a set. Which fallback kept the routine alive. How you felt before a big
+    call. The tiny purchase detail you will need six months from now. That is Memoato territory.
+  </p>
 
-      <h2>Mobile</h2>
-      <p>
-        memoato works in the browser and as a PWA (Add to Home Screen). Native mobile apps are in progress so we can add
-        things like notifications and a more “app-like” experience without changing the core product.
-      </p>
+  <h2>Designed around people</h2>
+  <ul>
+    <li><strong>Natural capture</strong> — a sentence, a number, or an unfinished thought is enough.</li>
+    <li><strong>Raw note first</strong> — your exact words are saved before anything is interpreted.</li>
+    <li><strong>Helpful structure</strong> — facts and context become browsable without turning logging into a form.</li>
+    <li><strong>Visible assumptions</strong> — suggestions can be confirmed, corrected, or ignored.</li>
+    <li><strong>Forgiving by design</strong> — there are no streaks to break and no guilt for disappearing.</li>
+  </ul>
 
-      <h2>Roadmap</h2>
-      <ul>
-        <li><strong>Coach Mode</strong>: a small daily plan and weekly review (opt-in).</li>
-        <li><strong>AI insights</strong>: optional analysis and feedback on your entries (privacy-conscious).</li>
-        <li><strong>Mobile apps</strong>: iOS and Android wrappers for notifications and faster access.</li>
-        <li><strong>Feedback loop</strong>: make it easier to send feedback and shape the roadmap.</li>
-      </ul>
+  <h2>Quiet technology</h2>
+  <p>
+    Memoato uses automation where it removes friction, but the technology is not the product. The product is a calmer
+    relationship with your own history: less effort while logging, more clarity when looking back.
+  </p>
+  <p>
+    You can use the web app today, install it as a PWA, or connect tools such as Codex and Claude through the Memoato
+    MCP. Privacy options include cloud sync, encrypted cloud, and local-only storage.
+  </p>
 
-      <p>
-        Built by <a href="https://hills-lab.hr" rel="noopener noreferrer">HILLS Lab</a> ·
-        <a href="https://hrvoje.pavlinovic.com" rel="noopener noreferrer">Hrvoje Pavlinovic</a>.
-      </p>
-    </div>
-  </section>
-</BaseLayout>
+  <h2>Built openly</h2>
+  <p>
+    Memoato is an open-source project from <a href="https://hills-lab.hr" rel="noopener noreferrer">HILLS Lab</a>,
+    created by <a href="https://hrvoje.pavlinovic.com" rel="noopener noreferrer">Hrvoje Pavlinovic</a>. It is being
+    built for real personal use first, with the ambition to become a useful memory layer for anyone whose life refuses
+    to fit into neat boxes.
+  </p>
+
+  <div class="cta-row">
+    <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">Open Memoato</a>
+    <a class="btn" href="/blog/why-memoato">Read the story</a>
+  </div>
+</EditorialPageLayout>

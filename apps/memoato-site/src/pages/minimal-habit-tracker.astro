@@ -1,42 +1,45 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 ---
 
-<BaseLayout
-  title="Minimal habit tracker · memoato"
-  description="A minimal habit tracker designed for fast logging, clear progress, and a simple daily timeline."
+<EditorialPageLayout
+  title="Minimal habit tracker, evolved · memoato"
+  description="Memoato keeps habit tracking fast and minimal, then adds the context that numbers and streaks leave behind."
   canonicalPath="/minimal-habit-tracker"
+  eyebrow="Beyond habit tracking"
+  heading="Minimal tracking was the beginning."
+  deck="Memoato still makes habits and personal metrics easy to log. But life rarely fits into a number, a checkbox, or a perfect streak."
+  accent="sage"
 >
-  <section class="section">
-    <div class="container prose">
-      <h1 class="page-title">A minimal habit tracker</h1>
-      <p class="muted">Track what matters. Skip the overhead.</p>
+  <p>
+    A good minimal habit tracker gets out of your way: fast capture, clear feedback, and no project-management overhead.
+    Memoato keeps those principles, then goes one step further by remembering the context around the habit.
+  </p>
 
-      <p>
-        memoato is built for people who want results without turning habit tracking into a second job. It keeps the
-        workflow simple: quick capture, clear feedback, and a timeline you can scan.
-      </p>
+  <h2>Track the number. Keep the story.</h2>
+  <p>
+    `20 minute walk` is useful data. `Skipped gym after a rough night, but walked 20 minutes after lunch` is useful
+    memory. The second note explains the fallback, the constraint, and the fact that the routine survived in a smaller
+    form.
+  </p>
 
-      <h2>What “minimal” means here</h2>
-      <ul>
-        <li><strong>Fast capture</strong>: log entries in seconds.</li>
-        <li><strong>Sane defaults</strong>: templates reduce setup and decision fatigue.</li>
-        <li><strong>Readable progress</strong>: charts and totals make the signal obvious.</li>
-        <li><strong>Daily timeline</strong>: review your day by category without digging.</li>
-        <li><strong>Forgiving workflow</strong>: miss a day, keep going.</li>
-      </ul>
+  <h2>Minimal still matters</h2>
+  <ul>
+    <li><strong>Fast capture</strong> — add a value or raw note in seconds.</li>
+    <li><strong>Sane defaults</strong> — repeat patterns without re-entering every detail.</li>
+    <li><strong>Readable views</strong> — categories, charts, and timeline make history easy to scan.</li>
+    <li><strong>Forgiving workflow</strong> — missing a day never breaks the system.</li>
+    <li><strong>Context when needed</strong> — add why, what changed, or how it felt without opening another app.</li>
+  </ul>
 
-      <h2>Try it</h2>
-      <p>
-        Start with 2–3 categories (Weight, Water, Push ups), set a simple goal, and check the timeline at the end of the
-        day.
-      </p>
-      <div class="cta-row">
-        <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">Open app</a>
-        <a class="btn" href="/help">Help & FAQ</a>
-        <a class="btn" href="/blog/why-memoato">Read the story</a>
-      </div>
-    </div>
-  </section>
-</BaseLayout>
+  <h2>A quieter definition of consistency</h2>
+  <p>
+    Consistency is not a perfect streak. Sometimes it is choosing the smallest version that still fits the day. Memoato
+    is designed to help you see that difference instead of reducing every imperfect day to a failure.
+  </p>
 
+  <div class="cta-row">
+    <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">Open Memoato</a>
+    <a class="btn" href="/blog/why-memoato">Why Memoato exists</a>
+  </div>
+</EditorialPageLayout>

@@ -18,6 +18,7 @@ const {
   ogImagePath = "/og.png",
   bodyClass,
 } = Astro.props;
+const resolvedBodyClass = bodyClass ?? "editorial-page";
 const databuddyClientId =
   import.meta.env.PUBLIC_DATABUDDY_CLIENT_ID?.trim() || "c1678578-eedf-4cbc-bbc6-8dfa541712dc";
 
@@ -64,7 +65,7 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content={resolvedBodyClass.includes("landing-v2") || resolvedBodyClass.includes("editorial-page") ? "#f4f0e7" : "#ffffff"} />
     <meta property="og:site_name" content="memoato" />
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={title} />
@@ -98,7 +99,7 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
         async></script>`}
     />
   </head>
-  <body class={bodyClass}>
+  <body class={resolvedBodyClass}>
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="/">

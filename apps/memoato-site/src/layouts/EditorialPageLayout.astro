@@ -1,0 +1,59 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+
+type Props = {
+  title: string;
+  description?: string;
+  canonicalPath: string;
+  eyebrow: string;
+  heading: string;
+  deck?: string;
+  accent?: "sage" | "rust" | "ink";
+  wide?: boolean;
+  ogType?: "website" | "article";
+};
+
+const {
+  title,
+  description,
+  canonicalPath,
+  eyebrow,
+  heading,
+  deck,
+  accent = "sage",
+  wide = false,
+  ogType = "website",
+} = Astro.props;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonicalPath={canonicalPath}
+  ogType={ogType}
+  bodyClass={`editorial-page editorial-${accent}`}
+>
+  <slot name="head" slot="head" />
+
+  <section class="editorial-hero">
+    <div class="editorial-frame">
+      <p class="editorial-eyebrow"><span></span>{eyebrow}</p>
+      <div class="editorial-hero-grid">
+        <h1>{heading}</h1>
+        {deck ? <p class="editorial-deck">{deck}</p> : null}
+      </div>
+    </div>
+  </section>
+
+  <section class="editorial-body">
+    <div class="editorial-frame editorial-body-grid">
+      <aside class="editorial-margin" aria-hidden="true">
+        <span>memoato</span>
+        <i></i>
+      </aside>
+      <article class:list={["editorial-prose", { "editorial-prose-wide": wide }]}>
+        <slot />
+      </article>
+    </div>
+  </section>
+</BaseLayout>

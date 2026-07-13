@@ -1,5 +1,5 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../../layouts/EditorialPageLayout.astro";
 
 const posts = (await Astro.glob("./*.md")).sort((a, b) => {
   const da = new Date(a.frontmatter.date ?? 0).getTime();
@@ -15,28 +15,28 @@ function fmtDate(input: any): string | null {
 }
 ---
 
-<BaseLayout
-  title="Blog · memoato"
-  description="Memoato blog: product updates, features, and guides for minimal habit tracking."
+<EditorialPageLayout
+  title="Journal · memoato"
+  description="Notes about personal memory, low-friction logging, product decisions, and building Memoato in the open."
   canonicalPath="/blog"
+  eyebrow="Memoato journal"
+  heading="Thinking in public, remembering in private."
+  deck="Product notes, design decisions, and practical ideas for keeping the parts of life that normally disappear between apps."
+  accent="ink"
+  wide={true}
 >
-  <section class="section">
-    <div class="container">
-      <h1 class="page-title">Blog</h1>
-      <div class="post-list">
-        {posts.map((p) => {
-          const title = p.frontmatter.title ?? p.url;
-          const desc = p.frontmatter.description ?? "";
-          const dateLabel = fmtDate(p.frontmatter.date);
-          return (
-            <a class="card post-card" href={p.url}>
-              {dateLabel ? <div class="post-kicker">{dateLabel}</div> : null}
-              <div class="post-title">{title}</div>
-              {desc ? <div class="post-desc">{desc}</div> : null}
-            </a>
-          );
-        })}
-      </div>
-    </div>
-  </section>
-</BaseLayout>
+  <div class="post-list">
+    {posts.map((p) => {
+      const title = p.frontmatter.title ?? p.url;
+      const desc = p.frontmatter.description ?? "";
+      const dateLabel = fmtDate(p.frontmatter.date);
+      return (
+        <a class="card post-card" href={p.url}>
+          {dateLabel ? <div class="post-kicker">{dateLabel}</div> : null}
+          <div class="post-title">{title}</div>
+          {desc ? <div class="post-desc">{desc}</div> : null}
+        </a>
+      );
+    })}
+  </div>
+</EditorialPageLayout>

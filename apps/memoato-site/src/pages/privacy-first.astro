@@ -1,43 +1,39 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
+import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 ---
 
-<BaseLayout
-  title="Privacy-first habit tracking · memoato"
-  description="A privacy-first habit tracker with cloud sync, encrypted cloud, and local-only storage modes."
+<EditorialPageLayout
+  title="Privacy-first personal memory · memoato"
+  description="Choose cloud sync, encrypted cloud, or local-only storage for your Memoato personal memory."
   canonicalPath="/privacy-first"
+  eyebrow="Privacy with choices"
+  heading="If it does not feel safe, you will not write honestly."
+  deck="Personal memory is only useful when you can trust where it lives. Memoato gives you practical storage modes instead of pretending one trade-off fits everyone."
+  accent="ink"
 >
-  <section class="section">
-    <div class="container prose">
-      <h1 class="page-title">Privacy-first habit tracking</h1>
-      <p class="muted">If it doesn’t feel safe, you won’t log. So we give you options.</p>
+  <p>
+    Memoato can hold health context, family details, personal metrics, purchases, and the kind of unfinished thoughts
+    that never make it into a formal document. That makes privacy a product requirement, not a marketing badge.
+  </p>
 
-      <p>
-        memoato supports multiple privacy modes so you can choose the trade-off that fits your life (and still get the
-        benefits of a simple timeline and clear progress).
-      </p>
+  <h2>Three storage modes</h2>
+  <ul>
+    <li><strong>Cloud sync</strong> — normal server storage and the smoothest multi-device experience.</li>
+    <li><strong>Encrypted cloud</strong> — sensitive category titles and notes are encrypted on your device before saving.</li>
+    <li><strong>Local-only</strong> — categories and entries stay in the browser on a single device.</li>
+  </ul>
 
-      <h2>Privacy modes</h2>
-      <ul>
-        <li><strong>Cloud sync</strong>: multi-device access with normal server storage.</li>
-        <li><strong>Encrypted cloud</strong>: sensitive tracker titles and notes are encrypted client-side before saving.</li>
-        <li><strong>Local-only</strong>: data stays on your device (IndexedDB).</li>
-      </ul>
+  <h2>Privacy without theatre</h2>
+  <p>
+    Each mode has a real trade-off. Cloud is convenient. Encrypted cloud protects selected content but requires a
+    passphrase that Memoato cannot recover. Local-only keeps data off the server but makes the device and its browser
+    storage your only copy.
+  </p>
 
-      <p>
-        Read the details in the <a href="/privacy">Privacy policy</a>.
-      </p>
+  <p>Read the exact behavior and service providers in the <a href="/privacy">privacy policy</a>.</p>
 
-      <h2>Try it</h2>
-      <p>
-        If you want “private by default”, start in local-only and switch later if you need multi-device sync.
-      </p>
-      <div class="cta-row">
-        <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">Open app</a>
-        <a class="btn" href="/privacy">Privacy policy</a>
-        <a class="btn" href="/help">Help & FAQ</a>
-      </div>
-    </div>
-  </section>
-</BaseLayout>
-
+  <div class="cta-row">
+    <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">Open Memoato</a>
+    <a class="btn" href="/privacy">Privacy policy</a>
+  </div>
+</EditorialPageLayout>
