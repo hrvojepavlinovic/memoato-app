@@ -18,7 +18,7 @@
     "@capacitor/local-notifications": "^8.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.0.0",
+    "@capacitor/cli": "^8.4.2",
     "typescript": "^5.8.2"
   }
 }
