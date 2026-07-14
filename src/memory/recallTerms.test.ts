@@ -39,6 +39,13 @@ describe("searchMemoryTerms", () => {
     );
   });
 
+  it("treats broad workout questions as movement-only retrieval", () => {
+    const parsed = parseRecallQuery("best workout days");
+    expect(parsed.terms).toEqual(["workout"]);
+    expect(parsed.domainFilters).toEqual(["movement"]);
+    expect(parsed.tsQuery).toBeNull();
+  });
+
   it("extracts bilingual calendar ranges without turning them into terms", () => {
     const now = new Date(2026, 6, 13, 12, 0, 0);
     const hrvatski = parseRecallQuery("zgibovi prošli tjedan", now);

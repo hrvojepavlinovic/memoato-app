@@ -88,6 +88,13 @@ export function RecallPage() {
     }
   }
 
+  function refreshEvidence() {
+    setAnswer(null);
+    setAnswerError("");
+    void fastRecall.refetch();
+    void semanticRecall.refetch();
+  }
+
   return (
     <div className="mx-auto w-full max-w-screen-lg px-4 pb-20 pt-7 sm:px-6 sm:pt-10">
       <section className="border-b border-neutral-300 pb-7 dark:border-neutral-700">
@@ -239,7 +246,11 @@ export function RecallPage() {
                 id={`evidence-${entry.id}`}
                 className="scroll-mt-24"
               >
-                <MemoryEntryCard entry={entry} compact />
+                <MemoryEntryCard
+                  entry={entry}
+                  compact
+                  onChanged={refreshEvidence}
+                />
               </div>
             ))}
             {!isInitialLoading &&

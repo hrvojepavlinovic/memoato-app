@@ -296,6 +296,16 @@ action reviewMemoryFact {
   entities: [User, Event, Category, MemoryFact, MemoryCorrection, MemoryAlias, MemoryEmbedding]
 }
 
+action updateMemoryEntry {
+  fn: import { updateMemoryEntry } from "@src/memory/operations",
+  entities: [User, Event, MemoryFact, MemoryEntryConcept, MemoryProcessingRun, MemoryCorrection, MemoryEmbedding]
+}
+
+action deleteMemoryEntry {
+  fn: import { deleteMemoryEntry } from "@src/memory/operations",
+  entities: [User, Event, MemoryFact, MemoryEntryConcept, MemoryProcessingRun, MemoryCorrection, MemoryEmbedding]
+}
+
 action answerMemoryRecall {
   fn: import { answerMemoryRecall } from "@src/memory/operations",
   entities: [User, Event, Category, MemoryFact]
