@@ -11,6 +11,54 @@ import { initializeMemoryEmbeddings } from "../memory/embeddingQueue";
 import { initializeMemoryConceptEmbeddings } from "../memory/conceptEmbeddingQueue";
 import { addContextRoutes } from "../context/routes";
 
+type RateBucket = { count: number; resetAt: number };
+const rateBuckets = new Map<string, RateBucket>();
+
+function securityMiddleware(req: any, res: any, next: () => void): void {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.removeHeader("X-Powered-By");
+
+  const path = String(req.path ?? req.url ?? "");
+  const isAuth = path.startsWith("/auth/");
+  const isApi =
+    isAuth ||
+    path.startsWith("/api/") ||
+    path.startsWith("/mcp") ||
+    path.startsWith("/operations/") ||
+    path.startsWith("/public/stats/");
+  if (!isApi) return next();
+
+  const windowMs = isAuth ? 15 * 60_000 : 60_000;
+  const limit = isAuth ? 20 : path.startsWith("/public/stats/") ? 60 : 120;
+  const now = Date.now();
+  if (rateBuckets.size > 10_000) {
+    for (const [bucketKey, value] of rateBuckets) {
+      if (value.resetAt <= now) rateBuckets.delete(bucketKey);
+    }
+  }
+  const client = String(req.ip ?? req.socket?.remoteAddress ?? "unknown");
+  const key = `${isAuth ? "auth" : "api"}:${client}`;
+  const current = rateBuckets.get(key);
+  const bucket = !current || current.resetAt <= now
+    ? { count: 0, resetAt: now + windowMs }
+    : current;
+  bucket.count += 1;
+  rateBuckets.set(key, bucket);
+  res.setHeader("RateLimit-Limit", String(limit));
+  res.setHeader("RateLimit-Remaining", String(Math.max(0, limit - bucket.count)));
+  res.setHeader("RateLimit-Reset", String(Math.ceil(bucket.resetAt / 1000)));
+  if (bucket.count > limit) {
+    res.setHeader("Retry-After", String(Math.ceil((bucket.resetAt - now) / 1000)));
+    res.status(429).json({ error: "too_many_requests" });
+    return;
+  }
+  next();
+}
+
 function setCors(res: any): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -430,6 +478,9 @@ function addPublicStatsRoutes(app: any): void {
 }
 
 export const setupPublicStatsRoutes: ServerSetupFn = async ({ app }) => {
+  (app as any).set("trust proxy", "loopback");
+  (app as any).disable("x-powered-by");
+  (app as any).use(securityMiddleware);
   addPublicStatsRoutes(app as any);
   addMemoryIngestRoutes(app as any);
   addMcpRoutes(app as any);

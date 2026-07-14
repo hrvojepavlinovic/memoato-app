@@ -1,10 +1,27 @@
 hetzner-app.memoato.com {
   encode gzip zstd
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.memoato.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    -Server
+  }
   reverse_proxy 127.0.0.1:5050
 }
 
 hetzner-api.memoato.com {
   encode gzip zstd
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Referrer-Policy "no-referrer"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    -Server
+  }
   reverse_proxy 127.0.0.1:5051
 }
 

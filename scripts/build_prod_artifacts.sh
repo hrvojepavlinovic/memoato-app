@@ -4,23 +4,6 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
 
-if [[ -f .env.client ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env.client
-  set +a
-fi
-: "${REACT_APP_API_URL:=https://api.memoato.com}"
-
-# Prisma migrations/generation require DATABASE_URL (and friends). Keep secrets
-# out of git, but allow local/prod deploys to source them when present.
-if [[ -f .env.server ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source .env.server
-  set +a
-fi
-
 # Wasp's compile phase needs repo-level devDependencies even in production deploys.
 original_node_env="${NODE_ENV-}"
 export NODE_ENV=development
@@ -44,7 +27,6 @@ unset NPM_CONFIG_INCLUDE
 
 node scripts/patch_wasp_email_templates.mjs
 node scripts/patch_wasp_verify_email_autologin.mjs
-node scripts/patch_wasp_email_login_allow_unverified.mjs
 node scripts/patch_wasp_oauth_types.mjs
 node scripts/patch_wasp_oauth_profile_sync.mjs
 
@@ -59,9 +41,31 @@ npm --prefix .wasp/build/web-app install --include=dev
 npm --prefix .wasp/build/server install .wasp/out/sdk/wasp --no-save --include=dev
 npm --prefix .wasp/build/web-app install .wasp/out/sdk/wasp --no-save --include=dev
 
+# Wasp 0.20 currently emits vulnerable mail/logger ranges. Pin the generated
+# production server to patched releases after all other installs, until the
+# generator itself is upgraded.
+npm --prefix .wasp/build/server install nodemailer@9.0.3 morgan@1.11.0 --no-save --include=dev
+
 # Avoid TS type identity conflicts by ensuring the web build resolves
 # `@tanstack/react-query` from the same place as `wasp/client/operations`.
 rm -rf .wasp/build/web-app/node_modules/@tanstack
+
+# Only expose runtime secrets after all dependency lifecycle scripts have run.
+# The generated application is trusted at this point; third-party installers are not.
+if [[ -f .env.server ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env.server
+  set +a
+fi
+
+if [[ -f .env.client ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env.client
+  set +a
+fi
+: "${REACT_APP_API_URL:=https://api.memoato.com}"
 
 # Apply any pending migrations before bundling.
 (cd .wasp/build/server && npx prisma migrate deploy --schema='../db/schema.prisma')

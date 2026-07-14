@@ -1,6 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "wasp/client/auth";
-import { clearSessionKey, loadSessionKey, saveSessionKey } from "./keyCache";
 import {
   CryptoParams,
   deriveAesGcmKeyFromPassphrase,
@@ -81,20 +80,6 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
   const isUnlocked = !!key;
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!userId) return;
-      if (mode !== "encrypted") return;
-      const cached = await loadSessionKey(userId);
-      if (cancelled) return;
-      if (cached) setKey(cached);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [mode, userId]);
-
-  useEffect(() => {
     if (!userId) return;
     const storedMode = loadStoredMode(userId);
     const storedParams = loadStoredCryptoParams(userId);
@@ -108,7 +93,6 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
       saveStoredMode(userId, m);
       setModeState(m);
       if (m !== "encrypted") {
-        clearSessionKey(userId);
         setKey(null);
       }
     },
@@ -120,7 +104,6 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
       if (!userId) return;
       saveStoredCryptoParams(userId, p);
       setCryptoParamsState(p);
-      clearSessionKey(userId);
       setKey(null);
     },
     [userId],
@@ -137,14 +120,12 @@ export function PrivacyProvider({ children }: { children: React.ReactNode }) {
       }
       const k = await deriveAesGcmKeyFromPassphrase(passphrase, params);
       setKey(k);
-      await saveSessionKey(userId, k);
     },
     [cryptoParams, mode, userId],
   );
 
   const lock = useCallback(() => {
     if (!userId) return;
-    clearSessionKey(userId);
     setKey(null);
   }, [userId]);
 

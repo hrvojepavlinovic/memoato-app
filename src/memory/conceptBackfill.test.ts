@@ -27,7 +27,7 @@ describe("memory concept backfill", () => {
             confidence: 0.9,
             origin: "openrouter",
             data: { fact: { label: "Sleepover" } },
-            rawEntry: { rawText: "Lea je na prespavancu." },
+            rawEntry: { rawText: "Dijete je na prespavancu." },
           },
         ]),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),

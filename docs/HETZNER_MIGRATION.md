@@ -72,13 +72,12 @@ HP runtime currently includes these server env keys:
 HP runtime currently includes these client env keys:
 
 - `REACT_APP_API_URL`
-- `REACT_APP_DATABUDDY_CLIENT_ID`
 
 The example env files in this repo are expected to track these live key names.
 
 Important note:
 
-- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `REACT_APP_DATABUDDY_CLIENT_ID` were present on HP during inventory, but they do not currently appear referenced in this repo. Validate whether they are still needed before copying them forward unchanged.
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` were present on HP during inventory. Validate whether they are still needed before copying them forward unchanged.
 
 ## Next Step
 

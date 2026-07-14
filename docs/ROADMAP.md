@@ -36,7 +36,7 @@ The product direction is "log first":
 | --- | --- | --- |
 | 1. Foundation | Wasp + Prisma schema, DB setup (`memoato`), Notes system category, basic dashboard + category detail, import plan drafted. | `wasp db migrate-dev` succeeds, Notes exists, user can add/edit events, profile page available. |
 | 2. Experience polish | Accent-based progress bars, strikethrough goal lines, history editing/deletion, responsive layout tweaks (period picker placement, mobile-friendly charts, button alignment). | All categories show colored progress bars or glances, categories can be reordered on Home, charts auto-scroll to latest period, history entries are editable. |
-| 3. Ops, PWA, SEO | PM2+Cloudflare deployment, Databuddy instrumentation, install prompts, icons, sitemap and structured data, `/sudo` admin insights. | App accessible via `app.memoato.com`, analytics dashboard shows events, install prompt triggers on Android/iOS, `/sudo` works for admins. |
+| 3. Ops, PWA, SEO | PM2+Cloudflare deployment, public-site analytics, install prompts, icons, sitemap and structured data, `/sudo` admin insights. | App accessible via `app.memoato.com`, authenticated pages remain tracker-free, install prompt triggers on Android/iOS, `/sudo` works for admins. |
 | 4. Import & export | JSON import path defined, raw payload stored, profile export available, admin insights include import metadata. | JSON exports can be ingested, profile export downloads categories/events, admin sees counts per user. |
 | 5. Coach Mode | Coach Mode v0 shipped as “Next up”. Next is planning and review (see `docs/COACH_MODE.md`). | Users see a short list of suggestions, can complete them by logging, and come back tomorrow. |
 

@@ -98,19 +98,9 @@ export async function deriveAesGcmKeyFromPassphrase(
     },
     baseKey,
     { name: "AES-GCM", length: 256 },
-    true,
+    false,
     ["encrypt", "decrypt"],
   );
-}
-
-export async function exportKeyToB64(key: CryptoKey): Promise<string> {
-  const raw = await crypto.subtle.exportKey("raw", key);
-  return bytesToBase64(new Uint8Array(raw));
-}
-
-export async function importKeyFromB64(b64: string): Promise<CryptoKey> {
-  const raw = base64ToBytes(b64);
-  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
 
 export async function encryptUtf8(

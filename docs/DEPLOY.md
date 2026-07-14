@@ -52,22 +52,8 @@ Create `.env.server` based on `.env.server.example` and fill:
 Create `.env.client` based on `.env.client.example` (used at build time):
 
 - `REACT_APP_API_URL` (recommended: `https://api.memoato.com`)
-- `REACT_APP_DATABUDDY_CLIENT_ID`
 
-## Analytics verification (Databuddy)
-
-Databuddy is loaded client-side at runtime (React injects the Databuddy `<script>` from `src/shared/components/Databuddy.tsx`)
-when `REACT_APP_DATABUDDY_CLIENT_ID` is set in `.env.client`.
-
-Sanity checks:
-
-- Confirm the browser sends events:
-  - DevTools → Network → look for requests to `https://basket.databuddy.cc/...`.
-
-Notes:
-
-- Events can be blocked by ad blockers / privacy tools.
-- If Databuddy dashboard still shows “No tracking detected”, verify the Databuddy website settings allow origin `https://app.memoato.com`.
+The authenticated application intentionally does not load third-party analytics.
 
 ## Run with PM2
 

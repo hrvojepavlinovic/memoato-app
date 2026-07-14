@@ -23,6 +23,49 @@ function requireUser(context: any): string {
   return context.user.id;
 }
 
+async function requireConnectorAdmin(context: any): Promise<string> {
+  const userId = requireUser(context);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  if (user?.role !== "admin") {
+    throw new HttpError(403, "Context connectors are restricted to administrators.");
+  }
+  return userId;
+}
+
+function envAllowlist(name: string): Set<string> {
+  return new Set(
+    String(process.env[name] ?? "")
+      .split(/[\n,]+/)
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function assertProviderScopeAllowed(
+  provider: ContextProvider,
+  config: ReturnType<typeof normalizeGitHubConfig | typeof normalizeLinearConfig>,
+): void {
+  if (provider === "github") {
+    const github = config as ReturnType<typeof normalizeGitHubConfig>;
+    const allowed = envAllowlist("GITHUB_CONTEXT_ALLOWED_REPOSITORIES");
+    const requested = github.repositories.map(
+      (repository) => `${github.organization}/${repository}`.toLowerCase(),
+    );
+    if (allowed.size === 0 || requested.some((repository) => !allowed.has(repository))) {
+      throw new HttpError(403, "GitHub repository is not allowlisted.");
+    }
+    return;
+  }
+  const linear = config as ReturnType<typeof normalizeLinearConfig>;
+  const allowed = envAllowlist("LINEAR_CONTEXT_ALLOWED_TEAM_IDS");
+  if (allowed.size === 0 || !allowed.has(linear.teamId.toLowerCase())) {
+    throw new HttpError(403, "Linear team is not allowlisted.");
+  }
+}
+
 function clean(value: unknown, max: number): string {
   return String(value ?? "")
     .trim()
@@ -107,7 +150,7 @@ export const connectContextSource: ConnectContextSource<any, any> = async (
   args,
   context,
 ) => {
-  const userId = requireUser(context);
+  const userId = await requireConnectorAdmin(context);
   const workspaceId = clean(args?.workspaceId, 100);
   const member = await requireWorkspaceMember({
     prisma,
@@ -132,6 +175,7 @@ export const connectContextSource: ConnectContextSource<any, any> = async (
     externalAccountId = linearConfig.teamId;
     defaultDisplayName = linearConfig.teamName;
   }
+  assertProviderScopeAllowed(provider, config);
   const displayName = clean(args?.displayName, 160) || defaultDisplayName;
   const existing = await prisma.sourceConnection.findUnique({
     where: {
@@ -183,7 +227,7 @@ export const syncContextSource: SyncContextSource<any, any> = async (
   args,
   context,
 ) => {
-  const userId = requireUser(context);
+  const userId = await requireConnectorAdmin(context);
   const workspaceId = clean(args?.workspaceId, 100);
   const connectionId = clean(args?.connectionId, 100);
   const member = await requireWorkspaceMember({
@@ -200,6 +244,12 @@ export const syncContextSource: SyncContextSource<any, any> = async (
   if (access.sourceConnection.workspaceId !== workspaceId) {
     throw new HttpError(404, "Source not found.");
   }
+  const provider = providerFrom(access.sourceConnection.provider);
+  const config =
+    provider === "github"
+      ? normalizeGitHubConfig(access.sourceConnection.config)
+      : normalizeLinearConfig(access.sourceConnection.config);
+  assertProviderScopeAllowed(provider, config);
   return syncContextConnection({
     prisma,
     connection: access.sourceConnection,

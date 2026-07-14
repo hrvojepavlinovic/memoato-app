@@ -35,8 +35,6 @@ Patches:
   - Brand email templates (Memoato copy and links).
 - `scripts/patch_wasp_verify_email_autologin.mjs`
   - Make verify-email return a `sessionId` so the app can auto-login after confirmation.
-- `scripts/patch_wasp_email_login_allow_unverified.mjs`
-  - Allow login before verification (product choice). The UI still nudges verification for email/password accounts.
 - `scripts/patch_wasp_oauth_types.mjs`
   - Fix build-time TypeScript typing issues in Wasp OAuth generated handlers.
 - `scripts/patch_wasp_oauth_profile_sync.mjs`

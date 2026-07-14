@@ -47,74 +47,6 @@ const syncBlock =
   "      console.error('Failed to sync OAuth profile fields:', e)\n" +
   "    }\n\n";
 
-const elseBranchStart =
-  "  } else {\n" +
-  "    const userFields = await validateAndGetUserFields(\n" +
-  "      { profile: providerProfile },\n" +
-  "      userSignupFields,\n" +
-  "    )\n";
-
-const linkExistingByEmailBlock =
-  "  } else {\n" +
-  "    try {\n" +
-  "      const raw = typeof providerProfile?.email === 'string' ? providerProfile.email : null\n" +
-  "      const email = raw ? String(raw).trim().toLowerCase() : null\n" +
-  "      if (email && email.includes('@')) {\n" +
-  "        const existingUser = await prisma.user.findUnique({\n" +
-  "          where: { email },\n" +
-  "          include: { auth: true },\n" +
-  "        })\n" +
-  "        if (existingUser) {\n" +
-  "          const authForUser =\n" +
-  "            existingUser.auth ??\n" +
-  "            (await prisma.auth.create({ data: { user: { connect: { id: existingUser.id } } } }))\n" +
-  "          const providerData = await sanitizeAndSerializeProviderData({})\n" +
-  "          try {\n" +
-  "            await prisma.authIdentity.create({\n" +
-  "              data: {\n" +
-  "                providerName: providerId.providerName,\n" +
-  "                providerUserId: providerId.providerUserId,\n" +
-  "                providerData,\n" +
-  "                authId: authForUser.id,\n" +
-  "              },\n" +
-  "            })\n" +
-  "          } catch (e) {\n" +
-  "            console.error('Failed to link OAuth identity:', e)\n" +
-  "          }\n" +
-  "          try {\n" +
-  "            await prisma.user.update({\n" +
-  "              where: { id: existingUser.id },\n" +
-  "              data: {\n" +
-  "                email,\n" +
-  "                firstName: existingUser.firstName ?? (typeof providerProfile?.given_name === 'string' ? providerProfile.given_name : null),\n" +
-  "                lastName: existingUser.lastName ?? (typeof providerProfile?.family_name === 'string' ? providerProfile.family_name : null),\n" +
-  "              },\n" +
-  "            })\n" +
-  "          } catch (e) {\n" +
-  "            console.error('Failed to sync OAuth profile fields:', e)\n" +
-  "          }\n" +
-  "          await onBeforeLoginHook({\n" +
-  "            req,\n" +
-  "            providerId,\n" +
-  "            user: existingUser,\n" +
-  "          })\n" +
-  "          await onAfterLoginHook({\n" +
-  "            req,\n" +
-  "            providerId,\n" +
-  "            oauth,\n" +
-  "            user: existingUser,\n" +
-  "          })\n" +
-  "          return authForUser.id\n" +
-  "        }\n" +
-  "      }\n" +
-  "    } catch (e) {\n" +
-  "      console.error('Failed to link OAuth account by email:', e)\n" +
-  "    }\n\n" +
-  "    const userFields = await validateAndGetUserFields(\n" +
-  "      { profile: providerProfile },\n" +
-  "      userSignupFields,\n" +
-  "    )\n";
-
 const createUserCall =
   "    const user = await createUser(\n" +
   "      providerId,\n" +
@@ -144,25 +76,12 @@ const syncAfterCreateUserCall =
   "    }\n";
 
 const result = patchFile(userPath, [
-  {
-    name: "sync-oauth-profile-fields",
-    from: insertAfterAuthFetch,
-    to: syncBlock,
-  },
-  {
-    name: "link-existing-oauth-by-email",
-    from: elseBranchStart,
-    to: linkExistingByEmailBlock,
-  },
-  {
-    name: "sync-oauth-profile-fields-on-signup",
-    from: createUserCall,
-    to: syncAfterCreateUserCall,
-  },
+  { name: "sync-oauth-profile-fields", from: insertAfterAuthFetch, to: syncBlock },
+  { name: "sync-oauth-profile-fields-on-signup", from: createUserCall, to: syncAfterCreateUserCall },
 ]);
 
 if (result.patched) {
-  console.log("[patch_wasp_oauth_profile_sync] OAuth linking and profile sync patched.");
+  console.log("[patch_wasp_oauth_profile_sync] OAuth profile sync patched.");
 } else {
   console.log(`[patch_wasp_oauth_profile_sync] Not patched (${result.reason}).`);
 }
