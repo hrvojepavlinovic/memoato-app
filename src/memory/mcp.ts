@@ -129,7 +129,7 @@ const tools = [
           type: "string",
           minLength: 1,
           maxLength: 200,
-          description: "Search text, e.g. padel, elbow, Stela, biceps curls.",
+          description: "Search text, e.g. padel, elbow, sleepover, biceps curls.",
         },
         from: { type: "string", description: "Optional ISO start timestamp/date." },
         to: { type: "string", description: "Optional ISO end timestamp/date." },

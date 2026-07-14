@@ -70,5 +70,5 @@
 
 ## 2026-01-22
 
-- Analytics: Databuddy tracking runs client-side only via runtime script injection in `src/shared/components/Databuddy.tsx`.
+- Analytics: third-party tracking was later removed from authenticated application pages.
 - Removed the server-side Databuddy proxy operation. `/operations/track-databuddy` no longer exists (returns `404`).

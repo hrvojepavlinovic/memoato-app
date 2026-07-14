@@ -64,7 +64,7 @@ describe("PrivacyProvider", () => {
     expect(localStorage.getItem("memoato.privacy.v1:user_1:mode")).toBe("cloud");
   });
 
-  it("unlockWithPassphrase sets a session key in encrypted mode", async () => {
+  it("keeps the unlocked key in memory without exporting it to session storage", async () => {
     localStorage.clear();
     sessionStorage.clear();
     render(
@@ -76,6 +76,6 @@ describe("PrivacyProvider", () => {
     fireEvent.click(screen.getByText("encrypted"));
     fireEvent.click(screen.getByText("unlock"));
     await waitFor(() => expect(screen.getByTestId("unlocked").textContent).toBe("yes"));
-    expect(sessionStorage.getItem("memoato.cryptoKeyB64.v1:user_1")).toBeTruthy();
+    expect(sessionStorage.getItem("memoato.cryptoKeyB64.v1:user_1")).toBeNull();
   });
 });

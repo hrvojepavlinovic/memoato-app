@@ -17,8 +17,8 @@ It is a simple memory layer for everyday context.
 
 You can write things like:
 
-- `Lea sore throat, no temperature, stayed home`
-- `Stela fever 39.1 at 6am, gave medicine`
+- `My child had a sore throat, no temperature, stayed home`
+- `Family member had a fever of 39.1 at 6am, gave medicine`
 - `I feel low energy again, slept badly`
 
 Memoato saves the original note first.

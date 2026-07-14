@@ -205,9 +205,9 @@ Memoato supports three privacy/storage modes (set in **Profile → Privacy**):
 ## Analytics & PWA
 
 - Analytics:
-- Databuddy runs **client-side only** via runtime script injection (`src/shared/components/Databuddy.tsx`).
-  - There is **no server-side proxy** and no `/operations/track-databuddy` endpoint.
-  - Tracking is intended for `app.memoato.com` (ensure the Databuddy project allows origin `https://app.memoato.com`).
+  - Authenticated application pages do not load third-party analytics scripts.
+  - Public-site analytics remains isolated to `memoato.com`.
+  - There is no server-side proxy or `/operations/track-databuddy` endpoint.
 
 - PWA/install:
   - Manifest lists `Memoato` name, dark theme color, rounded high-res icons, maskable icon to deploy proper shape on Android (Galaxy).
@@ -220,7 +220,7 @@ Memoato supports three privacy/storage modes (set in **Profile → Privacy**):
 - Local dev:
   - Database: Postgres via UNIX socket at `/var/run/postgresql`, user `harvey`, DB `memoato`. Credentials stored in `.env.server`.
   - Wasp workflow: `wasp db migrate-dev`, `wasp start`. `vite.config.ts` should allow `preview.allowedHosts` for `app.memoato.com` during closed tunnel testing.
-  - `.env.client`/`.env.server` hold API URLs, SMTP credentials, JWT secret, and Databuddy client IDs.
+  - `.env.client`/`.env.server` hold API URLs, SMTP credentials, and the JWT secret.
 
 - Production:
   - Build script `./scripts/deploy_prod.sh`.

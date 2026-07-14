@@ -91,7 +91,7 @@ server.tool(
   "memoato_search_entries",
   "Search Memoato entries and parsed facts. Use this to answer recall questions such as when something happened, when pain appeared, or when a person/activity was mentioned.",
   {
-    query: z.string().min(1).max(200).describe("Search text, e.g. padel, elbow, Stela, biceps curls."),
+    query: z.string().min(1).max(200).describe("Search text, e.g. padel, elbow, sleepover, biceps curls."),
     from: z.string().optional().describe("Optional ISO start timestamp/date."),
     to: z.string().optional().describe("Optional ISO end timestamp/date."),
     period: z

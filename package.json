@@ -8,7 +8,6 @@
   "dependencies": {
     "@capacitor/core": "^8.0.0",
     "@capacitor/local-notifications": "^8.0.0",
-    "@databuddy/sdk": "^2.3.28",
     "http": "file:packages/http",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
@@ -31,7 +30,17 @@
     "tailwindcss": "^3.4.17",
     "typescript": "5.8.2",
     "typescript-eslint": "^8.32.1",
-    "vite": "^7.0.6"
+    "vite": "^7.0.6",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "0.8.13",
+    "axios": "1.18.1",
+    "picomatch": "4.0.5",
+    "postcss": "8.5.19",
+    "qs": "6.15.3",
+    "rollup": "4.62.2",
+    "ws": "8.21.0"
   },
   "scripts": {
     "test": "vitest run"
