@@ -3,12 +3,14 @@ import type {
   GetMemoryFeed,
   GetMemoryOverview,
   AnswerMemoryRecall,
+  DeleteMemoryEntry,
   RecallMemory,
   RetryMemoryEntry,
   ReviewMemoryFact,
+  UpdateMemoryEntry,
 } from "wasp/server/operations";
 import { isOpenRouterExtractorConfigured } from "./openRouterExtractor";
-import { queueMemoryReprocessing } from "./ingest";
+import { queueMemoryReprocessing, triggerRawMemoryProcessing } from "./ingest";
 import { parseRecallQuery } from "./recallTerms";
 import { hybridRecallCandidates } from "./recallSearch";
 import { answerRecallWithOpenRouter } from "./openRouterRecall";
@@ -315,6 +317,19 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
       },
     ]),
   }));
+  const domainWhere =
+    parsed.domainFilters.length > 0
+      ? {
+          rawMemoryFacts: {
+            some: {
+              status: { not: "rejected" },
+              concept: { domain: { in: parsed.domainFilters } },
+            },
+          },
+        }
+      : {};
+  const onlyBroadDomainQuery =
+    parsed.domainFilters.length > 0 && parsed.tsQuery == null;
 
   let hybrid: Awaited<ReturnType<typeof hybridRecallCandidates>> = {
     ranks: [],
@@ -345,9 +360,10 @@ export const recallMemory: RecallMemory<RecallArgs, any> = async (
         userId: context.user.id,
         kind: "NOTE",
         ...dateWhere,
+        ...domainWhere,
         ...(rankedIds.length > 0
           ? { id: { in: rankedIds } }
-          : groupConditions.length > 0
+          : groupConditions.length > 0 && !onlyBroadDomainQuery
             ? { AND: groupConditions }
             : {}),
       } as any,
@@ -848,6 +864,129 @@ export const reviewMemoryFact: ReviewMemoryFact<ReviewArgs, any> = async (
   triggerMemoryEmbeddingProjection(prisma, fact.rawEntryId);
   triggerMemoryConceptEmbeddingProjection(prisma, context.user.id);
   return factDto({ ...updated, category: null });
+};
+
+type UpdateMemoryEntryArgs = {
+  rawEntryId: string;
+  rawText: string;
+};
+
+function queuedMemoryDataAfterEdit(data: any): any {
+  const root =
+    data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const previous = memoryData(root);
+  const { extraction: _extraction, ...memoryWithoutExtraction } = previous;
+  return {
+    ...root,
+    memoatoMemory: {
+      ...memoryWithoutExtraction,
+      clientLabels: [],
+      processingStatus: "queued",
+      processingError: null,
+      derivedEventIds: [],
+    },
+  };
+}
+
+export const updateMemoryEntry: UpdateMemoryEntry<
+  UpdateMemoryEntryArgs,
+  any
+> = async (args, context) => {
+  if (!context.user) throw new HttpError(401);
+  const rawEntryId = String(args?.rawEntryId ?? "").trim();
+  const rawText = String(args?.rawText ?? "").trim();
+  if (!rawEntryId) throw new HttpError(400, "Missing memory entry");
+  if (!rawText) throw new HttpError(400, "Memory cannot be empty");
+  if (rawText.length > 4000)
+    throw new HttpError(400, "Memory is too long (maximum 4,000 characters)");
+
+  const existing = await prisma.event.findFirst({
+    where: { id: rawEntryId, userId: context.user.id, kind: "NOTE" },
+    select: { id: true, rawText: true, data: true },
+  });
+  if (!existing) throw new HttpError(404, "Memory not found");
+  if (rawText === String(existing.rawText ?? "").trim()) {
+    return {
+      rawEntryId,
+      rawText,
+      processingStatus:
+        memoryData(existing.data).processingStatus ?? "complete",
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const latestRun = await tx.memoryProcessingRun.findFirst({
+      where: { rawEntryId },
+      select: { attempt: true },
+      orderBy: [{ attempt: "desc" }],
+    });
+    await tx.event.deleteMany({
+      where: {
+        userId: context.user!.id,
+        kind: "SESSION",
+        data: { path: ["rawEntryId"], equals: rawEntryId },
+      },
+    });
+    await tx.memoryFact.deleteMany({ where: { rawEntryId } });
+    await tx.memoryEntryConcept.deleteMany({ where: { rawEntryId } });
+    await tx.memoryEmbedding.deleteMany({ where: { rawEntryId } });
+    await tx.event.update({
+      where: { id: rawEntryId },
+      data: {
+        rawText,
+        data: queuedMemoryDataAfterEdit(existing.data),
+      },
+    });
+    await tx.memoryProcessingRun.create({
+      data: {
+        userId: context.user!.id,
+        rawEntryId,
+        attempt: (latestRun?.attempt ?? 0) + 1,
+        status: "queued",
+      },
+    });
+    await tx.memoryCorrection.create({
+      data: {
+        userId: context.user!.id,
+        rawEntryId,
+        action: "edit_entry",
+        before: { rawText: existing.rawText },
+        after: { rawText },
+      },
+    });
+  });
+
+  triggerRawMemoryProcessing(prisma, rawEntryId);
+  triggerMemoryConceptEmbeddingProjection(prisma, context.user.id);
+  return { rawEntryId, rawText, processingStatus: "queued" };
+};
+
+type DeleteMemoryEntryArgs = { rawEntryId: string };
+
+export const deleteMemoryEntry: DeleteMemoryEntry<
+  DeleteMemoryEntryArgs,
+  { rawEntryId: string }
+> = async (args, context) => {
+  if (!context.user) throw new HttpError(401);
+  const rawEntryId = String(args?.rawEntryId ?? "").trim();
+  const existing = await prisma.event.findFirst({
+    where: { id: rawEntryId, userId: context.user.id, kind: "NOTE" },
+    select: { id: true },
+  });
+  if (!existing) throw new HttpError(404, "Memory not found");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.event.deleteMany({
+      where: {
+        userId: context.user!.id,
+        kind: "SESSION",
+        data: { path: ["rawEntryId"], equals: rawEntryId },
+      },
+    });
+    await tx.event.delete({ where: { id: rawEntryId } });
+  });
+  triggerMemoryConceptEmbeddingProjection(prisma, context.user.id);
+  return { rawEntryId };
 };
 
 type RetryArgs = { rawEntryId: string };

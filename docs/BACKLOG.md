@@ -10,6 +10,8 @@ This is a living list of what to do next. Keep it short and reorder often.
 
 ## P0 (speed / activation)
 
+- Replace per-user GitHub token/env setup with a GitHub App installation flow; store installation/repository grants and mint short-lived tokens server-side.
+- Ship an Obsidian GitHub repository connector: index permitted Markdown files as immutable source versions, sync changes through webhooks, preserve file/commit evidence, and expose permission-filtered recall plus memory diffs.
 - Home: add “Quick log” (one-tap, keyboard-first) so time-to-log is ~10s on mobile.
 - Improve onboarding activation (log-first flow, infer metrics, suggest goals at the right moment, explain Notes).
 - Add chat logging concept spike: Telegram and/or WhatsApp mode where the user generates a pairing code/API key, links a phone/chat identity to their Memoato account, then logs raw entries by message.

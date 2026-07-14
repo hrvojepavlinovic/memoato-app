@@ -25,6 +25,7 @@ const STOP_WORDS = new Set([
   "played",
   "happen",
   "happened",
+  "best",
   "je",
   "i",
   "sam",
@@ -70,6 +71,20 @@ const ALIAS_GROUPS: Record<string, string[]> = {
   pain: ["pain", "hurt", "sore", "bol", "boli", "bolio", "bolila"],
   sleep: ["sleep", "slept", "san", "spavanje", "spavao", "spavala"],
   energy: ["energy", "energija", "umor", "umoran", "umorna", "tired"],
+  workout: [
+    "workout",
+    "workouts",
+    "exercise",
+    "exercises",
+    "training",
+    "trening",
+    "vjezba",
+    "vjezbanje",
+  ],
+};
+
+const BROAD_DOMAIN_TERMS: Record<string, string> = {
+  workout: "movement",
 };
 
 const TERM_ALIASES = Object.fromEntries(
@@ -125,6 +140,7 @@ export type ParsedRecallQuery = {
   groups: string[][];
   tsQuery: string | null;
   fuzzyText: string;
+  domainFilters: string[];
   range: RecallDateRange | null;
 };
 
@@ -260,15 +276,21 @@ export function parseRecallQuery(
   const normalized = normalizeRecallText(query);
   const terms = searchMemoryTerms(query);
   const groups = terms.map((term) => ALIAS_GROUPS[term] ?? [term]);
+  const domainFilters = Array.from(
+    new Set(terms.map((term) => BROAD_DOMAIN_TERMS[term]).filter(Boolean)),
+  );
+  const onlyBroadDomainTerms =
+    terms.length > 0 && terms.every((term) => BROAD_DOMAIN_TERMS[term]);
   return {
     normalized,
     terms,
     groups,
-    tsQuery: buildPostgresTsQuery(groups),
+    tsQuery: onlyBroadDomainTerms ? null : buildPostgresTsQuery(groups),
     fuzzyText: groups
       .flatMap((group) => group)
       .join(" ")
       .slice(0, 500),
+    domainFilters,
     range: dateRange(normalized, now),
   };
 }

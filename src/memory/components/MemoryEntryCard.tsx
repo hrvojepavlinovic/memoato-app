@@ -1,5 +1,10 @@
 import React from "react";
-import { retryMemoryEntry, reviewMemoryFact } from "wasp/client/operations";
+import {
+  deleteMemoryEntry,
+  retryMemoryEntry,
+  reviewMemoryFact,
+  updateMemoryEntry,
+} from "wasp/client/operations";
 import { Button } from "../../shared/components/Button";
 
 function formatWhen(value: string | Date): string {
@@ -44,8 +49,15 @@ export function MemoryEntryCard({
   compact?: boolean;
 }) {
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editingEntry, setEditingEntry] = React.useState(false);
+  const [entryDraft, setEntryDraft] = React.useState(
+    String(entry.rawText ?? ""),
+  );
+  const [entryError, setEntryError] = React.useState("");
+  const [deleted, setDeleted] = React.useState(false);
   const [draft, setDraft] = React.useState({ label: "", amount: "", unit: "" });
   const [saving, setSaving] = React.useState<string | null>(null);
+  const entrySavingKey = `entry:${entry.id}`;
 
   async function review(fact: any, action: "accept" | "reject" | "edit") {
     if (String(fact.id).startsWith("legacy:")) return;
@@ -81,6 +93,47 @@ export function MemoryEntryCard({
     }
   }
 
+  async function saveEntry() {
+    const rawText = entryDraft.trim();
+    if (!rawText) {
+      setEntryError("A memory cannot be empty.");
+      return;
+    }
+    setSaving(entrySavingKey);
+    setEntryError("");
+    try {
+      await updateMemoryEntry({ rawEntryId: entry.id, rawText });
+      setEditingEntry(false);
+      onChanged?.();
+    } catch (error: any) {
+      setEntryError(error?.message || "Couldn’t update this memory.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function removeEntry() {
+    if (
+      !window.confirm(
+        "Delete this memory and every fact created from it? This cannot be undone.",
+      )
+    )
+      return;
+    setSaving(entrySavingKey);
+    setEntryError("");
+    try {
+      await deleteMemoryEntry({ rawEntryId: entry.id });
+      setDeleted(true);
+      onChanged?.();
+    } catch (error: any) {
+      setEntryError(error?.message || "Couldn’t delete this memory.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  if (deleted) return null;
+
   return (
     <article
       className="card overflow-hidden"
@@ -113,16 +166,89 @@ export function MemoryEntryCard({
             <span className="text-neutral-300 dark:text-neutral-700">/</span>
             <span className="truncate">{entry.source || "app"}</span>
           </div>
-          <time className="flex-none text-[11px] font-medium tabular-nums text-neutral-500 dark:text-neutral-400">
-            {formatWhen(entry.occurredAt)}
-          </time>
+          <div className="flex flex-none items-center gap-1.5">
+            <time className="mr-1 text-[11px] font-medium tabular-nums text-neutral-500 dark:text-neutral-400">
+              {formatWhen(entry.occurredAt)}
+            </time>
+            {entry.processingStatus !== "legacy" ? (
+              <>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditingEntry((current) => !current);
+                    setEntryDraft(String(entry.rawText ?? ""));
+                    setEntryError("");
+                  }}
+                  disabled={saving === entrySavingKey}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  className="hover:border-red-600 hover:text-red-700 dark:hover:border-red-500 dark:hover:text-red-300"
+                  onClick={removeEntry}
+                  disabled={saving === entrySavingKey}
+                >
+                  Delete
+                </Button>
+              </>
+            ) : null}
+          </div>
         </div>
 
-        <p
-          className={`${compact ? "mt-2 text-sm" : "mt-3 text-base sm:text-lg"} whitespace-pre-wrap font-medium leading-relaxed tracking-[-0.015em] text-neutral-950 dark:text-neutral-100`}
-        >
-          {entry.rawText}
-        </p>
+        {editingEntry ? (
+          <div className="mt-3 border-2 border-neutral-950 bg-white p-3 dark:border-neutral-100 dark:bg-neutral-950">
+            <textarea
+              aria-label="Original memory"
+              value={entryDraft}
+              onChange={(event) => setEntryDraft(event.target.value)}
+              maxLength={4000}
+              rows={compact ? 3 : 4}
+              className="w-full resize-y bg-transparent text-sm font-medium leading-6 outline-none sm:text-base"
+              autoFocus
+            />
+            <div className="mt-2 flex items-center justify-between gap-3 border-t border-neutral-200 pt-2 dark:border-neutral-800">
+              <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-400">
+                Facts will be read again
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditingEntry(false);
+                    setEntryDraft(String(entry.rawText ?? ""));
+                    setEntryError("");
+                  }}
+                  disabled={saving === entrySavingKey}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="xs"
+                  onClick={saveEntry}
+                  disabled={saving === entrySavingKey}
+                >
+                  {saving === entrySavingKey ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p
+            className={`${compact ? "mt-2 text-sm" : "mt-3 text-base sm:text-lg"} whitespace-pre-wrap font-medium leading-relaxed tracking-[-0.015em] text-neutral-950 dark:text-neutral-100`}
+          >
+            {entry.rawText}
+          </p>
+        )}
+
+        {entryError ? (
+          <div className="mt-3 border border-red-300 bg-red-50 p-2 text-xs font-medium text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
+            {entryError}
+          </div>
+        ) : null}
 
         {entry.facts?.length > 0 ? (
           <div className="mt-4 space-y-2">

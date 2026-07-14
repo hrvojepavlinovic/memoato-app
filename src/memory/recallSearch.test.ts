@@ -78,4 +78,27 @@ describe("hybrid Recall ranking", () => {
       expect.objectContaining({ rawEntryId: "football-note" }),
     );
   });
+
+  it("pushes broad workout intent into the movement domain SQL guard", async () => {
+    const queryRaw = vi.fn().mockResolvedValue([]);
+    await hybridRecallCandidates({
+      prisma: { $queryRawUnsafe: queryRaw },
+      userId: "user-1",
+      query: "best workout days",
+      parsed: parseRecallQuery("best workout days"),
+      take: 10,
+      includeSemantic: false,
+    });
+
+    expect(queryRaw).toHaveBeenCalledWith(
+      expect.stringContaining('mc."domain" = ANY($7::text[])'),
+      "user-1",
+      "",
+      expect.any(String),
+      null,
+      null,
+      expect.any(Number),
+      ["movement"],
+    );
+  });
 });

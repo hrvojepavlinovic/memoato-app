@@ -127,6 +127,17 @@ async function lexicalCandidates(args: {
      WHERE ($4::timestamptz IS NULL OR e."occurredAt" >= $4::timestamptz)
        AND ($5::timestamptz IS NULL OR e."occurredAt" < $5::timestamptz)
        AND (
+         COALESCE(array_length($7::text[], 1), 0) = 0
+         OR EXISTS (
+           SELECT 1
+           FROM "MemoryFact" mf
+           JOIN "MemoryConcept" mc ON mc."id" = mf."conceptId"
+           WHERE mf."rawEntryId" = me."rawEntryId"
+             AND mf."status" <> 'rejected'
+             AND mc."domain" = ANY($7::text[])
+         )
+       )
+       AND (
          q.tsq IS NULL
          OR to_tsvector(
               'simple',
@@ -145,6 +156,7 @@ async function lexicalCandidates(args: {
     args.parsed.range?.from ?? null,
     args.parsed.range?.to ?? null,
     args.limit,
+    args.parsed.domainFilters,
   );
   return normalizedRanks(rows as any[]);
 }
@@ -170,6 +182,18 @@ async function semanticCandidates(args: {
        AND me."embedding" IS NOT NULL
        AND ($5::timestamptz IS NULL OR e."occurredAt" >= $5::timestamptz)
        AND ($6::timestamptz IS NULL OR e."occurredAt" < $6::timestamptz)
+       AND (1 - (me."embedding" <=> $4::vector)) >= 0.3
+       AND (
+         COALESCE(array_length($8::text[], 1), 0) = 0
+         OR EXISTS (
+           SELECT 1
+           FROM "MemoryFact" mf
+           JOIN "MemoryConcept" mc ON mc."id" = mf."conceptId"
+           WHERE mf."rawEntryId" = me."rawEntryId"
+             AND mf."status" <> 'rejected'
+             AND mc."domain" = ANY($8::text[])
+         )
+       )
      ORDER BY me."embedding" <=> $4::vector
      LIMIT $7`,
     args.userId,
@@ -179,6 +203,7 @@ async function semanticCandidates(args: {
     args.parsed.range?.from ?? null,
     args.parsed.range?.to ?? null,
     args.limit,
+    args.parsed.domainFilters,
   );
   return normalizedRanks(rows as any[]);
 }
@@ -197,11 +222,16 @@ async function semanticConceptCandidates(args: {
          mce."conceptId",
          1 - (mce."embedding" <=> $4::vector) AS concept_score
        FROM "MemoryConceptEmbedding" mce
+       JOIN "MemoryConcept" mc ON mc."id" = mce."conceptId"
        WHERE mce."userId" = $1
          AND mce."model" = $2
          AND mce."version" = $3
          AND mce."status" = 'complete'
          AND mce."embedding" IS NOT NULL
+         AND (
+           COALESCE(array_length($8::text[], 1), 0) = 0
+           OR mc."domain" = ANY($8::text[])
+         )
        ORDER BY mce."embedding" <=> $4::vector
        LIMIT 4
      )
@@ -224,6 +254,7 @@ async function semanticConceptCandidates(args: {
     args.parsed.range?.from ?? null,
     args.parsed.range?.to ?? null,
     args.limit,
+    args.parsed.domainFilters,
   );
   return normalizedRanks(rows as any[]);
 }
