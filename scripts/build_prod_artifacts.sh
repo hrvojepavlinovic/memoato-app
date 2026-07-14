@@ -9,11 +9,18 @@ original_node_env="${NODE_ENV-}"
 export NODE_ENV=development
 export NPM_CONFIG_INCLUDE=dev
 
+# Wasp generation may rewrite the root lockfile from its original, vulnerable
+# generated manifests. Preserve the reviewed lock and restore it after patching.
+reviewed_lock="$(mktemp)"
+cp package-lock.json "${reviewed_lock}"
+trap 'rm -f "${reviewed_lock}"' EXIT
+
 wasp build
 
 # Wasp 0.20 emits obsolete dependency ranges. Patch its generated manifests,
 # then install exactly the reviewed lockfile before any runtime secrets exist.
 node scripts/patch_wasp_dependency_versions.mjs
+cp "${reviewed_lock}" package-lock.json
 npm ci --include=dev
 
 if [[ -n "${original_node_env}" ]]; then
