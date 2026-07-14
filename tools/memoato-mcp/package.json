@@ -16,6 +16,8 @@
   },
   "devDependencies": {
     "typescript": "^5.8.2"
+  },
+  "overrides": {
+    "hono": "4.12.30"
   }
 }
-

@@ -4,19 +4,17 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
 
-# Wasp's compile phase needs repo-level devDependencies even in production deploys.
+# Wasp's compile phase installs the repo-level dependencies it requires.
 original_node_env="${NODE_ENV-}"
 export NODE_ENV=development
 export NPM_CONFIG_INCLUDE=dev
 
-# The Wasp build now relies on the repo-level Vite config and its devDependencies.
-if [[ -f package-lock.json ]]; then
-  npm ci --include=dev
-else
-  npm install --include=dev
-fi
-
 wasp build
+
+# Wasp 0.20 emits obsolete dependency ranges. Patch its generated manifests,
+# then install exactly the reviewed lockfile before any runtime secrets exist.
+node scripts/patch_wasp_dependency_versions.mjs
+npm ci --include=dev
 
 if [[ -n "${original_node_env}" ]]; then
   export NODE_ENV="${original_node_env}"
@@ -40,11 +38,6 @@ npm --prefix .wasp/build/web-app install --include=dev
 # TS type identity conflicts caused by resolving `wasp` from the repo root).
 npm --prefix .wasp/build/server install .wasp/out/sdk/wasp --no-save --include=dev
 npm --prefix .wasp/build/web-app install .wasp/out/sdk/wasp --no-save --include=dev
-
-# Wasp 0.20 currently emits vulnerable mail/logger ranges. Pin the generated
-# production server to patched releases after all other installs, until the
-# generator itself is upgraded.
-npm --prefix .wasp/build/server install nodemailer@9.0.3 morgan@1.11.0 --no-save --include=dev
 
 # Avoid TS type identity conflicts by ensuring the web build resolves
 # `@tanstack/react-query` from the same place as `wasp/client/operations`.

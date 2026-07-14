@@ -17,13 +17,18 @@ jobs:
   application:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
       - name: Compile Wasp project
         run: npx --yes @wasp.sh/wasp-cli@0.20.2 build
+      - name: Install patched generated dependencies
+        run: |
+          node scripts/patch_wasp_dependency_versions.mjs
+          npm ci --include=dev
+          npm audit
       - name: Apply generated-code patches
         run: |
           node scripts/patch_wasp_email_templates.mjs
@@ -32,9 +37,9 @@ jobs:
           node scripts/patch_wasp_oauth_profile_sync.mjs
       - name: Test
         run: npm test
-      - name: Pin patched generated server dependencies
+      - name: Regenerate Prisma client after clean install
         working-directory: .wasp/build/server
-        run: npm install nodemailer@9.0.3 morgan@1.11.0 --no-save --include=dev
+        run: npx prisma generate --schema='../db/schema.prisma'
       - name: Bundle server
         working-directory: .wasp/build/server
         run: npm run bundle
@@ -50,8 +55,8 @@ jobs:
       run:
         working-directory: apps/memoato-site
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -66,8 +71,8 @@ jobs:
       run:
         working-directory: apps/mobile
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
