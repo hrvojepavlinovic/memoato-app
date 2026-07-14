@@ -45,6 +45,21 @@ run_quiet_step() {
   echo "${step} ok"
 }
 
+verify_service_stable() {
+  local service="$1"
+
+  # `systemctl is-active` can briefly succeed while a crashing service is still
+  # in its activation/restart cycle. Require it to remain fully running long
+  # enough to catch missing native modules and other immediate startup errors.
+  for _ in {1..10}; do
+    if [[ "$(systemctl show --property=SubState --value "${service}")" != "running" ]]; then
+      sudo systemctl --no-pager --full status "${service}" >&2 || true
+      return 1
+    fi
+    sleep 1
+  done
+}
+
 export PATH="${HOME}/.local/bin:${PATH}"
 
 if [[ ! -f "${SERVER_ENV}" ]]; then
@@ -74,6 +89,6 @@ run_quiet_step "Build landing" ./scripts/build_memoato_site.sh
 run_quiet_step "Publish landing" ./scripts/publish_memoato_site.sh
 
 sudo systemctl restart "${API_SERVICE}" "${WEB_SERVICE}"
-systemctl is-active --quiet "${API_SERVICE}"
-systemctl is-active --quiet "${WEB_SERVICE}"
+verify_service_stable "${API_SERVICE}"
+verify_service_stable "${WEB_SERVICE}"
 echo "Services active: ${API_SERVICE}, ${WEB_SERVICE}"
