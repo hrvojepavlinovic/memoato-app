@@ -31,6 +31,8 @@ If you upgrade Wasp, run a production build and confirm patch scripts report suc
 
 Patches:
 
+- `scripts/patch_wasp_dependency_versions.mjs`
+  - Pins generated Wasp SDK/server dependencies to reviewed, patched releases before the clean CI/production install.
 - `scripts/patch_wasp_email_templates.mjs`
   - Brand email templates (Memoato copy and links).
 - `scripts/patch_wasp_verify_email_autologin.mjs`

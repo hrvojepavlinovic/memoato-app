@@ -2,9 +2,10 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
-    alias: {
-      "wasp/client/auth": "/src/test/waspClientAuth.ts",
-    },
+    alias: [
+      { find: "wasp/client/auth", replacement: "/src/test/waspClientAuth.ts" },
+      { find: "wasp/server", replacement: "/src/test/waspServer.ts" },
+    ],
   },
   test: {
     environment: "jsdom",
