@@ -9,7 +9,7 @@ import {
 describe("stable memory labels", () => {
   it("labels Croatian family context without a generative AI call", () => {
     const result = extractCatalogMemoryFacts(
-      "Example child je ostala na prespavancu u Kaštelima.",
+      "Dijete je ostalo na prespavancu u Kaštelima.",
     );
     expect(result.facts).toEqual([
       expect.objectContaining({

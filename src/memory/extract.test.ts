@@ -29,7 +29,7 @@ describe("extractDeterministicMemoryFacts", () => {
       }),
     ]);
 
-    const football = extractDeterministicMemoryFacts("cage football/cardio with Example child ~60 min - played a lot with the ball");
+    const football = extractDeterministicMemoryFacts("cage football/cardio with my child ~60 min - played a lot with the ball");
     expect(football.facts).toEqual([
       expect.objectContaining({
         canonical: "Football",

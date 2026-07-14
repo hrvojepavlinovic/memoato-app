@@ -1,6 +1,6 @@
 // NOTE: Keep this version in sync with deployments.
 // We intentionally bump it when the app bundle changes to avoid serving stale HTML/JS.
-const CACHE_NAME = "memoato-cache-v7";
+const CACHE_NAME = "memoato-cache-v8";
 const PRECACHE_URLS = [
   "/android-chrome-192x192.png?v=7",
   "/android-chrome-512x512.png?v=7",
@@ -37,19 +37,15 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.origin) return;
 
-  // Navigation (HTML) should be "network first" so deployments show up immediately.
+  // Never persist navigations: URLs can contain reset, verification, or OAuth tokens.
   if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const cloned = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
-          return response;
-        })
-        .catch(() => caches.match(event.request).then((cached) => cached ?? caches.match("/"))),
-    );
+    event.respondWith(fetch(event.request));
     return;
   }
+
+  // Only cache the fixed, public application assets listed above. In particular,
+  // do not cache API/operation responses or arbitrary query-string URLs.
+  if (url.search || !PRECACHE_URLS.includes(url.pathname)) return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
@@ -59,8 +55,6 @@ self.addEventListener("fetch", (event) => {
           if (!response || response.status !== 200 || response.type !== "basic") {
             return response;
           }
-          const cloned = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
           return response;
         })
         .catch(() => cached ?? Promise.reject("offline"));

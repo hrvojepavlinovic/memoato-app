@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { login, signup } from "wasp/client/auth";
+import { Link } from "react-router-dom";
+import { signup } from "wasp/client/auth";
 import { config } from "wasp/client";
 import { AuthLayout } from "../AuthLayout";
 
@@ -13,7 +13,6 @@ function getEmailLocalPart(email: string): string {
 }
 
 export function SignupPage() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -49,13 +48,7 @@ export function SignupPage() {
     setIsLoading(true);
     try {
       await signup({ email: cleanEmail, password: cleanPassword, username: cleanUsername });
-      try {
-        await login({ email: cleanEmail, password: cleanPassword });
-        navigate("/", { replace: true });
-        return;
-      } catch {
-        setIsSuccess(true);
-      }
+      setIsSuccess(true);
     } catch (err: any) {
       setErrorMessage(err?.data?.data?.message ?? err?.message ?? "Sign up failed.");
     } finally {
@@ -99,7 +92,7 @@ export function SignupPage() {
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
           <div className="font-semibold">Almost there.</div>
           <div className="mt-1">
-            We sent you a confirmation link. You can start using memoato now, but please verify your email soon.
+            We sent you a confirmation link. Verify your email before signing in.
           </div>
         </div>
       ) : (

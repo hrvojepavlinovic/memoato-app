@@ -62,14 +62,11 @@ To improve your Wasp development experience, we recommend installing the [Wasp e
 - Production deployment is documented in `docs/DEPLOY.md`.
 - The current production path deploys to Hetzner via `.github/workflows/deploy-hetzner.yml` and the server-side `scripts/hetzner/deploy-memoato.sh`.
 
-## Analytics (Databuddy)
+## Analytics
 
-- Databuddy is integrated **client-side only** via runtime script injection in `src/shared/components/Databuddy.tsx`.
-- There is **no server-side proxy** and no `/operations/track-databuddy` endpoint (it should return `404`).
-
-Quick prod sanity checks:
-
-- Browser DevTools → Network → confirm requests to `https://basket.databuddy.cc/...` (may be blocked by ad blockers).
+- The authenticated application does not load third-party analytics scripts.
+- The public landing site can use a separate, privacy-focused analytics project.
+- There is no server-side analytics proxy or `/operations/track-databuddy` endpoint.
 
 ## Landing (memoato.com)
 

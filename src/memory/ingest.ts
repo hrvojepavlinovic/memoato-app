@@ -231,7 +231,7 @@ export async function authenticateApiRequest(
     return {
       userId: user.id,
       apiKeyId: null,
-      scopes: [RAW_ENTRY_WRITE_SCOPE, MEMORY_READ_SCOPE],
+      scopes: [RAW_ENTRY_WRITE_SCOPE],
     };
   }
 

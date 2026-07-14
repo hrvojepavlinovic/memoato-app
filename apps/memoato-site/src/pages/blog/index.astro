@@ -1,7 +1,8 @@
 ---
 import EditorialPageLayout from "../../layouts/EditorialPageLayout.astro";
 
-const posts = (await Astro.glob("./*.md")).sort((a, b) => {
+const postModules = import.meta.glob("./*.md", { eager: true });
+const posts = Object.values(postModules as Record<string, any>).sort((a, b) => {
   const da = new Date(a.frontmatter.date ?? 0).getTime();
   const db = new Date(b.frontmatter.date ?? 0).getTime();
   return db - da;

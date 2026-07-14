@@ -1,0 +1,76 @@
+name: Security CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Compile Wasp project
+        run: npx --yes @wasp.sh/wasp-cli@0.20.2 build
+      - name: Apply generated-code patches
+        run: |
+          node scripts/patch_wasp_email_templates.mjs
+          node scripts/patch_wasp_verify_email_autologin.mjs
+          node scripts/patch_wasp_oauth_types.mjs
+          node scripts/patch_wasp_oauth_profile_sync.mjs
+      - name: Test
+        run: npm test
+      - name: Pin patched generated server dependencies
+        working-directory: .wasp/build/server
+        run: npm install nodemailer@9.0.3 morgan@1.11.0 --no-save --include=dev
+      - name: Bundle server
+        working-directory: .wasp/build/server
+        run: npm run bundle
+      - name: Build authenticated web app
+        working-directory: .wasp/build/web-app
+        env:
+          REACT_APP_API_URL: https://api.memoato.com
+        run: npm run build
+
+  public-site:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/memoato-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/memoato-site/package-lock.json
+      - run: npm ci
+      - run: npm audit --omit=dev
+      - run: npm run build
+
+  mobile-dependencies:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - run: npm audit --omit=dev
