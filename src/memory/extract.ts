@@ -1,6 +1,7 @@
 import type { MemoryExtraction, MemoryFact } from "./types";
+import { extractExerciseWorkoutFacts } from "./exercise";
 
-const PARSER_VERSION = "memory-extract-v0";
+const PARSER_VERSION = "memory-extract-v1-exercise-nesting";
 
 function cleanText(text: string): string {
   return text.trim().replace(/\s+/g, " ");
@@ -114,6 +115,11 @@ export function extractDeterministicMemoryFacts(
   const text = cleanText(rawText);
   const lower = text.toLowerCase();
   const facts: MemoryFact[] = [];
+  const exerciseFacts = extractExerciseWorkoutFacts(text);
+  facts.push(...exerciseFacts);
+  const exerciseKeys = new Set(
+    exerciseFacts.map((fact) => fact.exerciseKey).filter(Boolean),
+  );
 
   const bodyWeightKg = findBodyWeightKg(text, lower);
   if (bodyWeightKg != null) {
@@ -130,6 +136,7 @@ export function extractDeterministicMemoryFacts(
   }
 
   if (
+    !exerciseKeys.has("stationary_cycling") &&
     includesAny(lower, [
       "sobna bicikla",
       "sobnu biciklu",
@@ -211,14 +218,11 @@ export function extractDeterministicMemoryFacts(
     });
   }
 
-  const calfAliases = [
-    "listove",
-    "listovi",
-    "list",
-    "calf raises",
-    "calf raise",
-  ];
-  if (includesAny(lower, calfAliases)) {
+  const calfAliases = ["listove", "listovi", "calf raises", "calf raise"];
+  if (
+    !exerciseKeys.has("bilateral_calf_raise") &&
+    includesAny(lower, calfAliases)
+  ) {
     const sr = findSetsReps(text, calfAliases);
     const reps = sr ? sr.sets * sr.reps : findSingleReps(text, calfAliases);
     facts.push({
@@ -276,7 +280,7 @@ export function extractDeterministicMemoryFacts(
     "push-ups",
     "push up",
   ];
-  if (includesAny(lower, pushUpAliases)) {
+  if (!exerciseKeys.has("push_ups") && includesAny(lower, pushUpAliases)) {
     const sr = findSetsReps(text, pushUpAliases);
     const reps = sr ? sr.sets * sr.reps : findSingleReps(text, pushUpAliases);
     facts.push({

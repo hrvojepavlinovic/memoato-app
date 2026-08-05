@@ -49,6 +49,22 @@ function extractionSchema() {
             sets: { type: "number" },
             reps: { type: "number" },
             setValues: { type: "array", items: { type: "number" } },
+            workoutId: { type: "string" },
+            exerciseKey: { type: "string" },
+            repsPerSide: { type: "number" },
+            sideMode: {
+              type: "string",
+              enum: ["per_side", "left", "right", "bilateral", "alternating"],
+            },
+            weightKg: { type: "number" },
+            tempo: { type: "string" },
+            rir: { type: "number" },
+            rpe: { type: "number" },
+            feedback: { type: "string" },
+            executionStatus: {
+              type: "string",
+              enum: ["performed", "planned", "reported"],
+            },
             confidence: { type: "number" },
             note: { type: "string" },
           },
@@ -130,6 +146,48 @@ export function normalizeOpenRouterExtraction(value: any): MemoryExtraction {
                 value > 0,
             )
           : undefined,
+        workoutId:
+          typeof fact.workoutId === "string" && fact.workoutId.trim()
+            ? fact.workoutId.trim()
+            : undefined,
+        exerciseKey:
+          typeof fact.exerciseKey === "string" && fact.exerciseKey.trim()
+            ? fact.exerciseKey.trim()
+            : undefined,
+        repsPerSide:
+          typeof fact.repsPerSide === "number" &&
+          Number.isFinite(fact.repsPerSide)
+            ? fact.repsPerSide
+            : undefined,
+        sideMode: [
+          "per_side",
+          "left",
+          "right",
+          "bilateral",
+          "alternating",
+        ].includes(fact.sideMode)
+          ? fact.sideMode
+          : undefined,
+        weightKg:
+          typeof fact.weightKg === "number" && Number.isFinite(fact.weightKg)
+            ? fact.weightKg
+            : undefined,
+        tempo: typeof fact.tempo === "string" ? fact.tempo.trim() : undefined,
+        rir:
+          typeof fact.rir === "number" && Number.isFinite(fact.rir)
+            ? fact.rir
+            : undefined,
+        rpe:
+          typeof fact.rpe === "number" && Number.isFinite(fact.rpe)
+            ? fact.rpe
+            : undefined,
+        feedback:
+          typeof fact.feedback === "string" ? fact.feedback.trim() : undefined,
+        executionStatus: ["performed", "planned", "reported"].includes(
+          fact.executionStatus,
+        )
+          ? fact.executionStatus
+          : undefined,
         confidence:
           typeof fact.confidence === "number" &&
           Number.isFinite(fact.confidence)
@@ -198,7 +256,7 @@ export async function extractWithOpenRouter(args: {
             {
               role: "system",
               content:
-                "You are Memoato's conservative memory parser, not a coach or chatbot. Extract atomic personal memory facts from a raw life log. Preserve the human meaning and return only facts that are explicit in the text. Give each fact a broad domain and a stable lowercase conceptKey such as movement.football, health.sleep, family.sleepover or work.reflection. Prefer matching existing categories and their units. Use kind=metric for scalar measurements such as body weight or temperature. For exercise set lists such as 'pull ups 2 2 3', use setValues. Context and feelings may be facts, but never diagnose, judge, recommend, or invent medical, money, relationship, identity, or account details. Use confidence below 0.85 whenever wording or mapping is ambiguous.",
+                "You are Memoato's conservative memory parser, not a coach or chatbot. Extract atomic personal memory facts from a raw life log. Preserve the human meaning and return only facts that are explicit in the text. Give each fact a broad domain and a stable lowercase conceptKey such as movement.football, health.sleep, family.sleepover or work.reflection. Prefer matching existing categories and their units. Use kind=metric for scalar measurements such as body weight or temperature. For a workout, emit one enclosing movement.workout_session fact and one fact per explicit exercise. For exercise set lists such as 'pull ups 2 2 3', use setValues. Preserve explicit side, weight, tempo, RIR, RPE, feedback and performed/planned/reported status. Never represent planned or merely reported work as performed. Context and feelings may be facts, but never diagnose, judge, recommend, or invent medical, money, relationship, identity or account details. Use confidence below 0.85 whenever wording or mapping is ambiguous.",
             },
             {
               role: "user",

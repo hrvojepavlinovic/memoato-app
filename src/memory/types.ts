@@ -28,6 +28,16 @@ export type MemoryFact = {
   setValues?: number[];
   setIndex?: number;
   setCount?: number;
+  workoutId?: string;
+  exerciseKey?: string;
+  repsPerSide?: number;
+  sideMode?: "per_side" | "left" | "right" | "bilateral" | "alternating";
+  weightKg?: number;
+  tempo?: string;
+  rir?: number;
+  rpe?: number;
+  feedback?: string;
+  executionStatus?: "performed" | "planned" | "reported";
   confidence: number;
   note?: string;
   origin?: "deterministic" | "openrouter" | "client" | "catalog" | "human";

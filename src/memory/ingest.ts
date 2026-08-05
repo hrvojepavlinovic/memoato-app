@@ -24,6 +24,11 @@ import {
   extractCatalogMemoryFacts,
 } from "./labeling";
 import { triggerMemoryConceptEmbeddingProjection } from "./conceptEmbeddingQueue";
+import {
+  factsForExerciseSetEvents,
+  linkWorkoutFactsToRawEntry,
+  shouldProjectMemoryFact,
+} from "./exercise";
 
 type PrismaLike = any;
 
@@ -127,6 +132,37 @@ function parseClientLabels(input: unknown): MemoryFact[] {
       const reps = parseNumber(raw.reps);
       if (reps != null) fact.reps = reps;
       if (setValues && setValues.length > 0) fact.setValues = setValues;
+      for (const key of [
+        "workoutId",
+        "exerciseKey",
+        "tempo",
+        "feedback",
+      ] as const) {
+        if (typeof raw[key] === "string" && raw[key].trim())
+          fact[key] = raw[key].trim();
+      }
+      const repsPerSide = parseNumber(raw.repsPerSide);
+      if (repsPerSide != null) fact.repsPerSide = repsPerSide;
+      const weightKg = parseNumber(raw.weightKg);
+      if (weightKg != null) fact.weightKg = weightKg;
+      const rir = parseNumber(raw.rir);
+      if (rir != null) fact.rir = rir;
+      const rpe = parseNumber(raw.rpe);
+      if (rpe != null) fact.rpe = rpe;
+      if (
+        raw.sideMode === "per_side" ||
+        raw.sideMode === "left" ||
+        raw.sideMode === "right" ||
+        raw.sideMode === "bilateral" ||
+        raw.sideMode === "alternating"
+      )
+        fact.sideMode = raw.sideMode;
+      if (
+        raw.executionStatus === "performed" ||
+        raw.executionStatus === "planned" ||
+        raw.executionStatus === "reported"
+      )
+        fact.executionStatus = raw.executionStatus;
       if (typeof raw.note === "string" && raw.note.trim())
         fact.note = raw.note.trim();
       return fact;
@@ -417,11 +453,14 @@ function matchCategory(
     wanted.push(normalizeKey(alias.canonical));
   }
 
-  for (const category of categories) {
-    const keys = [category.title, category.slug]
-      .map(normalizeKey)
-      .filter(Boolean);
-    if (keys.some((key) => wanted.includes(key))) return category;
+  for (const wantedKey of wanted) {
+    const category = categories.find((candidate) =>
+      [candidate.title, candidate.slug]
+        .map(normalizeKey)
+        .filter(Boolean)
+        .includes(wantedKey),
+    );
+    if (category) return category;
   }
 
   return null;
@@ -453,6 +492,7 @@ async function findOrCreateCategoryForFact(
   const matched = matchCategory(fact, categories, aliases);
   if (matched) return matched;
 
+  if (!shouldProjectMemoryFact(fact)) return null;
   if (!isCategorizedFact(fact) || fact.confidence < MIN_AUTO_MATCH_CONFIDENCE)
     return null;
 
@@ -497,22 +537,7 @@ async function findOrCreateCategoryForFact(
 }
 
 function factsForDerivedEvents(fact: MemoryFact): MemoryFact[] {
-  const setValues = Array.isArray(fact.setValues)
-    ? fact.setValues.filter((value) => Number.isFinite(value) && value > 0)
-    : [];
-
-  if (setValues.length > 0) {
-    return setValues.map((amount, index) => ({
-      ...fact,
-      amount,
-      reps: amount,
-      setIndex: index + 1,
-      setCount: setValues.length,
-      setValues: undefined,
-    }));
-  }
-
-  return [fact];
+  return factsForExerciseSetEvents(fact);
 }
 
 function dataForDerivedEvent(args: {
@@ -617,6 +642,16 @@ function factFingerprint(fact: MemoryFact, position: number): string {
     unit: normalizeKey(fact.unit),
     durationMinutes: fact.durationMinutes ?? null,
     setValues: fact.setValues ?? null,
+    workoutId: fact.workoutId ?? null,
+    exerciseKey: fact.exerciseKey ?? null,
+    repsPerSide: fact.repsPerSide ?? null,
+    sideMode: fact.sideMode ?? null,
+    weightKg: fact.weightKg ?? null,
+    tempo: fact.tempo ?? null,
+    rir: fact.rir ?? null,
+    rpe: fact.rpe ?? null,
+    feedback: fact.feedback ?? null,
+    executionStatus: fact.executionStatus ?? null,
   });
   return createHash("sha256").update(stable).digest("hex").slice(0, 32);
 }
@@ -757,9 +792,12 @@ export async function processRawMemoryEntry(args: {
     const aiExtraction = shouldUseOpenRouter(request.text, baseExtraction)
       ? await extractWithOpenRouter({ rawText: request.text, categories })
       : null;
-    const extraction = ensureLabeledMemoryExtraction(
-      request.text,
-      mergeExtractions(baseExtraction, aiExtraction),
+    const extraction = linkWorkoutFactsToRawEntry(
+      ensureLabeledMemoryExtraction(
+        request.text,
+        mergeExtractions(baseExtraction, aiExtraction),
+      ),
+      rawEntry.id,
     );
     const derivedEvents = await args.prisma.$transaction(
       async (tx: PrismaLike) => {
@@ -802,7 +840,7 @@ export async function processRawMemoryEntry(args: {
             categoryId: category?.id ?? null,
           });
 
-          if (category) {
+          if (category && shouldProjectMemoryFact(fact)) {
             for (const eventFact of factsForDerivedEvents(fact)) {
               const amount =
                 typeof eventFact.amount === "number" &&

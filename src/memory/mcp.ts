@@ -32,6 +32,7 @@ Before creating a log through MCP:
 4. If no category exists but the fact is clear, pass a label without categoryId; Memoato may create the category.
 5. Keep the original text in text. Do not replace the user's raw wording with your interpretation.
 6. Use tags only as lightweight context, not as authorization or identity.
+7. Mark exercise/workout labels performed, planned, or reported. Planned and reported facts are preserved but never projected as completed sets.
 
 Examples:
 - "Zgibovi 2 2 3" with a Pull ups category: text="Zgibovi 2 2 3", labels=[{kind:"movement", categoryId:"...", label:"pull ups", canonical:"Pull ups", unit:"reps", setValues:[2,2,3], confidence:0.98}]
@@ -54,6 +55,16 @@ const labelSchema = {
     sets: { type: "number" },
     reps: { type: "number" },
     setValues: { type: "array", items: { type: "number" }, description: "Per-set reps/values, e.g. [2,2,3]." },
+    workoutId: { type: "string", description: "Stable enclosing workout id. The server uses the raw entry id when omitted." },
+    exerciseKey: { type: "string", description: "Stable language-neutral exercise key, e.g. dead_bug." },
+    repsPerSide: { type: "number" },
+    sideMode: { type: "string", enum: ["per_side", "left", "right", "bilateral", "alternating"] },
+    weightKg: { type: "number" },
+    tempo: { type: "string", description: "Explicit tempo such as 2-1-2." },
+    rir: { type: "number", description: "Explicit reps in reserve." },
+    rpe: { type: "number", description: "Explicit rate of perceived exertion." },
+    feedback: { type: "string", description: "Explicit exercise or workout response such as easy or no pain." },
+    executionStatus: { type: "string", enum: ["performed", "planned", "reported"] },
     confidence: { type: "number", minimum: 0, maximum: 1 },
     note: { type: "string" },
   },

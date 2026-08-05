@@ -29,7 +29,9 @@ describe("extractDeterministicMemoryFacts", () => {
       }),
     ]);
 
-    const football = extractDeterministicMemoryFacts("cage football/cardio with my child ~60 min - played a lot with the ball");
+    const football = extractDeterministicMemoryFacts(
+      "cage football/cardio with my child ~60 min - played a lot with the ball",
+    );
     expect(football.facts).toEqual([
       expect.objectContaining({
         canonical: "Football",
@@ -55,19 +57,26 @@ describe("extractDeterministicMemoryFacts", () => {
   });
 
   it("extracts a compact training session from Croatian raw text", () => {
-    const result = extractDeterministicMemoryFacts("Odradia sobnu biciklu 10 min, 2x10 listove i 2x2 zgibove");
+    const result = extractDeterministicMemoryFacts(
+      "Odradia sobnu biciklu 10 min, 2x10 listove i 2x2 zgibove",
+    );
 
     expect(result.facts).toEqual([
       expect.objectContaining({
-        canonical: "Indoor bike",
+        canonical: "Workout Session",
+        executionStatus: "performed",
+      }),
+      expect.objectContaining({
+        canonical: "Stationary Cycling",
         amount: 10,
         durationMinutes: 10,
         unit: "min",
       }),
       expect.objectContaining({
-        canonical: "Calf raises",
+        canonical: "Calf Raises",
         sets: 2,
         reps: 10,
+        setValues: [10, 10],
         amount: 20,
         unit: "reps",
       }),
@@ -92,5 +101,17 @@ describe("extractDeterministicMemoryFacts", () => {
         unit: "reps",
       }),
     ]);
+  });
+
+  it("does not infer calf raises from unrelated words containing list", () => {
+    const result = extractDeterministicMemoryFacts(
+      "U 12:00 ide kratki upper/core trening po odluci Body specijalista, bez nogu.",
+    );
+
+    expect(
+      result.facts.some(
+        (fact) => fact.conceptKey === "movement.bilateral_calf_raise",
+      ),
+    ).toBe(false);
   });
 });
