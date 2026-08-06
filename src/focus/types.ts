@@ -73,6 +73,7 @@ export type ContributionDay = {
 export type CategoryEventItem = {
   id: string;
   amount: number | null;
+  duration: number | null;
   occurredAt: Date;
   occurredOn: Date;
   rawText: string | null;

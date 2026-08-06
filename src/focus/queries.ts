@@ -1128,6 +1128,7 @@ export const getCategoryEvents: GetCategoryEvents<
     select: {
       id: true,
       amount: true,
+      duration: true,
       categoryId: true,
       occurredAt: true,
       occurredOn: true,

@@ -12,12 +12,31 @@ function includesAny(haystack: string, needles: string[]): boolean {
 }
 
 function findDurationMinutes(text: string): number | null {
-  const match = /(\d+(?:[.,]\d+)?)\s*(?:min|mins|minute|minutes|minuta)/i.exec(
-    text,
-  );
-  if (!match) return null;
-  const n = Number(match[1].replace(",", "."));
-  return Number.isFinite(n) && n > 0 ? n : null;
+  const hoursMatch = /(\d+(?:[.,]\d+)?)\s*(?:h|hr|hrs|hour|hours|sat|sata)\b/i.exec(text);
+  if (hoursMatch) {
+    const hours = Number(hoursMatch[1].replace(",", "."));
+    const afterHours = text.slice((hoursMatch.index ?? 0) + hoursMatch[0].length);
+    const minutesMatch = /^\s*(\d+(?:[.,]\d+)?)\s*(?:min|mins|minute|minutes|minuta)\b/i.exec(afterHours);
+    const minutes = minutesMatch ? Number(minutesMatch[1].replace(",", ".")) : 0;
+    const total = hours * 60 + minutes;
+    return Number.isFinite(total) && total > 0 ? total : null;
+  }
+
+  const minutesMatch = /(\d+(?:[.,]\d+)?)\s*(?:min|mins|minute|minutes|minuta)\b/i.exec(text);
+  if (!minutesMatch) return null;
+  const minutes = Number(minutesMatch[1].replace(",", "."));
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : null;
+}
+
+function performedSportClause(text: string, aliases: string[]): string | null {
+  const performed =
+    /\b(?:played|igrao|igrala|igrali|igra\s+(?:sam|san)|odigrao|odigrala|odigrali|odigra\s+san|odradio|odradia|odradila|zavrsio|završio|zavrsila|završila)\b/i;
+  for (const clause of text.split(/[.!?;]+/)) {
+    const lower = clause.toLowerCase();
+    if (!includesAny(lower, aliases)) continue;
+    if (performed.test(clause)) return clause;
+  }
+  return null;
 }
 
 function parsePositiveNumber(input: string | undefined): number | null {
@@ -159,31 +178,23 @@ export function extractDeterministicMemoryFacts(
   }
 
   const durationMinutes = findDurationMinutes(text);
-  const hasFootballActivity =
-    includesAny(lower, ["football", "nogomet"]) &&
-    (durationMinutes != null ||
-      includesAny(lower, ["cage", "played", "igra", "balun", "cardio"]));
+  const footballClause = performedSportClause(text, ["football", "nogomet", "balun"]);
+  const footballDurationMinutes = footballClause ? findDurationMinutes(footballClause) : null;
+  const hasFootballActivity = footballClause != null;
   const hasCardioActivity = lower.includes("cardio") && durationMinutes != null;
   if (hasFootballActivity || hasCardioActivity) {
+    const isFootball = hasFootballActivity;
+    const activityDuration = isFootball ? footballDurationMinutes : durationMinutes;
     facts.push({
       kind: "movement",
-      label:
-        lower.includes("cardio") &&
-        !lower.includes("football") &&
-        !lower.includes("nogomet")
-          ? "cardio"
-          : "football",
-      canonical:
-        lower.includes("cardio") &&
-        !lower.includes("football") &&
-        !lower.includes("nogomet")
-          ? "Cardio"
-          : "Football",
+      label: isFootball ? "football" : "cardio",
+      canonical: isFootball ? "Football" : "Cardio",
       categoryCandidates: ["Football", "Nogomet", "Cardio"],
-      amount: durationMinutes ?? undefined,
-      unit: durationMinutes ? "min" : undefined,
-      durationMinutes: durationMinutes ?? undefined,
-      confidence: durationMinutes ? 0.92 : 0.84,
+      amount: isFootball ? 1 : (activityDuration ?? undefined),
+      unit: isFootball ? undefined : activityDuration ? "min" : undefined,
+      durationMinutes: activityDuration ?? undefined,
+      executionStatus: isFootball ? "performed" : undefined,
+      confidence: isFootball ? 0.96 : activityDuration ? 0.92 : 0.84,
       note: lower.includes("cage") ? "cage football/cardio context" : undefined,
       origin: "deterministic",
     });

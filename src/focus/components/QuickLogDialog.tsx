@@ -11,6 +11,7 @@ import { resolveAccentForTheme } from "../../theme/colors";
 import { useTheme } from "../../theme/ThemeProvider";
 import { localCreateCategory, localCreateEvent, localGetCategoryEvents } from "../local";
 import type { CategoryWithStats } from "../types";
+import { categoryIcon } from "../categoryIcon";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -1446,7 +1447,7 @@ export function QuickLogDialog({
                         style={{ borderColor: selectedAccent }}
                         aria-hidden="true"
                       >
-                        <div className="text-lg leading-none">{selected.emoji ?? ""}</div>
+                        <div className="text-lg leading-none">{categoryIcon(selected)}</div>
                       </div>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">
@@ -1581,7 +1582,7 @@ export function QuickLogDialog({
                           style={{ borderColor: active ? undefined : r.accent }}
                           aria-hidden="true"
                         >
-                          <div className="text-lg leading-none">{r.c.emoji ?? ""}</div>
+                          <div className="text-lg leading-none">{categoryIcon(r.c)}</div>
                         </div>
                         <div className="min-w-0">
                           <div className="truncate text-sm font-semibold">{r.displayTitle}</div>

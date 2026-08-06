@@ -4,6 +4,7 @@ import {
   EXERCISE_CATALOG,
   factsForExerciseSetEvents,
   linkWorkoutFactsToRawEntry,
+  shouldProjectMemoryFact,
 } from "./exercise";
 import { parseCreateRawEntryRequest } from "./ingest";
 
@@ -154,6 +155,30 @@ describe("nested exercise extraction", () => {
     ).toBe(true);
     expect(planned.facts.flatMap(factsForExerciseSetEvents)).toEqual([]);
     expect(reported.facts.flatMap(factsForExerciseSetEvents)).toEqual([]);
+  });
+
+  it("does not project catalog-only Football or Padel mentions as played sessions", () => {
+    expect(
+      shouldProjectMemoryFact({
+        kind: "movement",
+        label: "Padel",
+        canonical: "Padel",
+        conceptKey: "movement.padel",
+        confidence: 0.9,
+        origin: "catalog",
+      }),
+    ).toBe(false);
+    expect(
+      shouldProjectMemoryFact({
+        kind: "movement",
+        label: "Football",
+        canonical: "Football",
+        conceptKey: "movement.football",
+        confidence: 0.99,
+        origin: "client",
+        executionStatus: "performed",
+      }),
+    ).toBe(true);
   });
 
   it("preserves nested fields supplied by an MCP/API client", () => {

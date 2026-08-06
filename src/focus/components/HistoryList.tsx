@@ -13,6 +13,13 @@ import { usePrivacy } from "../../privacy/PrivacyProvider";
 import { decryptEventNote } from "../../privacy/decryptors";
 import { encryptUtf8ToEncryptedString, isEncryptedString } from "../../privacy/crypto";
 import { localDeleteEvent, localGetCategoryEvents, localUpdateEvent } from "../local";
+import {
+  categoryEntryLabel,
+  formatDurationMinutes,
+  isBinaryCategoryType,
+  normalizeCategoryAmount,
+  type CategoryType,
+} from "../categoryEntrySemantics";
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -46,10 +53,16 @@ type RowState = {
 
 export function HistoryList({
   categoryId,
+  categoryType,
+  categorySlug,
+  categoryTitle,
   step,
   isDecimal = false,
 }: {
   categoryId: string;
+  categoryType: CategoryType;
+  categorySlug?: string | null;
+  categoryTitle?: string | null;
   step: number;
   isDecimal?: boolean;
 }) {
@@ -60,6 +73,7 @@ export function HistoryList({
   const [rowById, setRowById] = useState<Record<string, RowState>>({});
   const privacy = usePrivacy();
   const isLocal = privacy.mode === "local";
+  const isBinary = isBinaryCategoryType(categoryType);
   const maxOccurredAt = endOfTodayDatetimeInputMax();
 
   const eventsQuery = useQuery(getCategoryEvents, { categoryId, take: 50 }, { enabled: !isLocal });
@@ -184,7 +198,15 @@ export function HistoryList({
 
   async function onSave(ev: CategoryEventItem) {
     const row = ensureRowState(ev);
-    const amount = parseNumberInput(row.amount);
+    const eventData =
+      ev.data && typeof ev.data === "object" && !Array.isArray(ev.data)
+        ? (ev.data as Record<string, unknown>)
+        : {};
+    const amount = normalizeCategoryAmount({
+      categoryType,
+      requestedAmount: parseNumberInput(row.amount),
+      scheduledStatus: typeof eventData.scheduledStatus === "string" ? eventData.scheduledStatus : null,
+    });
     if (amount == null) {
       window.alert("Enter a valid number.");
       return;
@@ -331,6 +353,18 @@ export function HistoryList({
               <div className="space-y-3">
                 {items.map((ev) => {
                   const row = ensureRowState(ev);
+                  const eventData =
+                    ev.data && typeof ev.data === "object" && !Array.isArray(ev.data)
+                      ? (ev.data as Record<string, unknown>)
+                      : {};
+                  const entryLabel = categoryEntryLabel({
+                    categorySlug,
+                    categoryTitle,
+                    scheduledStatus:
+                      typeof eventData.scheduledStatus === "string" ? eventData.scheduledStatus : null,
+                    amount: ev.amount,
+                  });
+                  const durationLabel = formatDurationMinutes(ev.duration);
                   return (
                     <div
                       key={ev.id}
@@ -357,23 +391,37 @@ export function HistoryList({
                           />
                         </div>
                       </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="label">Amount</span>
-                        <input
-                          type={isDecimal ? "text" : "number"}
-                          step={isDecimal ? undefined : String(step)}
-                          inputMode={isDecimal ? "decimal" : "numeric"}
-                          pattern={isDecimal ? "[0-9]*[.,]?[0-9]*" : undefined}
-                          value={row.amount}
-                          onChange={(e) =>
-                            setRowById((prev) => ({
-                              ...prev,
-                              [ev.id]: { ...row, amount: e.target.value },
-                            }))
-                          }
-                          className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-                        />
-                      </label>
+                      {isBinary ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="label">Entry</span>
+                          <div className="flex h-10 min-w-0 items-center rounded-lg border border-neutral-300 bg-neutral-50 px-3 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100">
+                            <span className="truncate font-medium">{entryLabel}</span>
+                            {durationLabel ? (
+                              <span className="ml-1 whitespace-nowrap text-neutral-500 dark:text-neutral-400">
+                                · {durationLabel}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col gap-1">
+                          <span className="label">Amount</span>
+                          <input
+                            type={isDecimal ? "text" : "number"}
+                            step={isDecimal ? undefined : String(step)}
+                            inputMode={isDecimal ? "decimal" : "numeric"}
+                            pattern={isDecimal ? "[0-9]*[.,]?[0-9]*" : undefined}
+                            value={row.amount}
+                            onChange={(e) =>
+                              setRowById((prev) => ({
+                                ...prev,
+                                [ev.id]: { ...row, amount: e.target.value },
+                              }))
+                            }
+                            className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                          />
+                        </label>
+                      )}
                       <label className="flex flex-col gap-1">
                         <span className="label">Note</span>
                         <input

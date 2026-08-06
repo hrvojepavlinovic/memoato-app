@@ -9,6 +9,7 @@ import { localGetCategoriesWithStats } from "./local";
 import type { CategoryWithStats } from "./types";
 import { resolveAccentForTheme } from "../theme/colors";
 import { useTheme } from "../theme/ThemeProvider";
+import { categoryIcon } from "./categoryIcon";
 
 function formatValue(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -137,7 +138,7 @@ export function ViewsPage() {
                   className="flex h-10 w-10 items-center justify-center border bg-white text-lg dark:bg-neutral-950"
                   style={{ borderColor: accent }}
                 >
-                  {category.emoji ?? ""}
+                  {categoryIcon(category)}
                 </div>
                 <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-500">
                   {category.chartType === "line"

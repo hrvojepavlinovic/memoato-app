@@ -420,6 +420,12 @@ export function linkWorkoutFactsToRawEntry(
 }
 
 export function shouldProjectMemoryFact(fact: MemoryFact): boolean {
+  if (fact.executionStatus === "planned" || fact.executionStatus === "reported") return false;
+  const isPlayedSessionConcept =
+    fact.conceptKey === "movement.football" || fact.conceptKey === "movement.padel";
+  if (isPlayedSessionConcept && fact.origin === "catalog") {
+    return fact.executionStatus === "performed";
+  }
   return fact.executionStatus == null || fact.executionStatus === "performed";
 }
 

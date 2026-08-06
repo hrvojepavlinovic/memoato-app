@@ -35,11 +35,34 @@ describe("extractDeterministicMemoryFacts", () => {
     expect(football.facts).toEqual([
       expect.objectContaining({
         canonical: "Football",
-        amount: 60,
+        amount: 1,
         durationMinutes: 60,
-        unit: "min",
+        executionStatus: "performed",
       }),
     ]);
+  });
+
+  it("keeps sport duration separate from the one played-session count", () => {
+    const result = extractDeterministicMemoryFacts("Igra san nogomet 1 h 45 min.");
+
+    expect(result.facts).toEqual([
+      expect.objectContaining({
+        canonical: "Football",
+        amount: 1,
+        durationMinutes: 105,
+        executionStatus: "performed",
+      }),
+    ]);
+  });
+
+  it("does not project planned or incidental Football mentions", () => {
+    const planned = extractDeterministicMemoryFacts("Sutra u 21:00 nogomet na Gusara.");
+    const incidental = extractDeterministicMemoryFacts(
+      "Odradio padel 1 h 45 min. Koljeno se ponekad javi nakon nogometa na tvrdoj podlozi.",
+    );
+
+    expect(planned.facts.some((fact) => fact.canonical === "Football")).toBe(false);
+    expect(incidental.facts.some((fact) => fact.canonical === "Football")).toBe(false);
   });
 
   it("does not treat old football injury context as a football session", () => {
