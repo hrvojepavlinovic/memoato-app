@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  deleteEvent,
-  getCategoryEvents,
-  queryClientInitialized,
-  updateEvent,
-  useQuery,
-} from "wasp/client/operations";
+import { deleteEvent, getCategoryEvents, queryClientInitialized, updateEvent, useQuery } from "wasp/client/operations";
 import { Button } from "../../shared/components/Button";
 import { parseNumberInput } from "../../shared/lib/parseNumberInput";
 import type { CategoryEventItem } from "../types";
@@ -13,23 +7,15 @@ import { usePrivacy } from "../../privacy/PrivacyProvider";
 import { decryptEventNote } from "../../privacy/decryptors";
 import { encryptUtf8ToEncryptedString, isEncryptedString } from "../../privacy/crypto";
 import { localDeleteEvent, localGetCategoryEvents, localUpdateEvent } from "../local";
-import {
-  categoryEntryLabel,
-  formatDurationMinutes,
-  isBinaryCategoryType,
-  normalizeCategoryAmount,
-  type CategoryType,
-} from "../categoryEntrySemantics";
+import { categoryEntryLabel, formatDurationMinutes, isBinaryCategoryType, normalizeCategoryAmount, type CategoryType } from "../categoryEntrySemantics";
+import { workoutDetailsFromEventData, type WorkoutComparison, type WorkoutMetricValue } from "../../memory/workout";
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
 function toLocalDatetimeInputValue(d: Date): string {
-  return (
-    `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` +
-    `T${pad2(d.getHours())}:${pad2(d.getMinutes())}`
-  );
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` + `T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
 function endOfTodayDatetimeInputMax(): string {
@@ -41,6 +27,30 @@ function formatValue(v: number | null): string {
   if (v == null) return "";
   if (Number.isInteger(v)) return String(v);
   return v.toFixed(1);
+}
+
+function formatWorkoutMetric(metric: WorkoutMetricValue): string {
+  if (metric.key === "duration_seconds") {
+    const seconds = Math.round(metric.value);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainder = seconds % 60;
+    return `${hours}:${pad2(minutes)}:${pad2(remainder)}`;
+  }
+  if (metric.key === "distance") return `${metric.value.toFixed(2)} km`;
+  if (metric.key === "active_kcal") return `${formatValue(metric.value)} active kcal`;
+  if (metric.key === "total_kcal") return `${formatValue(metric.value)} total kcal`;
+  if (metric.key === "heart_rate_avg") return `${formatValue(metric.value)} bpm avg`;
+  if (metric.key === "heart_rate_min") return `${formatValue(metric.value)} bpm min`;
+  if (metric.key === "heart_rate_max") return `${formatValue(metric.value)} bpm max`;
+  return `${formatValue(metric.value)}/10${metric.label ? ` ${metric.label}` : ""}`;
+}
+
+function formatComparison(comparison: WorkoutComparison): string {
+  const sign = comparison.delta > 0 ? "+" : "";
+  const value = Number.isInteger(comparison.delta) ? String(comparison.delta) : comparison.delta.toFixed(2);
+  const unit = comparison.unit === "seconds" ? "s" : comparison.unit;
+  return `${sign}${value} ${unit}`;
 }
 
 type RowState = {
@@ -79,14 +89,7 @@ export function HistoryList({
   const eventsQuery = useQuery(getCategoryEvents, { categoryId, take: 50 }, { enabled: !isLocal });
   const [localItems, setLocalItems] = useState<CategoryEventItem[] | null>(null);
   const items = useMemo(
-    () =>
-      isLocal
-        ? localItems
-          ? [...localItems, ...extraItems]
-          : null
-        : eventsQuery.data
-          ? [...eventsQuery.data, ...extraItems]
-          : null,
+    () => (isLocal ? (localItems ? [...localItems, ...extraItems] : null) : eventsQuery.data ? [...eventsQuery.data, ...extraItems] : null),
     [eventsQuery.data, extraItems, isLocal, localItems],
   );
 
@@ -95,7 +98,11 @@ export function HistoryList({
     if (!isOpen) return;
     if (!privacy.userId) return;
     setLocalItems(null);
-    localGetCategoryEvents({ userId: privacy.userId, categoryId, take: 50 }).then((d) => setLocalItems(d));
+    localGetCategoryEvents({
+      userId: privacy.userId,
+      categoryId,
+      take: 50,
+    }).then((d) => setLocalItems(d));
   }, [categoryId, isLocal, isOpen, privacy.userId]);
 
   useEffect(() => {
@@ -122,7 +129,11 @@ export function HistoryList({
     const onChanged = (e: any) => {
       if (e?.detail?.userId !== privacy.userId) return;
       if (!isOpen) return;
-      localGetCategoryEvents({ userId: privacy.userId!, categoryId, take: 50 }).then((d) => setLocalItems(d));
+      localGetCategoryEvents({
+        userId: privacy.userId!,
+        categoryId,
+        take: 50,
+      }).then((d) => setLocalItems(d));
       setExtraItems([]);
     };
     window.addEventListener("memoato:localChanged", onChanged);
@@ -172,10 +183,7 @@ export function HistoryList({
   }, [items, privacy.key]);
 
   function ensureRowState(ev: CategoryEventItem): RowState {
-    const meta =
-      ev.data && typeof ev.data === "object" && !Array.isArray(ev.data)
-        ? (ev.data as Record<string, unknown>)
-        : {};
+    const meta = ev.data && typeof ev.data === "object" && !Array.isArray(ev.data) ? (ev.data as Record<string, unknown>) : {};
     const note = typeof meta.note === "string" ? meta.note : "";
     return (
       rowById[ev.id] ?? {
@@ -191,17 +199,20 @@ export function HistoryList({
   async function invalidateStats(): Promise<void> {
     if (isLocal) return;
     const queryClient = await queryClientInitialized;
-    await queryClient.invalidateQueries({ queryKey: ["operations/get-categories"] });
-    await queryClient.invalidateQueries({ queryKey: ["operations/get-category-series"] });
-    await queryClient.invalidateQueries({ queryKey: ["operations/get-category-line-series"] });
+    await queryClient.invalidateQueries({
+      queryKey: ["operations/get-categories"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["operations/get-category-series"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["operations/get-category-line-series"],
+    });
   }
 
   async function onSave(ev: CategoryEventItem) {
     const row = ensureRowState(ev);
-    const eventData =
-      ev.data && typeof ev.data === "object" && !Array.isArray(ev.data)
-        ? (ev.data as Record<string, unknown>)
-        : {};
+    const eventData = ev.data && typeof ev.data === "object" && !Array.isArray(ev.data) ? (ev.data as Record<string, unknown>) : {};
     const amount = normalizeCategoryAmount({
       categoryType,
       requestedAmount: parseNumberInput(row.amount),
@@ -233,12 +244,7 @@ export function HistoryList({
     setRowById((prev) => ({ ...prev, [ev.id]: { ...row, saving: true } }));
     try {
       const note = row.note.trim();
-      const hasEncrypted = !!(
-        ev.data &&
-        typeof ev.data === "object" &&
-        !Array.isArray(ev.data) &&
-        isEncryptedString((ev.data as any).noteEnc)
-      );
+      const hasEncrypted = !!(ev.data && typeof ev.data === "object" && !Array.isArray(ev.data) && isEncryptedString((ev.data as any).noteEnc));
       const shouldEncrypt = privacy.mode === "encrypted" || hasEncrypted;
 
       if (shouldEncrypt) {
@@ -246,11 +252,7 @@ export function HistoryList({
           window.alert("Unlock encryption from Profile → Privacy first.");
           return;
         }
-        const enc = row.noteDirty
-          ? note
-            ? await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, note)
-            : null
-          : undefined;
+        const enc = row.noteDirty ? (note ? await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, note) : null) : undefined;
         if (isLocal) {
           if (!privacy.userId) return;
           await localUpdateEvent({
@@ -293,7 +295,10 @@ export function HistoryList({
         [ev.id]: { ...(prev[ev.id] ?? row), note, noteDirty: false },
       }));
     } finally {
-      setRowById((prev) => ({ ...prev, [ev.id]: { ...prev[ev.id], saving: false } }));
+      setRowById((prev) => ({
+        ...prev,
+        [ev.id]: { ...prev[ev.id], saving: false },
+      }));
     }
   }
 
@@ -323,7 +328,12 @@ export function HistoryList({
     try {
       const next = isLocal
         ? privacy.userId
-          ? await localGetCategoryEvents({ userId: privacy.userId, categoryId, take: 50, before })
+          ? await localGetCategoryEvents({
+              userId: privacy.userId,
+              categoryId,
+              take: 50,
+              before,
+            })
           : []
         : await getCategoryEvents({ categoryId, take: 50, before });
       setExtraItems((prev) => [...prev, ...next]);
@@ -353,23 +363,18 @@ export function HistoryList({
               <div className="space-y-3">
                 {items.map((ev) => {
                   const row = ensureRowState(ev);
-                  const eventData =
-                    ev.data && typeof ev.data === "object" && !Array.isArray(ev.data)
-                      ? (ev.data as Record<string, unknown>)
-                      : {};
+                  const eventData = ev.data && typeof ev.data === "object" && !Array.isArray(ev.data) ? (ev.data as Record<string, unknown>) : {};
                   const entryLabel = categoryEntryLabel({
                     categorySlug,
                     categoryTitle,
-                    scheduledStatus:
-                      typeof eventData.scheduledStatus === "string" ? eventData.scheduledStatus : null,
+                    scheduledStatus: typeof eventData.scheduledStatus === "string" ? eventData.scheduledStatus : null,
                     amount: ev.amount,
                   });
                   const durationLabel = formatDurationMinutes(ev.duration);
+                  const workout = ev.workout ?? workoutDetailsFromEventData(ev.data);
+                  const comparisons = ev.workoutComparison ?? [];
                   return (
-                    <div
-                      key={ev.id}
-                      className="card grid grid-cols-1 gap-3 p-3 sm:grid-cols-[220px_140px_1fr_220px]"
-                    >
+                    <div key={ev.id} className="card grid grid-cols-1 gap-3 p-3 sm:grid-cols-[220px_140px_1fr_220px]">
                       <label className="flex flex-col gap-1">
                         <span className="label">Date & time</span>
                         <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-950">
@@ -396,11 +401,7 @@ export function HistoryList({
                           <span className="label">Entry</span>
                           <div className="flex h-10 min-w-0 items-center rounded-lg border border-neutral-300 bg-neutral-50 px-3 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100">
                             <span className="truncate font-medium">{entryLabel}</span>
-                            {durationLabel ? (
-                              <span className="ml-1 whitespace-nowrap text-neutral-500 dark:text-neutral-400">
-                                · {durationLabel}
-                              </span>
-                            ) : null}
+                            {durationLabel ? <span className="ml-1 whitespace-nowrap text-neutral-500 dark:text-neutral-400">· {durationLabel}</span> : null}
                           </div>
                         </div>
                       ) : (
@@ -430,7 +431,11 @@ export function HistoryList({
                           onChange={(e) =>
                             setRowById((prev) => ({
                               ...prev,
-                              [ev.id]: { ...row, note: e.target.value, noteDirty: true },
+                              [ev.id]: {
+                                ...row,
+                                note: e.target.value,
+                                noteDirty: true,
+                              },
                             }))
                           }
                           className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
@@ -438,22 +443,27 @@ export function HistoryList({
                         />
                       </label>
                       <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end sm:justify-end">
-                        <Button
-                          className="h-10 w-full sm:w-auto"
-                          variant="danger"
-                          onClick={() => onDelete(ev)}
-                          disabled={row.saving}
-                        >
+                        <Button className="h-10 w-full sm:w-auto" variant="danger" onClick={() => onDelete(ev)} disabled={row.saving}>
                           Delete
                         </Button>
-                        <Button
-                          className="h-10 w-full sm:w-auto"
-                          onClick={() => onSave(ev)}
-                          disabled={row.saving}
-                        >
+                        <Button className="h-10 w-full sm:w-auto" onClick={() => onSave(ev)} disabled={row.saving}>
                           {row.saving ? "Saving…" : "Save"}
                         </Button>
                       </div>
+                      {workout && workout.metrics.length > 0 ? (
+                        <div className="sm:col-span-4 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-neutral-800 dark:bg-neutral-900">
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-800 dark:text-neutral-200">
+                            {workout.metrics.map((metric: WorkoutMetricValue) => (
+                              <span key={metric.key}>{formatWorkoutMetric(metric)}</span>
+                            ))}
+                          </div>
+                          {comparisons.length > 0 ? (
+                            <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                              vs previous matching session: {comparisons.map(formatComparison).join(" · ")}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}

@@ -78,4 +78,6 @@ export type CategoryEventItem = {
   occurredOn: Date;
   rawText: string | null;
   data: any | null;
+  workout?: import("../memory/workout").WorkoutDetails | null;
+  workoutComparison?: import("../memory/workout").WorkoutComparison[];
 };

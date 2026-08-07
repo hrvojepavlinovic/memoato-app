@@ -33,6 +33,7 @@ Before creating a log through MCP:
 5. Keep the original text in text. Do not replace the user's raw wording with your interpretation.
 6. Use tags only as lightweight context, not as authorization or identity.
 7. Mark exercise/workout labels performed, planned, or reported. Planned and reported facts are preserved but never projected as completed sets.
+8. Put sport measurements in one performed parent label's workout object. Never create separate sessions for distance, heart rate, calories, effort, goals, or results. activeKcal may roll up to the daily active-calorie total; totalKcal never does.
 
 Examples:
 - "Zgibovi 2 2 3" with a Pull ups category: text="Zgibovi 2 2 3", labels=[{kind:"movement", categoryId:"...", label:"pull ups", canonical:"Pull ups", unit:"reps", setValues:[2,2,3], confidence:0.98}]
@@ -44,27 +45,95 @@ When unsure, send the raw text with no labels. Memoato will still save it and pr
 const labelSchema = {
   type: "object",
   properties: {
-    kind: { type: "string", enum: ["movement", "metric", "energy", "context", "note"] },
-    label: { type: "string", description: "Human-readable fact label, e.g. pull ups, body weight, football." },
-    categoryId: { type: "string", description: "Existing Memoato category id from memoato_list_categories, when confidently matched." },
-    canonical: { type: "string", description: "Canonical category/fact name, e.g. Pull ups or Weight." },
+    kind: {
+      type: "string",
+      enum: ["movement", "metric", "energy", "context", "note"],
+    },
+    label: {
+      type: "string",
+      description: "Human-readable fact label, e.g. pull ups, body weight, football.",
+    },
+    categoryId: {
+      type: "string",
+      description: "Existing Memoato category id from memoato_list_categories, when confidently matched.",
+    },
+    canonical: {
+      type: "string",
+      description: "Canonical category/fact name, e.g. Pull ups or Weight.",
+    },
     categoryCandidates: { type: "array", items: { type: "string" } },
     amount: { type: "number" },
-    unit: { type: "string", description: "Unit such as reps, kg, min, km, kcal, EUR." },
+    unit: {
+      type: "string",
+      description: "Unit such as reps, kg, min, km, kcal, EUR.",
+    },
     durationMinutes: { type: "number" },
     sets: { type: "number" },
     reps: { type: "number" },
-    setValues: { type: "array", items: { type: "number" }, description: "Per-set reps/values, e.g. [2,2,3]." },
-    workoutId: { type: "string", description: "Stable enclosing workout id. The server uses the raw entry id when omitted." },
-    exerciseKey: { type: "string", description: "Stable language-neutral exercise key, e.g. dead_bug." },
+    setValues: {
+      type: "array",
+      items: { type: "number" },
+      description: "Per-set reps/values, e.g. [2,2,3].",
+    },
+    workoutId: {
+      type: "string",
+      description: "Stable enclosing workout id. The server uses the raw entry id when omitted.",
+    },
+    exerciseKey: {
+      type: "string",
+      description: "Stable language-neutral exercise key, e.g. dead_bug.",
+    },
     repsPerSide: { type: "number" },
-    sideMode: { type: "string", enum: ["per_side", "left", "right", "bilateral", "alternating"] },
+    sideMode: {
+      type: "string",
+      enum: ["per_side", "left", "right", "bilateral", "alternating"],
+    },
     weightKg: { type: "number" },
     tempo: { type: "string", description: "Explicit tempo such as 2-1-2." },
     rir: { type: "number", description: "Explicit reps in reserve." },
-    rpe: { type: "number", description: "Explicit rate of perceived exertion." },
-    feedback: { type: "string", description: "Explicit exercise or workout response such as easy or no pain." },
-    executionStatus: { type: "string", enum: ["performed", "planned", "reported"] },
+    rpe: {
+      type: "number",
+      description: "Explicit rate of perceived exertion.",
+    },
+    feedback: {
+      type: "string",
+      description: "Explicit exercise or workout response such as easy or no pain.",
+    },
+    executionStatus: {
+      type: "string",
+      enum: ["performed", "planned", "reported"],
+    },
+    workout: {
+      type: "object",
+      description: "Typed dimensions of this one performed parent workout. Requires executionStatus=performed to project.",
+      properties: {
+        durationSeconds: { type: "number", exclusiveMinimum: 0 },
+        distanceKm: { type: "number", exclusiveMinimum: 0 },
+        activeKcal: {
+          type: "number",
+          exclusiveMinimum: 0,
+          description: "Workout active calories; component of a later daily active-calorie total.",
+        },
+        totalKcal: {
+          type: "number",
+          exclusiveMinimum: 0,
+          description: "Total workout energy; never summed into daily active calories.",
+        },
+        averageHeartRateBpm: { type: "number", minimum: 20, maximum: 260 },
+        minHeartRateBpm: { type: "number", minimum: 20, maximum: 260 },
+        maxHeartRateBpm: { type: "number", minimum: 20, maximum: 260 },
+        perceivedEffort: {
+          type: "object",
+          properties: {
+            value: { type: "number", minimum: 1, maximum: 10 },
+            label: { type: "string" },
+          },
+          required: ["value"],
+          additionalProperties: false,
+        },
+      },
+      additionalProperties: false,
+    },
     confidence: { type: "number", minimum: 0, maximum: 1 },
     note: { type: "string" },
   },
@@ -75,8 +144,7 @@ const labelSchema = {
 const tools = [
   {
     name: "memoato_logging_guide",
-    description:
-      "Return the Memoato logging skill/instructions. Use this before creating entries if the client has not already loaded the Memoato skill.",
+    description: "Return the Memoato logging skill/instructions. Use this before creating entries if the client has not already loaded the Memoato skill.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -90,8 +158,16 @@ const tools = [
     inputSchema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Optional text filter for title, slug, unit, or kind." },
-        take: { type: "number", minimum: 1, maximum: 250, description: "Maximum categories to return. Default 150." },
+        query: {
+          type: "string",
+          description: "Optional text filter for title, slug, unit, or kind.",
+        },
+        take: {
+          type: "number",
+          minimum: 1,
+          maximum: 250,
+          description: "Maximum categories to return. Default 150.",
+        },
       },
       additionalProperties: false,
     },
@@ -142,7 +218,10 @@ const tools = [
           maxLength: 200,
           description: "Search text, e.g. padel, elbow, sleepover, biceps curls.",
         },
-        from: { type: "string", description: "Optional ISO start timestamp/date." },
+        from: {
+          type: "string",
+          description: "Optional ISO start timestamp/date.",
+        },
         to: { type: "string", description: "Optional ISO end timestamp/date." },
         period: {
           ...periodSchema,
@@ -161,8 +240,7 @@ const tools = [
   },
   {
     name: "memoato_summarize_metric",
-    description:
-      "Summarize a Memoato metric/activity over a date range. Use this for questions like how many push-ups last month or total pull-ups this week.",
+    description: "Summarize a Memoato metric/activity over a date range. Use this for questions like how many push-ups last month or total pull-ups this week.",
     inputSchema: {
       type: "object",
       properties: {
@@ -172,7 +250,10 @@ const tools = [
           maxLength: 120,
           description: "Metric/activity/category to summarize, e.g. push ups, pull ups, weight, football.",
         },
-        from: { type: "string", description: "Optional ISO start timestamp/date." },
+        from: {
+          type: "string",
+          description: "Optional ISO start timestamp/date.",
+        },
         to: { type: "string", description: "Optional ISO end timestamp/date." },
         period: {
           ...periodSchema,
@@ -259,15 +340,17 @@ async function listMcpCategories(userId: string, args: Record<string, unknown>) 
   return categories
     .filter((category: any) => {
       if (!query) return true;
-      const haystack = normalizeText([
-        category.title,
-        category.slug,
-        category.unit,
-        category.categoryType,
-        category.chartType,
-        category.kind,
-        JSON.stringify(category.fieldsSchema ?? null),
-      ].join(" "));
+      const haystack = normalizeText(
+        [
+          category.title,
+          category.slug,
+          category.unit,
+          category.categoryType,
+          category.chartType,
+          category.kind,
+          JSON.stringify(category.fieldsSchema ?? null),
+        ].join(" "),
+      );
       return haystack.includes(query);
     })
     .slice(0, take)
@@ -403,7 +486,14 @@ async function callTool(auth: AuthContext, params: unknown): Promise<unknown> {
 
   if (name === "memoato_list_categories") {
     const result = await listMcpCategories(auth.userId, args);
-    return { content: [{ type: "text", text: JSON.stringify({ count: result.length, categories: result }, null, 2) }] };
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({ count: result.length, categories: result }, null, 2),
+        },
+      ],
+    };
   }
 
   if (name === "memoato_create_entry") {
@@ -419,17 +509,31 @@ async function callTool(auth: AuthContext, params: unknown): Promise<unknown> {
         source: "mcp",
       },
     });
-    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
   }
 
   if (name === "memoato_search_entries") {
-    const result = await searchMemoryEntries({ prisma, userId: auth.userId, body: args });
-    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    const result = await searchMemoryEntries({
+      prisma,
+      userId: auth.userId,
+      body: args,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
   }
 
   if (name === "memoato_summarize_metric") {
-    const result = await summarizeMemoryMetric({ prisma, userId: auth.userId, body: args });
-    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    const result = await summarizeMemoryMetric({
+      prisma,
+      userId: auth.userId,
+      body: args,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
   }
 
   if (name === "memoato_build_context_packet") {
@@ -446,7 +550,9 @@ async function callTool(auth: AuthContext, params: unknown): Promise<unknown> {
       query: String(args.query ?? "").trim(),
       take: Number(args.take),
     });
-    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
   }
 
   throw new Error("unknown_tool");
@@ -458,9 +564,7 @@ async function handleRpcRequest(auth: AuthContext, request: JsonRpcRequest): Pro
 
   if (request.method === "initialize") {
     const requestedVersion =
-      request.params && typeof request.params === "object" && !Array.isArray(request.params)
-        ? (request.params as any).protocolVersion
-        : null;
+      request.params && typeof request.params === "object" && !Array.isArray(request.params) ? (request.params as any).protocolVersion : null;
 
     return rpcResult(request.id, {
       protocolVersion: typeof requestedVersion === "string" && requestedVersion.trim() ? requestedVersion : PROTOCOL_VERSION,
@@ -502,7 +606,7 @@ export function addMcpRoutes(app: any): void {
 
     const auth = await authenticateApiRequest(prisma, req);
     if (!auth) {
-      res.setHeader("WWW-Authenticate", "Bearer realm=\"memoato\"");
+      res.setHeader("WWW-Authenticate", 'Bearer realm="memoato"');
       res.status(401).end(JSON.stringify({ error: "unauthorized" }));
       return;
     }

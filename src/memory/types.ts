@@ -1,3 +1,5 @@
+import type { WorkoutDetailsInput } from "./workout";
+
 export type MemoryFactKind =
   | "movement"
   | "metric"
@@ -38,6 +40,7 @@ export type MemoryFact = {
   rpe?: number;
   feedback?: string;
   executionStatus?: "performed" | "planned" | "reported";
+  workout?: WorkoutDetailsInput;
   confidence: number;
   note?: string;
   origin?: "deterministic" | "openrouter" | "client" | "catalog" | "human";

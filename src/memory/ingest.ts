@@ -29,6 +29,11 @@ import {
   linkWorkoutFactsToRawEntry,
   shouldProjectMemoryFact,
 } from "./exercise";
+import {
+  buildWorkoutDetails,
+  parseWorkoutDetailsInput,
+  workoutMetricRows,
+} from "./workout";
 
 type PrismaLike = any;
 
@@ -163,6 +168,8 @@ function parseClientLabels(input: unknown): MemoryFact[] {
         raw.executionStatus === "reported"
       )
         fact.executionStatus = raw.executionStatus;
+      const workout = parseWorkoutDetailsInput(raw.workout);
+      if (workout) fact.workout = workout;
       if (typeof raw.note === "string" && raw.note.trim())
         fact.note = raw.note.trim();
       return fact;
@@ -541,12 +548,16 @@ function factsForDerivedEvents(fact: MemoryFact): MemoryFact[] {
 }
 
 function dataForDerivedEvent(args: {
+  eventId: string;
   rawEntryId: string;
   fact: MemoryFact;
   category: CategoryLite;
   request: CreateRawEntryRequest;
   apiKeyId?: string | null;
 }) {
+  const workout = args.fact.workout
+    ? buildWorkoutDetails(args.eventId, args.fact.workout)
+    : null;
   return {
     source: "memoato-memory",
     rawEntryId: args.rawEntryId,
@@ -559,6 +570,7 @@ function dataForDerivedEvent(args: {
     },
     tags: args.request.tags ?? [],
     apiKeyId: args.apiKeyId ?? null,
+    ...(workout ? { workout } : {}),
   };
 }
 
@@ -652,6 +664,7 @@ function factFingerprint(fact: MemoryFact, position: number): string {
     rpe: fact.rpe ?? null,
     feedback: fact.feedback ?? null,
     executionStatus: fact.executionStatus ?? null,
+    workout: fact.workout ?? null,
   });
   return createHash("sha256").update(stable).digest("hex").slice(0, 32);
 }
@@ -842,6 +855,10 @@ export async function processRawMemoryEntry(args: {
 
           if (category && shouldProjectMemoryFact(fact)) {
             for (const eventFact of factsForDerivedEvents(fact)) {
+              const eventId = randomUUID();
+              const workout = eventFact.workout
+                ? buildWorkoutDetails(eventId, eventFact.workout)
+                : null;
               const amount =
                 typeof eventFact.amount === "number" &&
                 Number.isFinite(eventFact.amount)
@@ -849,15 +866,22 @@ export async function processRawMemoryEntry(args: {
                   : 1;
               const ev = await tx.event.create({
                 data: {
+                  id: eventId,
                   userId: rawEntry.userId,
                   source: request.source || API_SOURCE,
                   kind: "SESSION",
                   categoryId: category.id,
                   rawText: request.text,
                   amount,
-                  duration: eventFact.durationMinutes
-                    ? Math.round(eventFact.durationMinutes)
-                    : null,
+                  duration: workout
+                    ? Math.round(
+                        (workout.metrics.find(
+                          (metric) => metric.key === "duration_seconds",
+                        )?.value ?? 0) / 60,
+                      ) || null
+                    : eventFact.durationMinutes
+                      ? Math.round(eventFact.durationMinutes)
+                      : null,
                   occurredAt: eventFact.setIndex
                     ? new Date(
                         rawEntry.occurredAt.getTime() +
@@ -866,6 +890,7 @@ export async function processRawMemoryEntry(args: {
                     : rawEntry.occurredAt,
                   occurredOn: rawEntry.occurredOn,
                   data: dataForDerivedEvent({
+                    eventId,
                     rawEntryId: rawEntry.id,
                     fact: eventFact,
                     category,
@@ -882,6 +907,12 @@ export async function processRawMemoryEntry(args: {
               });
               createdEvents.push(ev);
               factDerivedIds.push(ev.id);
+              if (workout && workout.metrics.length > 0) {
+                await tx.workoutMetric.createMany({
+                  data: workoutMetricRows(rawEntry.userId, workout),
+                  skipDuplicates: true,
+                });
+              }
             }
           }
 
