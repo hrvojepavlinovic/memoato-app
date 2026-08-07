@@ -7,6 +7,8 @@ import { encryptUtf8ToEncryptedString } from "../../privacy/crypto";
 import { parseNumberInput } from "../../shared/lib/parseNumberInput";
 import { localCreateEvent } from "../local";
 import type { CategoryWithStats } from "../types";
+import { categoryEntryLabel, isPlayedSessionCategory } from "../categoryEntrySemantics";
+import { categoryIcon } from "../categoryIcon";
 
 function unitLabel(unit: unknown): string | null {
   if (typeof unit !== "string") return null;
@@ -37,8 +39,9 @@ export function QuickAddDialog({
   const isNotes = (category?.slug ?? "") === "notes";
   const isWeight = category?.chartType === "line";
   const isCountType = category?.categoryType === "DO" || category?.categoryType === "DONT";
+  const isPlayedSession = isPlayedSessionCategory(category?.slug);
   const unit = unitLabel(category?.unit);
-  const amountPlaceholder = isWeight ? "e.g. 84.5" : isCountType ? "Optional (defaults to 1)" : "e.g. 20";
+  const amountPlaceholder = isWeight ? "e.g. 84.5" : "e.g. 20";
 
   React.useEffect(() => {
     if (!open) return;
@@ -59,8 +62,14 @@ export function QuickAddDialog({
     e.preventDefault();
     if (!category?.id) return;
 
-    const parsed = isNotes ? 1 : parseNumberInput(amount);
-    const n = isCountType && parsed == null ? 1 : parsed;
+    const parsed = isNotes || isCountType ? 1 : parseNumberInput(amount);
+    const n = parsed;
+    const binaryRawText = categoryEntryLabel({
+      categorySlug: category.slug,
+      categoryTitle: displayTitle ?? category.title,
+      scheduledStatus: "went",
+      amount: 1,
+    });
     if (!isNotes && !isCountType && (n == null || n <= 0)) {
       window.alert("Enter a positive number.");
       return;
@@ -78,9 +87,9 @@ export function QuickAddDialog({
           userId: privacy.userId,
           categoryId: category.id,
           amount: n ?? 1,
-          rawText: isNotes ? note : amount.trim() || null,
-          ...(isNotes ? { note } : {}),
-          ...(isCountType ? { scheduledStatus: (n ?? 1) > 0 ? "went" : "missed" } : {}),
+          rawText: isNotes ? note : isCountType ? binaryRawText : amount.trim() || null,
+          ...(isNotes || isCountType ? { note } : {}),
+          ...(isCountType ? { scheduledStatus: "went" } : {}),
         });
       } else if (isNotes && privacy.mode === "encrypted") {
         if (!privacy.key || !privacy.cryptoParams) {
@@ -93,9 +102,11 @@ export function QuickAddDialog({
         await createEvent({
           categoryId: category.id,
           amount: n ?? 1,
-          ...(isNotes ? { note } : {}),
-          ...(isCountType ? { scheduledStatus: (n ?? 1) > 0 ? "went" : "missed" } : {}),
-          ...(privacy.mode === "encrypted" ? {} : { rawText: isNotes ? note : amount.trim() || null }),
+          ...(isNotes || isCountType ? { note } : {}),
+          ...(isCountType ? { scheduledStatus: "went" } : {}),
+          ...(privacy.mode === "encrypted"
+            ? {}
+            : { rawText: isNotes ? note : isCountType ? binaryRawText : amount.trim() || null }),
         } as any);
       }
 
@@ -117,7 +128,7 @@ export function QuickAddDialog({
                 style={{ borderColor: accentHex }}
                 aria-hidden="true"
               >
-                <div className="text-lg leading-none">{category?.emoji ?? ""}</div>
+                <div className="text-lg leading-none">{categoryIcon(category)}</div>
               </div>
               <div className="min-w-0">
                 <div className="truncate text-base font-semibold text-neutral-950 dark:text-neutral-100">
@@ -154,6 +165,26 @@ export function QuickAddDialog({
                 rows={4}
                 disabled={saving}
               />
+            ) : isCountType ? (
+              <label className="grid gap-1">
+                <span className="label">Entry</span>
+                <div className="rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 font-medium text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100">
+                  {categoryEntryLabel({
+                    categorySlug: category?.slug,
+                    categoryTitle: displayTitle ?? category?.title,
+                    scheduledStatus: "went",
+                    amount: 1,
+                  })}
+                </div>
+                <input
+                  ref={inputRef as any}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Optional context"
+                  className="mt-2 block h-11 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                  disabled={saving}
+                />
+              </label>
             ) : (
               <div className="relative">
                 <input
@@ -178,7 +209,7 @@ export function QuickAddDialog({
                 Cancel
               </Button>
               <Button className="h-11" type="submit" disabled={saving}>
-                Add
+                {isPlayedSession ? "Log played" : "Add"}
               </Button>
             </div>
           </form>

@@ -73,8 +73,11 @@ export type ContributionDay = {
 export type CategoryEventItem = {
   id: string;
   amount: number | null;
+  duration: number | null;
   occurredAt: Date;
   occurredOn: Date;
   rawText: string | null;
   data: any | null;
+  workout?: import("../memory/workout").WorkoutDetails | null;
+  workoutComparison?: import("../memory/workout").WorkoutComparison[];
 };

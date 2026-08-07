@@ -1,18 +1,7 @@
 import { HttpError, prisma } from "wasp/server";
-import type {
-  GetPublicUserCategoryLineSeries,
-  GetPublicUserCategorySeries,
-  GetPublicUserDashboard,
-} from "wasp/server/operations";
-import type {
-  BucketAggregation,
-  CategoryChartType,
-  CategoryWithStats,
-  CategoryFieldsSchema,
-  LinePoint,
-  Period,
-  SeriesBucket,
-} from "../focus/types";
+import type { GetPublicUserCategoryLineSeries, GetPublicUserCategorySeries, GetPublicUserDashboard } from "wasp/server/operations";
+import type { BucketAggregation, CategoryChartType, CategoryWithStats, CategoryFieldsSchema, LinePoint, Period, SeriesBucket } from "../focus/types";
+import { activeKcalByDay } from "../memory/workout";
 
 function slugifyTitle(title: string): string {
   const s = title
@@ -280,8 +269,7 @@ async function getCategoriesWithStatsForUser(args: {
     const chartType = normalizeChartType(c.chartType, defaultChartTypeForCategoryType(c.categoryType));
     const agg = normalizeBucketAggregation(chartType, c.bucketAggregation);
     const period = normalizePeriod(c.period);
-    const periodStats =
-      period === "day" ? dayStats : period === "month" ? monthStats : period === "year" ? yearStats : weekStats;
+    const periodStats = period === "day" ? dayStats : period === "month" ? monthStats : period === "year" ? yearStats : weekStats;
 
     return {
       id: c.id,
@@ -302,26 +290,16 @@ async function getCategoriesWithStatsForUser(args: {
       fieldsSchema: safeFieldsSchema(c.fieldsSchema),
       rollupToActiveKcal: c.rollupToActiveKcal === true,
       scheduleEnabled: c.scheduleEnabled === true,
-      scheduleType:
-        typeof c.scheduleType === "string" && (c.scheduleType === "daily" || c.scheduleType === "weekly")
-          ? c.scheduleType
-          : null,
+      scheduleType: typeof c.scheduleType === "string" && (c.scheduleType === "daily" || c.scheduleType === "weekly") ? c.scheduleType : null,
       scheduleDays: (() => {
         if (!Array.isArray(c.scheduleDays)) return null;
         const normalized = Array.from(
-          new Set(
-            (c.scheduleDays as any[])
-              .map((d) => Number(d))
-              .filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6),
-          ),
+          new Set((c.scheduleDays as any[]).map((d) => Number(d)).filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6)),
         ) as number[];
         normalized.sort((a, b) => a - b);
         return normalized;
       })(),
-      scheduleTime:
-        typeof c.scheduleTime === "string" && /^([01]\d|2[0-3]):([0-5]\d)$/.test(c.scheduleTime)
-          ? c.scheduleTime
-          : null,
+      scheduleTime: typeof c.scheduleTime === "string" && /^([01]\d|2[0-3]):([0-5]\d)$/.test(c.scheduleTime) ? c.scheduleTime : null,
       todayCount: windowCount(dayStats, c.id),
       thisWeekCount: windowCount(weekStats, c.id),
       thisMonthCount: windowCount(monthStats, c.id),
@@ -340,79 +318,86 @@ async function getCategoriesWithStatsForUser(args: {
 
   const activeKcal = result.find((c) => (c.slug ?? "").toLowerCase() === "active-kcal") ?? null;
   if (activeKcal && activeKcalRollupEnabled !== false) {
-    const hasManual =
-      activeKcalRollupEnabled === true
-        ? false
-        : await prisma.event.findFirst({
-            where: { userId, kind: "SESSION", categoryId: activeKcal.id },
-            select: { id: true },
-          });
-    const rollupEnabled = activeKcalRollupEnabled === true || (activeKcalRollupEnabled == null && !hasManual);
-    if (rollupEnabled) {
-      const contributors = result
-        .filter(
-          (c) =>
-            c.id !== activeKcal.id &&
-            c.rollupToActiveKcal === true,
-        )
-        .map((c) => c.id);
-      const rollupIds = [activeKcal.id, ...contributors];
+    const contributors = result.filter((c) => c.id !== activeKcal.id && c.rollupToActiveKcal === true).map((c) => c.id);
+    const rollupIds = [activeKcal.id, ...contributors];
 
-      const rollupMetaById = new Map(
-        result.map((c) => [c.id, { unit: normalizedUnit(c.unit), isActive: c.id === activeKcal.id }]),
-      );
+    const rollupMetaById = new Map(result.map((c) => [c.id, { unit: normalizedUnit(c.unit), isActive: c.id === activeKcal.id }]));
 
-      const rollupEvents = await prisma.event.findMany({
-        where: {
-          userId,
-          kind: "SESSION",
-          categoryId: { in: rollupIds },
-          occurredAt: { gte: yearStart, lt: dayEnd },
-        },
-        select: { categoryId: true, occurredAt: true, amount: true, data: true },
-        take: 20000,
-      });
+    const rollupEvents = await prisma.event.findMany({
+      where: {
+        userId,
+        kind: "SESSION",
+        OR: [
+          { categoryId: { in: rollupIds } },
+          {
+            data: {
+              path: ["workout", "caloriePolicy", "dailyActiveComponentKey"],
+              equals: "active_kcal",
+            },
+          },
+        ],
+        occurredAt: { gte: yearStart, lt: dayEnd },
+      },
+      select: {
+        id: true,
+        categoryId: true,
+        occurredAt: true,
+        occurredOn: true,
+        amount: true,
+        data: true,
+      },
+      take: 20000,
+    });
 
-      const buckets = {
-        day: { sum: 0, count: 0 },
-        week: { sum: 0, count: 0 },
-        month: { sum: 0, count: 0 },
-        year: { sum: 0, count: 0 },
-      };
+    const buckets = {
+      day: { sum: 0, count: 0 },
+      week: { sum: 0, count: 0 },
+      month: { sum: 0, count: 0 },
+      year: { sum: 0, count: 0 },
+    };
 
-      for (const ev of rollupEvents) {
+    const daily = activeKcalByDay(
+      rollupEvents.map((ev: any) => {
         const meta = rollupMetaById.get(String(ev.categoryId ?? ""));
-        if (!meta) continue;
         const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
-        const kcal = meta.isActive ? amount : meta.unit === "kcal" ? amount : getNumberField(ev.data, "kcal") ?? 0;
-        if (!(kcal > 0)) continue;
-        const t = (ev.occurredAt instanceof Date ? ev.occurredAt : new Date(ev.occurredAt as any)).getTime();
-        if (t >= dayStart.getTime() && t < dayEnd.getTime()) {
-          buckets.day.sum += kcal;
-          buckets.day.count += 1;
-        }
-        if (t >= weekStart.getTime() && t < weekEnd.getTime()) {
-          buckets.week.sum += kcal;
-          buckets.week.count += 1;
-        }
-        if (t >= monthStart.getTime() && t < monthEnd.getTime()) {
-          buckets.month.sum += kcal;
-          buckets.month.count += 1;
-        }
-        if (t >= yearStart.getTime() && t < yearEnd.getTime()) {
-          buckets.year.sum += kcal;
-          buckets.year.count += 1;
-        }
+        return {
+          id: ev.id,
+          occurredOn: toIsoDate(ev.occurredOn),
+          occurredAt: ev.occurredAt,
+          manualDailyTotal: meta?.isActive ? amount : null,
+          legacyComponent: meta && !meta.isActive ? (meta.unit === "kcal" ? amount : (getNumberField(ev.data, "kcal") ?? 0)) : null,
+          data: ev.data,
+        };
+      }),
+    );
+    for (const [day, kcal] of daily) {
+      if (!(kcal > 0)) continue;
+      const t = new Date(`${day}T12:00:00`).getTime();
+      if (t >= dayStart.getTime() && t < dayEnd.getTime()) {
+        buckets.day.sum += kcal;
+        buckets.day.count += 1;
       }
-
-      (activeKcal as any).todayTotal = buckets.day.sum;
-      (activeKcal as any).todayCount = buckets.day.count;
-      (activeKcal as any).thisWeekCount = buckets.week.count;
-      (activeKcal as any).thisMonthCount = buckets.month.count;
-      (activeKcal as any).thisYearCount = buckets.year.count;
-      (activeKcal as any).thisWeekTotal = buckets.day.sum;
-      (activeKcal as any).thisYearTotal = buckets.year.sum;
+      if (t >= weekStart.getTime() && t < weekEnd.getTime()) {
+        buckets.week.sum += kcal;
+        buckets.week.count += 1;
+      }
+      if (t >= monthStart.getTime() && t < monthEnd.getTime()) {
+        buckets.month.sum += kcal;
+        buckets.month.count += 1;
+      }
+      if (t >= yearStart.getTime() && t < yearEnd.getTime()) {
+        buckets.year.sum += kcal;
+        buckets.year.count += 1;
+      }
     }
+
+    (activeKcal as any).todayTotal = buckets.day.sum;
+    (activeKcal as any).todayCount = buckets.day.count;
+    (activeKcal as any).thisWeekCount = buckets.week.count;
+    (activeKcal as any).thisMonthCount = buckets.month.count;
+    (activeKcal as any).thisYearCount = buckets.year.count;
+    (activeKcal as any).thisWeekTotal = buckets.day.sum;
+    (activeKcal as any).thisYearTotal = buckets.year.sum;
   }
 
   return result;
@@ -423,16 +408,18 @@ export type PublicUserDashboard = {
   categories: CategoryWithStats[];
 };
 
-export const getPublicUserDashboard: GetPublicUserDashboard<{ username: string }, PublicUserDashboard> = async (
-  args,
-  _context,
-) => {
+export const getPublicUserDashboard: GetPublicUserDashboard<{ username: string }, PublicUserDashboard> = async (args, _context) => {
   const username = String(args.username ?? "").trim();
   if (!username) throw new HttpError(400);
 
   const user = await prisma.user.findFirst({
     where: { username, publicStatsEnabled: true },
-    select: { id: true, username: true, publicStatsCategoryIds: true, activeKcalRollupEnabled: true },
+    select: {
+      id: true,
+      username: true,
+      publicStatsCategoryIds: true,
+      activeKcalRollupEnabled: true,
+    },
   });
   if (!user) {
     throw new HttpError(404);
@@ -453,7 +440,12 @@ export const getPublicUserDashboard: GetPublicUserDashboard<{ username: string }
   return { username: user.username, categories: ordered };
 };
 
-type PublicSeriesArgs = { username: string; categoryId: string; period: Period; offset?: number };
+type PublicSeriesArgs = {
+  username: string;
+  categoryId: string;
+  period: Period;
+  offset?: number;
+};
 
 function toIsoDate(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -481,7 +473,7 @@ function bucketLabel(start: Date, period: Period): string {
   if (period === "day") return `${dd}.${m}.`;
   if (period === "week") return `${dd}.${m}.`;
   if (period === "month") {
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     return months[start.getMonth()] ?? `${m}.${y}`;
   }
   return String(y);
@@ -503,27 +495,33 @@ async function resolvePublicCategory(args: { username: string; categoryId: strin
 
   const category = await prisma.category.findFirst({
     where: { id: categoryId, userId: user.id, sourceArchivedAt: null },
-    select: { id: true, slug: true, categoryType: true, bucketAggregation: true, chartType: true },
+    select: {
+      id: true,
+      slug: true,
+      categoryType: true,
+      bucketAggregation: true,
+      chartType: true,
+    },
   });
   if (!category) throw new HttpError(404);
 
   return { userId: user.id, category };
 }
 
-export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeriesArgs, SeriesBucket[]> = async (
-  args,
-  _context,
-) => {
+export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeriesArgs, SeriesBucket[]> = async (args, _context) => {
   const period = normalizePeriod(args.period);
   const rawOffset = Math.min(0, Math.trunc(args.offset ?? 0));
 
-  const { userId, category } = await resolvePublicCategory({ username: args.username, categoryId: args.categoryId });
-  const chartType = normalizeChartType(
-    category.chartType,
-    defaultChartTypeForCategoryType((category as any).categoryType),
-  );
+  const { userId, category } = await resolvePublicCategory({
+    username: args.username,
+    categoryId: args.categoryId,
+  });
+  const chartType = normalizeChartType(category.chartType, defaultChartTypeForCategoryType((category as any).categoryType));
   const aggregation = normalizeBucketAggregation(chartType, category.bucketAggregation);
-  const isActiveKcal = String(category.slug ?? "").trim().toLowerCase() === "active-kcal";
+  const isActiveKcal =
+    String(category.slug ?? "")
+      .trim()
+      .toLowerCase() === "active-kcal";
 
   const baseNow = new Date();
   let now = baseNow;
@@ -559,11 +557,7 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
         select: { activeKcalRollupEnabled: true },
       })
     )?.activeKcalRollupEnabled;
-    const hasManual = await prisma.event.findFirst({
-      where: { userId, kind: "SESSION", categoryId: category.id },
-      select: { id: true },
-    });
-    const rollupEnabled = pref === true || (pref == null && !hasManual);
+    const rollupEnabled = pref !== false;
     if (rollupEnabled && aggregation === "sum") {
       const contributors = await prisma.category.findMany({
         where: {
@@ -578,7 +572,10 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
       rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
       rollupMetaById.set(category.id, { unit: "kcal", isActive: true });
       for (const c of contributors as any[]) {
-        rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+        rollupMetaById.set(String(c.id), {
+          unit: normalizedUnit(c.unit),
+          isActive: false,
+        });
       }
     }
   }
@@ -586,11 +583,30 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
   const events = await prisma.event.findMany({
     where: {
       userId,
-      categoryId: { in: sourceCategoryIds },
+      ...(rollupMetaById
+        ? {
+            OR: [
+              { categoryId: { in: sourceCategoryIds } },
+              {
+                data: {
+                  path: ["workout", "caloriePolicy", "dailyActiveComponentKey"],
+                  equals: "active_kcal",
+                },
+              },
+            ],
+          }
+        : { categoryId: { in: sourceCategoryIds } }),
       kind: "SESSION",
       occurredAt: { gte: start, lt: end },
     },
-    select: { occurredAt: true, amount: true, categoryId: true, data: true },
+    select: {
+      id: true,
+      occurredAt: true,
+      occurredOn: true,
+      amount: true,
+      categoryId: true,
+      data: true,
+    },
   });
 
   const buckets: { start: Date; end: Date; total: number; count: number }[] = [];
@@ -601,18 +617,33 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
     bStart = bEnd;
   }
 
-  for (const ev of events) {
+  const contributionEvents = rollupMetaById
+    ? Array.from(
+        activeKcalByDay(
+          (events as any[]).map((ev) => {
+            const meta = rollupMetaById!.get(String(ev.categoryId ?? ""));
+            const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+            return {
+              id: ev.id,
+              occurredOn: toIsoDate(ev.occurredOn),
+              occurredAt: ev.occurredAt,
+              manualDailyTotal: meta?.isActive ? amount : null,
+              legacyComponent: meta && !meta.isActive ? (meta.unit === "kcal" ? amount : (getNumberField(ev.data, "kcal") ?? 0)) : null,
+              data: ev.data,
+            };
+          }),
+        ),
+      ).map(([day, amount]) => ({
+        occurredAt: new Date(`${day}T12:00:00`),
+        amount,
+      }))
+    : events.map((ev) => ({
+        occurredAt: ev.occurredAt,
+        amount: typeof ev.amount === "number" ? ev.amount : 0,
+      }));
+  for (const ev of contributionEvents) {
     const t = (ev.occurredAt instanceof Date ? ev.occurredAt : new Date(ev.occurredAt as any)).getTime();
-    const amount = typeof ev.amount === "number" ? ev.amount : 0;
-    const meta = rollupMetaById?.get(String(ev.categoryId ?? "")) ?? null;
-    const contribution =
-      rollupMetaById && meta
-        ? meta.isActive
-          ? amount
-          : meta.unit === "kcal"
-            ? amount
-            : getNumberField(ev.data, "kcal") ?? 0
-        : amount;
+    const contribution = ev.amount;
     for (const b of buckets) {
       if (t >= b.start.getTime() && t < b.end.getTime()) {
         if (contribution > 0) {
@@ -631,18 +662,15 @@ export const getPublicUserCategorySeries: GetPublicUserCategorySeries<PublicSeri
   }));
 };
 
-export const getPublicUserCategoryLineSeries: GetPublicUserCategoryLineSeries<PublicSeriesArgs, LinePoint[]> = async (
-  args,
-  _context,
-) => {
+export const getPublicUserCategoryLineSeries: GetPublicUserCategoryLineSeries<PublicSeriesArgs, LinePoint[]> = async (args, _context) => {
   const period = normalizePeriod(args.period);
   const rawOffset = Math.min(0, Math.trunc(args.offset ?? 0));
 
-  const { userId, category } = await resolvePublicCategory({ username: args.username, categoryId: args.categoryId });
-  const chartType = normalizeChartType(
-    category.chartType,
-    defaultChartTypeForCategoryType((category as any).categoryType),
-  );
+  const { userId, category } = await resolvePublicCategory({
+    username: args.username,
+    categoryId: args.categoryId,
+  });
+  const chartType = normalizeChartType(category.chartType, defaultChartTypeForCategoryType((category as any).categoryType));
   const aggregation = normalizeBucketAggregation(chartType, category.bucketAggregation);
 
   const baseNow = new Date();
@@ -682,7 +710,13 @@ export const getPublicUserCategoryLineSeries: GetPublicUserCategoryLineSeries<Pu
     orderBy: [{ occurredAt: "asc" }],
   });
 
-  const buckets: { start: Date; end: Date; value: number | null; sum: number; count: number }[] = [];
+  const buckets: {
+    start: Date;
+    end: Date;
+    value: number | null;
+    sum: number;
+    count: number;
+  }[] = [];
   let bStart = cursor;
   for (let i = 0; i < count; i++) {
     const bEnd = nextBucketStart(bStart, period);

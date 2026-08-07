@@ -29,6 +29,8 @@ import {
 } from "./local";
 import { useTheme } from "../theme/ThemeProvider";
 import { resolveAccentForTheme } from "../theme/colors";
+import { categoryEntryLabel, isPlayedSessionCategory } from "./categoryEntrySemantics";
+import { categoryIcon } from "./categoryIcon";
 
 const getCategoryContributions = (WaspOperations as any).getCategoryContributions;
 
@@ -406,6 +408,12 @@ export function CategoryPage() {
     const isNotes = (category.slug ?? "") === "notes";
     const isSimpleTracking = category.categoryType === "DO" || category.categoryType === "DONT";
     const amountForSimple = scheduledStatus === "went" ? 1 : 0;
+    const simpleRawText = categoryEntryLabel({
+      categorySlug: category.slug,
+      categoryTitle: category.title,
+      scheduledStatus,
+      amount: amountForSimple,
+    });
     const n = isNotes ? 1 : isSimpleTracking ? amountForSimple : parseNumberInput(amount);
     if (!isNotes && !isSimpleTracking && (n == null || n <= 0)) {
       window.alert("Enter a positive number.");
@@ -422,7 +430,7 @@ export function CategoryPage() {
         categoryId: category.id,
         amount: n ?? 1,
         occurredOn,
-        rawText: isNotes ? note : isSimpleTracking ? `${category.title} ${scheduledStatus}` : amount.trim() || String(n ?? 1),
+        rawText: isNotes ? note : isSimpleTracking ? simpleRawText : amount.trim() || String(n ?? 1),
         ...(isNotes ? { note } : note.trim() ? { note } : {}),
         ...(isSimpleTracking ? { scheduledStatus } : {}),
       });
@@ -451,7 +459,7 @@ export function CategoryPage() {
       ...(isSimpleTracking ? { scheduledStatus } : {}),
       ...(privacy.mode === "encrypted"
         ? {}
-        : { rawText: isNotes ? note : isSimpleTracking ? `${category.title} ${scheduledStatus}` : amount.trim() || String(n ?? 1) }),
+        : { rawText: isNotes ? note : isSimpleTracking ? simpleRawText : amount.trim() || String(n ?? 1) }),
     } as any);
     setAmount("");
     setNote("");
@@ -462,6 +470,7 @@ export function CategoryPage() {
   const isNotes = (category?.slug ?? "") === "notes";
   const isSimpleTracking = category?.categoryType === "DO" || category?.categoryType === "DONT";
   const isScheduledTracking = isSimpleTracking && category?.scheduleEnabled === true;
+  const isPlayedSession = isPlayedSessionCategory(category?.slug);
   const amountPlaceholder = isWeight ? "e.g. 84.5" : "e.g. 20";
   const resolvedCategoryId = category?.id ?? null;
   const resolvedTitle =
@@ -482,7 +491,7 @@ export function CategoryPage() {
                   style={{ borderColor: accentHex }}
                   aria-hidden="true"
                 >
-                  <div className="text-lg leading-none">{category.emoji ?? ""}</div>
+                  <div className="text-lg leading-none">{categoryIcon(category)}</div>
                 </div>
               ) : null}
 
@@ -632,7 +641,7 @@ export function CategoryPage() {
 
             <div className={`flex min-w-0 items-end ${isSimpleTracking ? "sm:col-span-3 sm:justify-end" : ""}`}>
               <Button className={`h-10 ${isSimpleTracking ? "w-full sm:w-40" : "w-full"}`} onClick={onAdd} disabled={isLocked}>
-                Add
+                {isPlayedSession ? "Log played" : "Add"}
               </Button>
             </div>
           </div>
@@ -722,6 +731,9 @@ export function CategoryPage() {
       {resolvedCategoryId && category ? (
         <HistoryList
           categoryId={resolvedCategoryId}
+          categoryType={category.categoryType}
+          categorySlug={category.slug}
+          categoryTitle={resolvedTitle ?? category.title}
           step={isWeight ? 0.1 : 1}
           isDecimal={isWeight}
         />
