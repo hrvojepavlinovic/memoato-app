@@ -110,3 +110,16 @@ reuse the official Primer Octicons GitHub mark within its original viewBox.
   look.
 - Use real evidence and clearly marked examples; do not invent product proof.
 - Preserve authored articles and factual policy commitments.
+
+Public pages now serve versioned, OFL-licensed DM Sans and Newsreader WOFF2
+subsets locally (Latin and Latin Extended-A), with matching preloads and swap.
+Share metadata uses versioned 1200×630 images: the brand’s two equal messages,
+a journal image, and a title-specific image for each existing article. The
+legacy OG URL remains valid. Source hashes and reproduction scripts live in
+`scripts/assets.md`; asset-authoring libraries are not runtime dependencies.
+
+The page body grows with its content so the sticky header stays at the viewport
+edge. Shared icon controls and footer actions have 44px targets. Focus rings,
+selection, reduced-motion behavior and footer text contrast are explicit.
+Headings and primary actions may wrap at enlarged text sizes instead of hiding
+content behind the landing container’s overflow clipping.
