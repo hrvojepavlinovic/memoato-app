@@ -1,0 +1,100 @@
+/* Shared navigation retains the public site's cream/ink identity. */
+.topbar .topbar-inner {
+  flex-wrap: wrap;
+}
+.topbar .brand {
+  flex-shrink: 0;
+}
+.topbar .header-actions {
+  flex-shrink: 0;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+:is(.landing-v2, .editorial-page) .topbar .header-actions > .btn.primary {
+  min-height: 44px;
+}
+.topbar .navlinks, .topbar .header-actions > .icon-btn {
+  display: none;
+}
+.mobile-navigation summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(29, 32, 27, 0.25);
+  border-radius: 50%;
+  color: #1d201b;
+  cursor: pointer;
+  list-style: none;
+}
+.mobile-navigation summary::-webkit-details-marker {
+  display: none;
+}
+.mobile-navigation summary svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.mobile-navigation .menu-close-icon, .mobile-navigation[open] .menu-open-icon {
+  display: none;
+}
+.mobile-navigation[open] .menu-close-icon {
+  display: block;
+}
+.mobile-navigation nav {
+  position: absolute;
+  inset: 100% 0 auto;
+  display: grid;
+  max-height: calc(100svh - 5rem);
+  overflow-y: auto;
+  padding: 0.75rem max(1.2rem, calc((100% - 1132px) / 2)) 1.25rem;
+  border-bottom: 1px solid rgba(29, 32, 27, 0.2);
+  background: #f4f0e7;
+  box-shadow: 0 14px 24px rgba(29, 32, 27, 0.08);
+}
+.mobile-navigation nav a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding-block: 0.6rem;
+  border-bottom: 1px solid rgba(29, 32, 27, 0.12);
+  color: #1d201b;
+  font-size: 1rem;
+}
+.mobile-navigation nav a[aria-current="page"] {
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+.topbar :is(a, summary):focus-visible, .skip-link:focus-visible {
+  outline: 2px solid #7e442d;
+  outline-offset: 4px;
+}
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 30;
+  padding: 0.75rem 1rem;
+  background: #f4f0e7;
+  color: #1d201b;
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+#main-content {
+  scroll-margin-top: 6rem;
+}
+@media (min-width: 840px) {
+  .mobile-navigation {
+    display: none;
+  }
+  .topbar .navlinks, .topbar .header-actions > .icon-btn {
+    display: inline-flex;
+  }
+}
