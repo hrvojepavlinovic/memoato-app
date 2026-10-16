@@ -84,6 +84,15 @@ project example shows a human-accepted claim, a source version, freshness and
 scope. Source links lead back to the matching example excerpt on the page. They
 do not imply access to a real user's note, GitHub project or live AI response.
 
+The homepage ends with an open privacy explanation and a compact directory of
+starting paths. Cloud memory, encryption of selected category fields and local
+logging have explicit boundaries. Availability labels distinguish the web app
+and MCP connection from the single-owner Context pilot. The directory uses
+horizontal rows on desktop and stacks each path on mobile, without enclosing
+cards or an oversized closing slogan. Setup links lead to the existing Help
+page; the privacy explainer keeps its existing URL and links to the unchanged
+legal policy.
+
 ## Do's and Don'ts
 
 - Keep both audiences visible and give each a concrete next step.

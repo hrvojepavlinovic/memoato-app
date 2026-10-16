@@ -50,7 +50,7 @@ const faqJsonLd = {
       name: "Can I connect Codex or Claude?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Create a scoped API key in Profile and connect to the hosted Memoato MCP endpoint.",
+        text: "In Cloud mode, create a scoped API key under Profile → API keys. Connect a remote MCP client to https://api.memoato.com/mcp using bearer authentication. Client support varies.",
       },
     },
   ],
@@ -115,13 +115,21 @@ const faqJsonLdString = JSON.stringify(faqJsonLd);
     <li><strong>Encrypted cloud</strong> — category titles and notes are encrypted on your device before saving.</li>
     <li><strong>Local-only</strong> — data stays in the browser on that device.</li>
   </ul>
-  <p>Open <strong>Profile → Privacy</strong> to review or switch modes. Read the full <a href="/privacy">privacy policy</a>.</p>
+  <p>Open <strong>Profile → Privacy</strong> to review or switch modes. Read <a href="/privacy-first">how the modes differ</a> before switching: local-only mode deletes your account’s server data. The natural-language cloud memory and MCP flow are separate from encrypted and local category logging.</p>
 
-  <h2>Can Codex or Claude log for me?</h2>
+  <h2 id="connect-mcp">Connect an AI client through MCP</h2>
   <p>
-    Yes. Create a scoped, revocable API key under <strong>Profile → API keys</strong>, then connect the hosted Memoato
-    MCP. Agents can read category metadata and create labeled raw entries without receiving your account password.
+    Use Cloud mode and a client that supports remote MCP with bearer authentication. Support depends on the client
+    and its plan; an ordinary chat window does not automatically connect to Memoato.
   </p>
+  <ol class="mcp-steps">
+    <li>Sign in to <a href="https://app.memoato.com/profile">Memoato → Profile → API keys</a>. Name the key for your client.</li>
+    <li>Choose <strong>Logging only</strong>, <strong>Recall only</strong>, or <strong>Log and recall</strong>. Use the smallest access you need. <strong>Context packets only</strong> is for an already configured Context pilot workspace.</li>
+    <li>Create the key and copy it once. Add <code>https://api.memoato.com/mcp</code> as a remote MCP server in your client, with <code>Authorization: Bearer YOUR_API_KEY</code>. Replace the placeholder with your key in the client’s private connection settings.</li>
+    <li>Check the connection by asking the client to list its available Memoato tools. Only tools allowed by the key’s scope should appear. Review any proposed write before approving it.</li>
+  </ol>
+  <p>You can set an expiry or revoke the key from Profile. Do not paste it into a conversation or public configuration. The client and its AI provider can see the data you ask them to handle; read <a href="/privacy-first#cloud-and-ai">how cloud memory and AI processing work</a>.</p>
+  <p id="context-pilot">Project context is a separate, single-owner pilot with read-only GitHub and Linear sources. It is not an open team signup. <a href="mailto:hello@memoato.com?subject=Memoato%20Context%20pilot">Ask about a Context pilot</a>.</p>
 
   <h2>Still stuck?</h2>
   <p>
@@ -129,3 +137,11 @@ const faqJsonLdString = JSON.stringify(faqJsonLd);
     <a href="https://github.com/hrvojepavlinovic/memoato-app/issues" rel="noopener noreferrer">GitHub repository</a>.
   </p>
 </EditorialPageLayout>
+
+<style>
+  #connect-mcp, #context-pilot { scroll-margin-top: 7rem; }
+  .mcp-steps { margin: 1.5rem 0; padding-left: 1.4rem; list-style: decimal; }
+  .mcp-steps li { padding-left: 0.5rem; }
+  .mcp-steps li::before { content: none; }
+  .mcp-steps code { overflow-wrap: anywhere; }
+</style>

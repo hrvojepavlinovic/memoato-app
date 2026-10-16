@@ -4,31 +4,28 @@ import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 
 <EditorialPageLayout
   title="Privacy-first personal memory · memoato"
-  description="Choose cloud sync, encrypted cloud, or local-only storage for your Memoato personal memory."
+  description="Understand cloud memory and AI processing, encrypted category fields, local-only logging, and scoped MCP access."
   canonicalPath="/privacy-first"
   eyebrow="Privacy with choices"
   heading="If it does not feel safe, you will not write honestly."
-  deck="Personal memory is only useful when you can trust where it lives. Memoato gives you practical storage modes instead of pretending one trade-off fits everyone."
+  deck="Know where your notes live, what AI can process, and what changes when you choose a different storage mode."
   accent="ink"
 >
-  <p>
-    Memoato can hold health context, family details, personal metrics, purchases, and the kind of unfinished thoughts
-    that never make it into a formal document. That makes privacy a product requirement, not a marketing badge.
-  </p>
+  <h2 id="cloud-and-ai">Cloud memory and AI processing</h2>
+  <p>Natural-language notes and recall use Memoato’s cloud memory. Original notes are stored on the server. Note text and relevant context can be sent to configured AI providers to extract details or answer a recall question.</p>
+  <p>This flow is not end-to-end encrypted. When you connect an AI client through MCP, that client and its provider can also see the data you ask them to handle.</p>
 
-  <h2>Three storage modes</h2>
+  <h2 id="storage-modes">What the storage modes cover</h2>
   <ul>
-    <li><strong>Cloud sync</strong> — normal server storage and the smoothest multi-device experience.</li>
-    <li><strong>Encrypted cloud</strong> — sensitive category titles and notes are encrypted on your device before saving.</li>
-    <li><strong>Local-only</strong> — categories and entries stay in the browser on a single device.</li>
+    <li><strong>Cloud sync</strong> — categories, entries, and cloud memory are stored on the server for use across devices.</li>
+    <li><strong>Encrypted cloud</strong> — category titles and per-entry notes are encrypted on your device before saving. This protects those fields, not every field or the separate cloud memory and MCP flow. You need your passphrase on each device; Memoato cannot recover it.</li>
+    <li><strong>Local-only</strong> — category-based logging stays in this device’s browser. Cloud memory and MCP are not local-only features. Clearing browser storage or losing the device can lose this local history.</li>
   </ul>
+  <p>Review these options under <strong>Profile → Privacy</strong>. Switching to local-only deletes your account’s server data. Export anything you need to keep before switching.</p>
 
-  <h2>Privacy without theatre</h2>
-  <p>
-    Each mode has a real trade-off. Cloud is convenient. Encrypted cloud protects selected content but requires a
-    passphrase that Memoato cannot recover. Local-only keeps data off the server but makes the device and its browser
-    storage your only copy.
-  </p>
+  <h2 id="access">Give a client only the access it needs</h2>
+  <p>API keys are scoped and revocable. Choose logging, recall, both, or Context packets for a configured pilot. A key does not require sharing your account password. You can set an expiry and revoke it from Profile; the full key is shown only when created.</p>
+  <p>For project context, the current pilot reads from GitHub and Linear without writing back to them. Claims need human acceptance; access grants and freshness are checked before a context packet is built. The pilot is one owner and one workspace, rather than open multi-user team access.</p>
 
   <p>Read the exact behavior and service providers in the <a href="/privacy">privacy policy</a>.</p>
 
@@ -37,3 +34,7 @@ import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
     <a class="btn" href="/privacy">Privacy policy</a>
   </div>
 </EditorialPageLayout>
+
+<style>
+  h2[id] { scroll-margin-top: 7rem; }
+</style>
