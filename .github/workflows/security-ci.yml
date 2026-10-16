@@ -23,13 +23,10 @@ jobs:
           node-version: 24
           cache: npm
       - name: Compile Wasp project
-        run: |
-          cp package-lock.json "$RUNNER_TEMP/memoato-reviewed-package-lock.json"
-          npx --yes @wasp.sh/wasp-cli@0.20.2 build
+        run: node scripts/compile_wasp.mjs
       - name: Install patched generated dependencies
         run: |
           node scripts/patch_wasp_dependency_versions.mjs
-          cp "$RUNNER_TEMP/memoato-reviewed-package-lock.json" package-lock.json
           npm ci --include=dev
           npm audit
       - name: Apply generated-code patches
