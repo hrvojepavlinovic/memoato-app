@@ -1,26 +1,26 @@
-# memoato (llms.txt)
-Last updated: 2026-02-08
+# memoato
+Last updated: 2026-10-17
 
-memoato is a minimal habit tracker built for low friction and ADHD brains. It helps you log quickly, see progress, and review your day in a timeline.
+Memoato combines personal memory and source-backed context for AI-assisted work.
+Personal memory saves original notes before interpretation, supports review,
+and returns source evidence during recall. Project context is a single-owner,
+read-only GitHub/Linear pilot with human claim review and access/freshness checks.
+The pilot is not open multi-user team signup.
 
 Key links:
-- Homepage: https://memoato.com/
-- App: https://app.memoato.com/
-- Help & FAQ: https://memoato.com/help
-- ADHD-friendly: https://memoato.com/adhd
-- Minimal habit tracker: https://memoato.com/minimal-habit-tracker
-- Privacy-first: https://memoato.com/privacy-first
-- Changelog: https://memoato.com/changelog
-- About: https://memoato.com/about
-- Timeline (blog): https://memoato.com/blog/timeline
-- Privacy modes (blog): https://memoato.com/blog/privacy-modes
-- Privacy policy: https://memoato.com/privacy
-- Open source: https://memoato.com/open-source
-- GitHub repo: https://github.com/hrvojepavlinovic/memoato-app
-- Contact: https://memoato.com/contact
+- Personal memory: https://memoato.com/#how-it-works
+- AI Context pilot: https://memoato.com/#ai-context
+- Web app: https://app.memoato.com/
+- Help and MCP setup: https://memoato.com/help/#connect-mcp
+- Storage and AI processing: https://memoato.com/privacy-first/
+- Privacy policy: https://memoato.com/privacy/
+- About: https://memoato.com/about/
+- Journal: https://memoato.com/blog/
+- Open source: https://memoato.com/open-source/
+- Repository: https://github.com/hrvojepavlinovic/memoato-app
+- Contact: https://memoato.com/contact/
 
-Product highlights:
-- Templates (starter trackers) to reduce decision fatigue
-- Notes is a built-in system category (cannot be deleted)
-- Storage modes: cloud sync, encrypted cloud, local-only
-- PWA friendly (Add to Home Screen); mobile apps are in progress
+Cloud memory and MCP are separate from encrypted category titles/per-entry
+notes and local-only category logging. Read the privacy explanation for scope,
+AI processing, and the consequences of changing storage mode. API keys are
+scoped and revocable. Context access requires a configured pilot workspace.

@@ -36,6 +36,8 @@ const blogJsonLdString = JSON.stringify(blogJsonLd);
   deck={description}
   accent="ink"
   ogType="article"
+  ogImagePath={`/social/${Astro.url.pathname.replace(/\/$/, "").split("/").pop()}-v2.png`}
+  ogImageAlt={`memoato journal — ${title}`}
 >
   <script slot="head" type="application/ld+json" set:html={blogJsonLdString} />
 

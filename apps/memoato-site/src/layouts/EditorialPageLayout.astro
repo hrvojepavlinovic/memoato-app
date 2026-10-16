@@ -11,6 +11,8 @@ type Props = {
   accent?: "sage" | "rust" | "ink";
   wide?: boolean;
   ogType?: "website" | "article";
+  ogImagePath?: string;
+  ogImageAlt?: string;
 };
 
 const {
@@ -23,6 +25,8 @@ const {
   accent = "sage",
   wide = false,
   ogType = "website",
+  ogImagePath,
+  ogImageAlt,
 } = Astro.props;
 ---
 
@@ -31,6 +35,8 @@ const {
   description={description}
   canonicalPath={canonicalPath}
   ogType={ogType}
+  ogImagePath={ogImagePath}
+  ogImageAlt={ogImageAlt}
   bodyClass={`editorial-page editorial-${accent}`}
 >
   <slot name="head" slot="head" />

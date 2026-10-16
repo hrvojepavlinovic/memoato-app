@@ -205,15 +205,10 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
       line-height: 1.65;
     }
 
-    .memo-actions {
-      display: flex;
-      align-items: center;
-      gap: 1.6rem;
-      margin-top: 2.25rem;
-    }
-
     .memo-button {
       display: inline-flex;
+      max-width: 100%;
+      overflow-wrap: anywhere;
       align-items: center;
       justify-content: center;
       gap: 0.8rem;
@@ -223,6 +218,11 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
       font-size: 0.9rem;
       font-weight: 600;
       transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+    }
+
+    .landing-shell :is(h1, h2, h3) {
+      overflow-wrap: anywhere;
+      hyphens: auto;
     }
 
     .memo-button:hover {
