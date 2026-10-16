@@ -8,7 +8,7 @@ const { frontmatter } = Astro.props as {
 const title = frontmatter?.title?.trim() || "Blog";
 const description = frontmatter?.description?.trim();
 const date = frontmatter?.date ? new Date(frontmatter.date) : null;
-const dateLabel = date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" }) : null;
+const dateLabel = date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit", timeZone: "UTC" }) : null;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? "https://memoato.com").toString();
 const blogJsonLd: Record<string, unknown> = {

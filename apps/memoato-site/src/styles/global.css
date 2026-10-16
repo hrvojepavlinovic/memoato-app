@@ -1355,126 +1355,25 @@ a:hover:not(.btn):not(.icon-btn) {
 }
 
 .editorial-frame {
-  width: min(100% - 3rem, 1180px);
+  width: min(100% - 3rem, 760px);
   margin-inline: auto;
 }
-
-.editorial-hero {
-  position: relative;
-  overflow: hidden;
-  padding: 7.5rem 0 6.5rem;
-  border-bottom: 1px solid rgba(29, 32, 27, 0.14);
-}
-
-.editorial-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.34;
-  pointer-events: none;
-  background-image: linear-gradient(rgba(29, 32, 27, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(29, 32, 27, 0.045) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: linear-gradient(to bottom, black, transparent 90%);
-}
-
-.editorial-hero::after {
-  content: "";
-  position: absolute;
-  top: -260px;
-  right: -180px;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  background: rgba(127, 142, 121, 0.13);
-}
-
-.editorial-rust .editorial-hero::after {
-  background: rgba(183, 94, 59, 0.13);
-}
-
-.editorial-ink .editorial-hero::after {
-  background: rgba(38, 55, 47, 0.1);
-}
-
-.editorial-hero .editorial-frame {
-  position: relative;
-  z-index: 1;
-}
-
-.editorial-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin: 0 0 2rem;
-  color: #6b6f64;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.editorial-eyebrow span {
-  width: 30px;
-  height: 1px;
-  background: currentColor;
-}
-
-.editorial-hero-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
-  gap: 6rem;
-  align-items: end;
-}
-
+.editorial-frame-wide { width: min(100% - 3rem, 1180px); }
+.editorial-hero { padding: 3rem 0 2rem; }
+.editorial-hero-grid { display: grid; gap: 1rem; }
 .editorial-hero h1 {
-  max-width: 850px;
   margin: 0;
   font-family: "Newsreader", Georgia, serif;
-  font-size: clamp(4.5rem, 8vw, 8.3rem);
+  font-size: clamp(2.5rem, 4.6vw, 4rem);
   font-weight: 400;
-  letter-spacing: -0.06em;
-  line-height: 0.87;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-wrap: balance;
 }
-
-.editorial-deck {
-  max-width: 470px;
-  margin: 0 0 0.55rem;
-  color: var(--editorial-muted);
-  font-size: 1rem;
-  line-height: 1.75;
-}
-
-.editorial-body {
-  padding: 6.5rem 0 9rem;
-}
-
-.editorial-body-grid {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 760px);
-  gap: 4.5rem;
-  justify-content: center;
-  align-items: start;
-}
-
-.editorial-margin {
-  position: sticky;
-  top: 8.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding-top: 0.3rem;
-  color: #91938b;
-  font-family: "Newsreader", Georgia, serif;
-  font-size: 0.75rem;
-  font-style: italic;
-}
-
-.editorial-margin i {
-  flex: 1;
-  height: 1px;
-  background: rgba(29, 32, 27, 0.16);
-}
+.editorial-meta { margin: 0; color: var(--editorial-muted); font-size: 0.875rem; }
+.editorial-deck { max-width: 65ch; margin: 0; color: var(--editorial-muted); font-size: 1.0625rem; line-height: 1.65; }
+.editorial-body { padding: 0 0 5rem; }
+.editorial-body-grid { display: block; }
 
 .editorial-prose {
   min-width: 0;
@@ -1485,15 +1384,15 @@ a:hover:not(.btn):not(.icon-btn) {
 
 .editorial-prose-wide {
   width: 100%;
-  max-width: 980px;
+  max-width: none;
 }
 
-.editorial-body-grid:has(.editorial-prose-wide) {
-  grid-template-columns: 110px minmax(0, 980px);
-  gap: 3.5rem;
+.editorial-prose > p:first-child:not(.editorial-backlink) {
+  margin-top: 0;
 }
-
-.editorial-prose > p:first-child:not(.editorial-backlink),
+.editorial-prose > h2:first-child {
+  margin-top: 0;
+}
 .editorial-article-copy > p:first-child {
   margin-top: 0;
   color: var(--editorial-ink);
@@ -1653,59 +1552,6 @@ a:hover:not(.btn):not(.icon-btn) {
   font-size: 1rem;
 }
 
-.editorial-page .post-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  margin: 0;
-  border-top: 1px solid rgba(29, 32, 27, 0.16);
-  border-left: 1px solid rgba(29, 32, 27, 0.16);
-}
-
-.editorial-page .post-card {
-  min-height: 250px;
-  padding: 2rem;
-  border: 0;
-  border-right: 1px solid rgba(29, 32, 27, 0.16);
-  border-bottom: 1px solid rgba(29, 32, 27, 0.16);
-  border-radius: 0;
-  background: transparent;
-  text-decoration: none;
-  transition: background 180ms ease, color 180ms ease;
-}
-
-.editorial-page .post-card:hover {
-  border-color: rgba(29, 32, 27, 0.16);
-  background: var(--editorial-forest);
-  color: var(--editorial-paper);
-}
-
-.editorial-page .post-kicker {
-  margin-bottom: 2.8rem;
-  color: #85877f;
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.editorial-page .post-title {
-  font-family: "Newsreader", Georgia, serif;
-  font-size: 1.7rem;
-  font-weight: 400;
-  line-height: 1.15;
-}
-
-.editorial-page .post-desc {
-  color: #6d6f66;
-  font-size: 0.83rem;
-  line-height: 1.65;
-}
-
-.editorial-page .post-card:hover .post-kicker,
-.editorial-page .post-card:hover .post-desc {
-  color: rgba(244, 240, 231, 0.62);
-}
-
 .editorial-page .card {
   border: 1px solid rgba(29, 32, 27, 0.14);
   border-radius: 0;
@@ -1770,58 +1616,16 @@ a:hover:not(.btn):not(.icon-btn) {
   color: rgba(244, 240, 231, 0.48);
 }
 
-@media (max-width: 900px) {
-  .editorial-hero-grid {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-  }
-
-  .editorial-deck {
-    max-width: 620px;
-  }
-
-  .editorial-body-grid,
-  .editorial-body-grid:has(.editorial-prose-wide) {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  .editorial-margin {
-    display: none;
-  }
-}
-
 @media (max-width: 680px) {
-  .editorial-frame {
-    width: min(100% - 2.4rem, 1180px);
-  }
-
-  .editorial-hero {
-    padding: 5.2rem 0 4.5rem;
-  }
-
-  .editorial-hero h1 {
-    font-size: clamp(3.65rem, 17vw, 5.4rem);
-    line-height: 0.9;
-  }
-
-  .editorial-body {
-    padding: 4.5rem 0 6rem;
-  }
+  .editorial-frame, .editorial-frame-wide { width: calc(100% - 2.4rem); }
+  .editorial-hero { padding: 2rem 0 1.5rem; }
+  .editorial-hero h1 { font-size: clamp(2.2rem, 9vw, 3rem); line-height: 1.1; }
+  .editorial-body { padding: 0 0 3rem; }
 
   .editorial-prose h2,
   .editorial-article-copy h2 {
     margin-top: 3.3rem;
     font-size: 2.25rem;
-  }
-
-  .editorial-page .post-list {
-    grid-template-columns: 1fr;
-  }
-
-  .editorial-page .post-card {
-    min-height: 220px;
-    padding: 1.6rem;
   }
 
   .editorial-prose blockquote,

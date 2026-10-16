@@ -4,59 +4,32 @@ import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 
 <EditorialPageLayout
   title="About · memoato"
-  description="Why Memoato exists: to keep the small, human context that trackers, calendars, and notes leave behind."
+  description="Memoato keeps personal memories and project context connected to their original sources."
   canonicalPath="/about"
-  eyebrow="Why Memoato exists"
-  heading="Life is more than the data it leaves behind."
-  deck="Most tools remember the workout, the meeting, or the task. Memoato remembers what happened around it — the part that makes the data mean something."
+  eyebrow="About Memoato"
+  heading="A memory worth coming back to."
+  deck="For the details of your life and the knowledge behind your work. Capture the source, review what it means, and find it when you need it."
   accent="rust"
 >
-  <p>
-    Memoato is a low-friction memory for everyday life. You write what happened in your own words. The original note
-    stays intact, while useful details become easier to find, connect, and understand later.
-  </p>
+  <h2>Personal memory</h2>
+  <p>A calendar remembers the meeting. A tracker remembers the walk. Memoato keeps the context around them: what you agreed, why your plans changed, or the small detail you will need months later.</p>
+  <p>Write in your own words. The original note stays connected to the useful details extracted from it, so you can review an interpretation and return to the source.</p>
+  <p><a href="/#how-it-works">See personal memory in practice</a></p>
 
-  <blockquote class="editorial-quote">Do not track more. Remember the missing context.</blockquote>
+  <h2>Context for AI-assisted work</h2>
+  <p>Project knowledge changes across documents, issues, and code. An AI answer is more useful when you can check which source supports it, whether it is still current, and who can use it.</p>
+  <p>The Context pilot brings read-only GitHub and Linear sources into a single-owner workspace. A person reviews claims before they are available for retrieval. Access grants and freshness are checked before building a context packet.</p>
+  <p><a href="/#ai-context">Explore the Context pilot</a></p>
 
-  <h2>The gap between the apps</h2>
-  <p>
-    Trackers are excellent at objective activity. Calendars hold plans. Todo apps hold obligations. Email holds
-    conversations, and notes hold long-form thinking. But real life happens between those systems.
-  </p>
-  <p>
-    Why you skipped the gym. What hurt during a set. Which fallback kept the routine alive. How you felt before a big
-    call. The tiny purchase detail you will need six months from now. That is Memoato territory.
-  </p>
-
-  <h2>Designed around people</h2>
-  <ul>
-    <li><strong>Natural capture</strong> — a sentence, a number, or an unfinished thought is enough.</li>
-    <li><strong>Raw note first</strong> — your exact words are saved before anything is interpreted.</li>
-    <li><strong>Helpful structure</strong> — facts and context become browsable without turning logging into a form.</li>
-    <li><strong>Visible assumptions</strong> — suggestions can be confirmed, corrected, or ignored.</li>
-    <li><strong>Forgiving by design</strong> — there are no streaks to break and no guilt for disappearing.</li>
-  </ul>
-
-  <h2>Quiet technology</h2>
-  <p>
-    Memoato uses automation where it removes friction, but the technology is not the product. The product is a calmer
-    relationship with your own history: less effort while logging, more clarity when looking back.
-  </p>
-  <p>
-    You can use the web app today, install it as a PWA, or connect tools such as Codex and Claude through the Memoato
-    MCP. Privacy options include cloud sync, encrypted cloud, and local-only storage.
-  </p>
+  <h2>One principle behind both</h2>
+  <p>Keep the source distinct from the interpretation. A saved note or source version is evidence; an extracted fact is something to review. This is how Memoato makes memory useful without hiding where an answer came from.</p>
 
   <h2>Built openly</h2>
-  <p>
-    Memoato is an open-source project from <a href="https://hills-lab.hr" rel="noopener noreferrer">HILLS Lab</a>,
-    created by <a href="https://hrvoje.pavlinovic.com" rel="noopener noreferrer">Hrvoje Pavlinovic</a>. It is being
-    built for real personal use first, with the ambition to become a useful memory layer for anyone whose life refuses
-    to fit into neat boxes.
-  </p>
+  <p>Memoato is an open-source project from <a href="https://hills-lab.hr" rel="noopener noreferrer">HILLS Lab</a>, created by <a href="https://hrvoje.pavlinovic.com" rel="noopener noreferrer">Hrvoje Pavlinovic</a>. It grows out of everyday use and hands-on engineering work.</p>
+  <p>The personal web app and MCP connection are available today. Project context is a pilot with one owner per workspace. Read <a href="/help">how to get started</a> and <a href="/privacy-first">how storage and AI processing differ</a>.</p>
 
   <div class="cta-row">
     <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">Open Memoato</a>
-    <a class="btn" href="/blog/why-memoato">Read the story</a>
+    <a class="btn" href="mailto:hello@memoato.com?subject=Memoato%20Context%20pilot">Ask about the pilot</a>
   </div>
 </EditorialPageLayout>

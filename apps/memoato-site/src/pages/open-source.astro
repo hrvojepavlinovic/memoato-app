@@ -4,31 +4,29 @@ import EditorialPageLayout from "../layouts/EditorialPageLayout.astro";
 
 <EditorialPageLayout
   title="Open source · memoato"
-  description="Memoato is open source: inspect the code, contribute, self-host, or adapt the personal memory layer to your needs."
+  description="Inspect Memoato’s personal memory and Context pilot code, contribute, or explore self-hosting."
   canonicalPath="/open-source"
   eyebrow="Built in the open"
-  heading="Your memory should not depend on a black box."
-  deck="Memoato's core is open source so the product can be inspected, adapted, self-hosted, and shaped by the people who actually use it."
+  heading="Follow the code behind the memory."
+  deck="Personal memory and the Context pilot live in one open repository. Inspect how sources, interpretations, and access checks fit together."
   accent="ink"
 >
-  <p>
-    Personal memory is intimate infrastructure. Openness gives you a way to understand what the software does, keep a
-    copy you control, and build a version that fits needs the hosted product may never cover.
-  </p>
+  <p>Memoato is released under the <a href="https://github.com/hrvojepavlinovic/memoato-app/blob/main/LICENSE" rel="noopener noreferrer">MIT license</a>. You can inspect, modify, and self-host the code, subject to its license and third-party dependencies.</p>
 
-  <h2>What open means here</h2>
+  <h2>What is in the repository?</h2>
   <ul>
-    <li><strong>Inspect it</strong> — the application, API, data model, and product decisions are visible.</li>
-    <li><strong>Contribute</strong> — report friction, suggest a better flow, or improve the code.</li>
-    <li><strong>Self-host it</strong> — privacy-heavy users can run their own deployment.</li>
-    <li><strong>Build on it</strong> — agents and integrations can use scoped API keys and the Memoato MCP.</li>
+    <li><strong>Personal memory</strong> — raw note capture, extraction, review, recall, categories, and timeline.</li>
+    <li><strong>Context pilot</strong> — read-only GitHub and Linear sources, source versions, human claim review, and access and freshness checks.</li>
+    <li><strong>API and MCP</strong> — scoped keys for logging, recall, and context packets.</li>
   </ul>
+  <p>The hosted Context pilot is limited to one owner per workspace. Open code does not mean open team signup.</p>
 
-  <h2>A product, not just a repository</h2>
-  <p>
-    The hosted Memoato experience remains the simplest path for most people. Open source is not an excuse for rough UX;
-    it is a commitment to transparency and long-term user control.
-  </p>
+  <h2>Run your own instance</h2>
+  <p>Start with the <a href="https://github.com/hrvojepavlinovic/memoato-app#readme" rel="noopener noreferrer">repository README</a> and <a href="https://github.com/hrvojepavlinovic/memoato-app/blob/main/docs/DEV_SETUP.md" rel="noopener noreferrer">development setup</a>. Self-hosting means operating the application and database, configuring providers, and maintaining backups and updates.</p>
+  <p>Choose your storage mode and AI processing setup deliberately. Self-hosting alone does not stop a configured AI provider from receiving data. See the <a href="/privacy-first">storage and AI processing explanation</a>.</p>
+
+  <h2>Contribute from real use</h2>
+  <p><a href="https://github.com/hrvojepavlinovic/memoato-app/issues" rel="noopener noreferrer">Report a reproducible issue</a>, suggest a clearer flow, or propose a code change. Keep private notes, source documents, and API keys out of public issues.</p>
 
   <div class="cta-row">
     <a class="btn primary" href="https://github.com/hrvojepavlinovic/memoato-app" rel="noopener noreferrer">View on GitHub</a>

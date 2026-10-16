@@ -36,21 +36,17 @@ const {
   <slot name="head" slot="head" />
 
   <section class="editorial-hero">
-    <div class="editorial-frame">
-      <p class="editorial-eyebrow"><span></span>{eyebrow}</p>
+    <div class:list={["editorial-frame", { "editorial-frame-wide": wide }]}>
       <div class="editorial-hero-grid">
         <h1>{heading}</h1>
+        {ogType === "article" || ["/privacy", "/terms"].includes(canonicalPath) ? <p class="editorial-meta">{eyebrow}</p> : null}
         {deck ? <p class="editorial-deck">{deck}</p> : null}
       </div>
     </div>
   </section>
 
   <section class="editorial-body">
-    <div class="editorial-frame editorial-body-grid">
-      <aside class="editorial-margin" aria-hidden="true">
-        <span>memoato</span>
-        <i></i>
-      </aside>
+    <div class:list={["editorial-frame", "editorial-body-grid", { "editorial-frame-wide": wide }]}>
       <article class:list={["editorial-prose", { "editorial-prose-wide": wide }]}>
         <slot />
       </article>
