@@ -9,6 +9,7 @@ type Props = {
 };
 
 import "../styles/global.css";
+import "../styles/navigation.css";
 
 const {
   title,
@@ -18,6 +19,17 @@ const {
   ogImagePath = "/og.png",
   bodyClass,
 } = Astro.props;
+const navigation = [
+  { href: "/#personal-memory", label: "Personal" },
+  { href: "/#ai-context", label: "AI context" },
+  { href: "/about", label: "About" },
+  { href: "/help", label: "Help" },
+  { href: "/blog", label: "Blog" },
+];
+const mobileNavigation = [...navigation,
+  { href: "/privacy", label: "Privacy" },
+  { href: "https://guide.hills-lab.hr", label: "Research" },
+];
 const resolvedBodyClass = bodyClass ?? "editorial-page";
 const databuddyClientId =
   import.meta.env.PUBLIC_DATABUDDY_CLIENT_ID?.trim() || "c1678578-eedf-4cbc-bbc6-8dfa541712dc";
@@ -100,21 +112,18 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
     />
   </head>
   <body class={resolvedBodyClass}>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="/">
           <span class="logo">
-            <img src="/logo.png" alt="memoato" width="18" height="18" />
+            <img src="/logo.png" alt="" width="18" height="18" />
           </span>
           <span>memoato</span>
         </a>
         <div class="header-actions">
-          <nav class="navlinks">
-            <a class="btn sm" href="/about">About</a>
-            <a class="btn sm" href="/help">Help</a>
-            <a class="btn sm" href="/blog">Blog</a>
-            <a class="btn sm" href="https://guide.hills-lab.hr" target="_blank" rel="noopener noreferrer">Research</a>
-            <a class="btn sm" href="/privacy">Privacy</a>
+          <nav class="navlinks" aria-label="Main navigation">
+            {navigation.map(({href, label}) => <a class="btn sm" href={href} aria-current={Astro.url.pathname === href ? "page" : undefined}>{label}</a>)}
           </nav>
           <a
             class="icon-btn"
@@ -133,11 +142,20 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
           <a class="btn primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
             Open app
           </a>
+          <details class="mobile-navigation">
+            <summary aria-label="Navigation menu">
+              <svg class="menu-open-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <svg class="menu-close-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+            </summary>
+            <nav aria-label="Mobile navigation">
+              {mobileNavigation.map(({href, label}) => <a href={href} aria-current={Astro.url.pathname === href ? "page" : undefined}>{label}</a>)}
+            </nav>
+          </details>
         </div>
       </div>
     </header>
 
-    <main>
+    <main id="main-content" tabindex="-1">
       <slot />
     </main>
 
@@ -146,12 +164,12 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
         <div class="footer-brand">
           <a class="brand" href="/">
             <span class="logo">
-              <img src="/logo.png" alt="memoato" width="18" height="18" />
+              <img src="/logo.png" alt="" width="18" height="18" />
             </span>
             <span>memoato</span>
           </a>
           <div style="margin-top: 0.75rem">
-            Low-friction life logging: raw notes, structured facts, useful recall.
+            Personal memory and source-backed context for AI-assisted work.
           </div>
           <div class="footer-actions">
             <a class="btn primary sm" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
@@ -227,5 +245,24 @@ const baseJsonLdString = JSON.stringify(baseJsonLd);
       </div>
     </footer>
 
+  <script>
+      document.querySelectorAll<HTMLDetailsElement>(".mobile-navigation").forEach((menu) => {
+        const summary = menu.querySelector("summary");
+        menu.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && menu.open) { menu.open = false; summary?.focus(); }
+        });
+        menu.addEventListener("click", (event) => {
+          if (event.target instanceof Element && event.target.closest("a")) menu.open = false;
+        });
+        menu.addEventListener("focusout", (event) => {
+          if (event.relatedTarget instanceof Node && !menu.contains(event.relatedTarget)) menu.open = false;
+        });
+        document.addEventListener("click", (event) => {
+          if (event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+        });
+        const desktop = window.matchMedia("(min-width: 840px)");
+        desktop.addEventListener("change", () => { if (desktop.matches) menu.open = false; });
+      });
+    </script>
   </body>
 </html>

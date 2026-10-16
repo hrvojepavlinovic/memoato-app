@@ -8,7 +8,7 @@ const softwareJsonLd = {
   operatingSystem: "Web",
   applicationCategory: "LifestyleApplication",
   url: "https://app.memoato.com",
-  description: "A low-friction memory for the context of everyday life.",
+  description: "Personal memory and source-backed context for AI-assisted work.",
   publisher: { "@id": "https://memoato.com/#organization" },
   isAccessibleForFree: true,
 };
@@ -16,8 +16,8 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
 ---
 
 <BaseLayout
-  title="memoato — remember the life behind the data"
-  description="Memoato keeps the small context your trackers, calendars, and notes miss. Write what happened naturally and find it when it matters."
+  title="memoato — personal memory and context for AI"
+  description="Remember the details of your life and keep project knowledge connected to its sources. Personal memory and a context pilot for AI-assisted work, in one Memoato."
   canonicalPath="/"
   bodyClass="landing-v2"
 >
@@ -25,101 +25,62 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
 
   <div class="landing-shell">
     <section class="memo-hero" aria-labelledby="hero-title">
-      <div class="memo-hero-glow" aria-hidden="true"></div>
-      <div class="landing-container memo-hero-grid">
-        <div class="memo-hero-copy">
-          <p class="eyebrow"><span></span> A memory for real life</p>
-          <h1 id="hero-title">Remember the life<br />behind the data.</h1>
-          <p class="hero-intro">
-            The walk you took instead. The reason you slept badly. The name of the place
-            you swore you'd return to. Memoato keeps the small context that otherwise disappears.
-          </p>
-          <div class="memo-actions">
-            <a
-              class="memo-button memo-button-primary"
-              href="https://app.memoato.com"
-              rel="noreferrer"
-              referrerpolicy="no-referrer"
-            >
-              Start remembering
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M4 10h11M11 6l4 4-4 4"></path>
-              </svg>
-            </a>
-            <a class="memo-text-link" href="#how-it-works">See how it works <span>↓</span></a>
-          </div>
-          <p class="hero-note">Free while we're early · Your original words stay intact</p>
+      <div class="landing-container">
+        <div class="memo-hero-intro">
+          <h1 id="hero-title"><span>Memory for life.</span><span>Context for AI.</span></h1>
+          <p class="hero-intro">Keep the details of your day and the knowledge behind your work. Original sources stay connected to what Memoato remembers.</p>
         </div>
-
-        <div class="memory-composition" aria-label="An example memory captured in Memoato">
-          <div class="memory-date" aria-hidden="true">
-            <span>17</span>
-            <small>APR</small>
-          </div>
-          <div class="memory-paper">
-            <div class="paper-head">
-              <span>Today, 8:42 pm</span>
-              <span class="paper-saved"><i></i> saved</span>
-            </div>
-            <p class="raw-memory">
-              Rough night. Big call at nine. Skipped the gym, but walked for 20 minutes
-              after lunch. Energy came back by dinner.
-            </p>
-            <div class="paper-rule"></div>
-            <div class="memory-details">
-              <div>
-                <span class="memory-mark mark-sage"></span>
-                <p><small>MOVEMENT</small>20 minute walk</p>
-                <em>instead of the gym</em>
-              </div>
-              <div>
-                <span class="memory-mark mark-rust"></span>
-                <p><small>ENERGY</small>Low → recovered</p>
-                <em>by dinner</em>
-              </div>
-              <div>
-                <span class="memory-mark mark-blue"></span>
-                <p><small>CONTEXT</small>Bad sleep + big call</p>
-                <em>morning</em>
-              </div>
-            </div>
-            <div class="paper-foot">
-              <span>Original note preserved</span>
-              <span>3 details remembered</span>
-            </div>
-          </div>
-          <div class="memory-whisper whisper-one">the fallback mattered</div>
-          <div class="memory-whisper whisper-two">not just the workout</div>
+        <div class="memo-entry-paths">
+          <article class="memo-entry" id="personal-memory" aria-labelledby="personal-title">
+            <h2 id="personal-title">Personal memory</h2>
+            <p>Capture the details of your day. Find them later, with the original note.</p>
+            <a class="memo-button memo-button-primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">
+              Start remembering
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"></path></svg>
+            </a>
+            <span class="memo-entry-status">Personal app · Free while we’re early</span>
+          </article>
+          <article class="memo-entry" aria-labelledby="ai-title">
+            <h2 id="ai-title">AI &amp; team context</h2>
+            <p>Keep project knowledge grounded in sources. Give AI context you can check.</p>
+            <a class="memo-button memo-button-primary" href="#ai-context">
+              Explore AI context
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"></path></svg>
+            </a>
+            <span class="memo-entry-status">Context pilot · Read-only sources</span>
+          </article>
         </div>
       </div>
     </section>
 
-    <section class="missing-context" aria-labelledby="context-title">
+    <section class="missing-context" id="ai-context" aria-labelledby="context-title">
       <div class="landing-container context-grid">
         <div class="section-heading context-heading">
-          <p class="eyebrow eyebrow-light"><span></span> The missing layer</p>
-          <h2 id="context-title">Your apps remember <em>what.</em><br />Memoato remembers <em>why.</em></h2>
+          <h2 id="context-title">Context you<br />can check.</h2>
+          <p class="context-intro">Connect project sources, review what should be remembered, and retrieve context with links back to the evidence.</p>
+          <p class="context-pilot">The AI &amp; team context workflow is in pilot: one owner per workspace, with read-only GitHub and Linear sources.</p>
+          <div class="context-actions">
+            <a class="memo-button memo-button-light" href="mailto:hello@memoato.com?subject=Memoato%20Context%20pilot">Ask about the pilot<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"></path></svg></a>
+            <a href="https://guide.hills-lab.hr" target="_blank" rel="noopener noreferrer">Read the approach</a>
+          </div>
         </div>
         <div class="context-list">
           <div class="context-row">
-            <div class="context-number">01</div>
             <div>
-              <h3>Trackers count the workout.</h3>
-              <p>Memoato remembers what hurt, why you stopped, and what you did instead.</p>
+              <h3>Bring the source.</h3>
+              <p>GitHub and Linear stay read-only. Source versions remain linked to the claims drawn from them.</p>
             </div>
           </div>
           <div class="context-row">
-            <div class="context-number">02</div>
             <div>
-              <h3>Calendars keep the meeting.</h3>
-              <p>Memoato remembers the restless night before it and the relief afterward.</p>
+              <h3>Review what’s remembered.</h3>
+              <p>A person accepts or rejects a claim before it becomes part of a context packet.</p>
             </div>
           </div>
           <div class="context-row">
-            <div class="context-number">03</div>
             <div>
-              <h3>Notes hold the long story.</h3>
-              <p>Memoato catches the tiny details you won't open a document to write down.</p>
+              <h3>Retrieve what’s relevant.</h3>
+              <p>Source permissions and freshness are checked before context is ranked for an AI tool.</p>
             </div>
           </div>
         </div>
@@ -326,43 +287,57 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
     }
 
     .memo-hero {
-      position: relative;
-      min-height: 780px;
-      display: grid;
-      align-items: center;
-      padding: 7.5rem 0 8rem;
+      padding: 4rem 0 3.5rem;
       border-bottom: 1px solid rgba(29, 32, 27, 0.12);
     }
 
-    .memo-hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      opacity: 0.34;
-      pointer-events: none;
-      background-image: linear-gradient(rgba(29, 32, 27, 0.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(29, 32, 27, 0.045) 1px, transparent 1px);
-      background-size: 72px 72px;
-      mask-image: linear-gradient(to bottom, black, transparent 88%);
-    }
-
-    .memo-hero-glow {
-      position: absolute;
-      width: 600px;
-      height: 600px;
-      right: -160px;
-      top: -180px;
-      border-radius: 50%;
-      background: rgba(183, 94, 59, 0.1);
-      filter: blur(4px);
-    }
-
-    .memo-hero-grid {
-      position: relative;
+    .memo-hero-intro {
       display: grid;
-      grid-template-columns: minmax(0, 1.03fr) minmax(430px, 0.97fr);
-      gap: 6rem;
-      align-items: center;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      align-items: end;
+      gap: 4rem;
+    }
+
+    .memo-hero h1 span { display: block; }
+
+    .memo-entry-paths {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4rem;
+      margin-top: 3rem;
+    }
+
+    .memo-entry {
+      min-width: 0;
+      border-top: 1px solid rgba(29, 32, 27, 0.25);
+      padding-top: 1.4rem;
+      scroll-margin-top: 6rem;
+    }
+
+    .memo-entry h2 {
+      margin: 0;
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 2.2rem;
+      font-weight: 400;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+    }
+
+    .memo-entry p {
+      max-width: 42ch;
+      min-height: 3.3em;
+      margin: 0.75rem 0 1.25rem;
+      color: var(--soft-ink);
+      font-size: 1.0625rem;
+      line-height: 1.65;
+    }
+
+    .memo-entry-status {
+      display: block;
+      margin-top: 0.65rem;
+      color: var(--soft-ink);
+      font-size: 0.9375rem;
+      line-height: 1.5;
     }
 
     .eyebrow {
@@ -394,21 +369,20 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
       margin: 0;
       font-family: "Newsreader", Georgia, serif;
       font-weight: 400;
-      letter-spacing: -0.055em;
+      letter-spacing: -0.035em;
     }
 
     .memo-hero h1 {
-      max-width: 700px;
-      font-size: clamp(4.3rem, 7.1vw, 7.4rem);
-      line-height: 0.88;
+      font-size: clamp(3rem, 6.7vw, 5.75rem);
+      line-height: 1.03;
     }
 
     .hero-intro {
-      max-width: 620px;
-      margin: 2rem 0 0;
+      max-width: 39ch;
+      margin: 0 0 0.25rem;
       color: var(--soft-ink);
-      font-size: clamp(1.03rem, 1.4vw, 1.2rem);
-      line-height: 1.75;
+      font-size: 1.2rem;
+      line-height: 1.65;
     }
 
     .memo-actions {
@@ -470,182 +444,17 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
       text-decoration: none !important;
     }
 
-    .hero-note {
-      margin: 1.2rem 0 0;
-      color: #85887f;
-      font-size: 0.72rem;
-    }
-
-    .memory-composition {
-      position: relative;
-      width: min(100%, 510px);
-      margin-left: auto;
-      padding: 2.2rem 0 2.7rem 2.6rem;
-    }
-
-    .memory-paper {
-      position: relative;
-      z-index: 2;
-      padding: 2.2rem 2.25rem 1.45rem;
-      border: 1px solid rgba(29, 32, 27, 0.14);
-      background: #fbf9f3;
-      box-shadow: 0 40px 90px rgba(45, 38, 29, 0.12), 0 4px 15px rgba(45, 38, 29, 0.05);
-      transform: rotate(1.2deg);
-    }
-
-    .memory-paper::after {
-      content: "";
-      position: absolute;
-      inset: 9px -9px -9px 9px;
-      z-index: -1;
-      border: 1px solid rgba(29, 32, 27, 0.08);
-      background: #ebe5d8;
-    }
-
-    .memory-date {
-      position: absolute;
-      left: 0;
-      top: 0;
-      z-index: 4;
-      display: grid;
-      place-items: center;
-      width: 74px;
-      height: 82px;
-      background: var(--rust);
-      color: white;
-      box-shadow: 0 14px 35px rgba(92, 54, 38, 0.2);
-      transform: rotate(-5deg);
-    }
-
-    .memory-date span {
-      margin-top: 0.35rem;
-      font-family: "Newsreader", Georgia, serif;
-      font-size: 2.25rem;
-      line-height: 1;
-    }
-
-    .memory-date small {
-      align-self: start;
-      font-size: 0.58rem;
-      letter-spacing: 0.18em;
-    }
-
-    .paper-head,
-    .paper-foot {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      color: #8b8b82;
-      font-size: 0.65rem;
-      letter-spacing: 0.04em;
-    }
-
-    .paper-saved {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      color: #66745f;
-    }
-
-    .paper-saved i {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: #7d9272;
-    }
-
-    .raw-memory {
-      margin: 1.65rem 0 1.8rem;
-      color: #2b2c28;
-      font-family: "Newsreader", Georgia, serif;
-      font-size: 1.42rem;
-      line-height: 1.38;
-    }
-
-    .paper-rule {
-      height: 1px;
-      margin-bottom: 1.45rem;
-      background: rgba(29, 32, 27, 0.1);
-    }
-
-    .memory-details {
-      display: grid;
-      gap: 0.95rem;
-    }
-
-    .memory-details > div {
-      display: grid;
-      grid-template-columns: 7px 1fr auto;
-      gap: 0.8rem;
-      align-items: center;
-    }
-
-    .memory-details p,
-    .memory-details em {
-      margin: 0;
-    }
-
-    .memory-details p {
-      font-size: 0.78rem;
-      font-weight: 600;
-    }
-
-    .memory-details p small {
-      display: inline-block;
-      width: 88px;
-      color: #94948b;
-      font-size: 0.55rem;
-      font-weight: 600;
-      letter-spacing: 0.11em;
-    }
-
-    .memory-details em {
-      color: #898a82;
-      font-family: "Newsreader", Georgia, serif;
-      font-size: 0.77rem;
-    }
-
-    .memory-mark {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-    }
-
-    .mark-sage { background: var(--sage); }
-    .mark-rust { background: var(--rust); }
-    .mark-blue { background: var(--blue); }
-
-    .paper-foot {
-      margin-top: 1.7rem;
-      padding-top: 1rem;
-      border-top: 1px solid rgba(29, 32, 27, 0.08);
-    }
-
-    .memory-whisper {
-      position: absolute;
-      z-index: 3;
-      padding: 0.52rem 0.72rem;
-      background: #e5d9bd;
-      box-shadow: 0 10px 28px rgba(45, 38, 29, 0.1);
-      color: #655d4d;
-      font-family: "Newsreader", Georgia, serif;
-      font-size: 0.72rem;
-      font-style: italic;
-    }
-
-    .whisper-one { right: -20px; bottom: 4px; transform: rotate(-3deg); }
-    .whisper-two { left: 2px; bottom: 54px; transform: rotate(4deg); }
-
     .missing-context {
-      padding: 10rem 0;
+      padding: 6rem 0;
+      scroll-margin-top: 4rem;
       background: var(--forest);
       color: var(--paper);
     }
 
     .context-grid {
       display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(450px, 1.1fr);
-      gap: 9rem;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 5rem;
       align-items: start;
     }
 
@@ -665,15 +474,54 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
       font-weight: 400;
     }
 
+
+    .context-intro {
+      margin: 1.5rem 0 0;
+      max-width: 44ch;
+      color: #dce0d7;
+      font-size: 1.125rem;
+      line-height: 1.65;
+    }
+    .context-pilot {
+      max-width: 48ch;
+      margin: 1.25rem 0 0;
+      color: #c8cec3;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    .context-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .context-actions .memo-button-light {
+      color: var(--forest);
+    }
+    .context-actions .memo-button-light:hover {
+      color: white;
+    }
+    .context-actions > a:not(.memo-button) {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      text-decoration: underline;
+      text-underline-offset: 0.25em;
+    }
+    .landing-shell :is(a, summary):focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 5px;
+    }
+
     .context-list {
       border-top: 1px solid rgba(244, 240, 231, 0.2);
     }
 
     .context-row {
       display: grid;
-      grid-template-columns: 42px 1fr;
-      gap: 1.5rem;
-      padding: 2.8rem 0;
+      grid-template-columns: minmax(0, 1fr);
+      padding: 2rem 0;
       border-bottom: 1px solid rgba(244, 240, 231, 0.2);
     }
 
@@ -694,8 +542,8 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
     .context-row p {
       max-width: 530px;
       margin: 0;
-      color: rgba(244, 240, 231, 0.62);
-      font-size: 0.93rem;
+      color: #c8cec3;
+      font-size: 1.0625rem;
       line-height: 1.7;
     }
 
@@ -1088,24 +936,10 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
     }
 
     @media (max-width: 980px) {
-      .memo-hero {
-        padding-top: 6rem;
-      }
-
-      .memo-hero-grid,
       .context-grid,
       .recall-grid {
         grid-template-columns: 1fr;
         gap: 5.5rem;
-      }
-
-      .memo-hero-copy {
-        max-width: 760px;
-      }
-
-      .memory-composition {
-        width: min(90%, 560px);
-        margin: 0 auto;
       }
 
       .context-heading {
@@ -1132,188 +966,24 @@ const softwareJsonLdString = JSON.stringify(softwareJsonLd);
         width: min(100% - 2.4rem, 1180px);
       }
 
-      .memo-hero {
-        min-height: auto;
-        padding: 5rem 0 6rem;
-      }
-
-      .memo-hero h1 {
-        font-size: clamp(3.55rem, 17vw, 5.2rem);
-      }
-
-      .memo-actions {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 0.8rem;
-      }
-
-      .memory-composition {
-        width: 100%;
-        padding-left: 1.2rem;
-      }
-
-      .memory-paper {
-        padding: 1.7rem 1.25rem 1.2rem;
-      }
-
-      .memory-date {
-        width: 60px;
-        height: 68px;
-      }
-
-      .memory-date span { font-size: 1.8rem; }
-      .memory-details > div { grid-template-columns: 7px 1fr; }
-      .memory-details em { display: none; }
-      .paper-foot span:first-child { display: none; }
-      .whisper-one { right: -6px; }
-      .whisper-two { display: none; }
-
-      .missing-context,
-      .how-section,
-      .recall-section,
-      .principles-section,
-      .closing-section {
-        padding-top: 7rem;
-        padding-bottom: 7rem;
-      }
-
-      .section-heading h2,
-      .principles-intro h2,
-      .recall-copy h2 {
-        font-size: clamp(3rem, 14vw, 4.5rem);
-      }
-
-      .how-heading {
-        display: block;
-        margin-bottom: 3.5rem;
-      }
-
-      .how-heading .eyebrow {
-        margin-bottom: 1.6rem;
-      }
-
-      .how-heading p:last-child {
-        margin: 1.5rem 0 0;
-      }
-
-      .chapter-grid,
-      .principles-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .chapter + .chapter,
-      .principles-grid article + article {
-        border-left: 0;
-        border-top: 1px solid rgba(29, 32, 27, 0.18);
-      }
-
-      .principles-grid article + article {
-        border-color: rgba(244, 240, 231, 0.18);
-      }
-
-      .chapter {
-        padding-inline: 0;
-      }
-
-      .chapter-art {
-        height: 220px;
-      }
-
-      .principles-intro {
-        display: block;
-      }
-
-      .principles-intro h2 {
-        text-align: left;
-      }
-
-      .principles-grid article {
-        padding-inline: 0;
-      }
-
-      .question-stack {
-        min-height: auto;
-        display: grid;
-        gap: 1rem;
-      }
-
-      .question-card {
-        position: static;
-        width: 100%;
-      }
-
-      .question-card-one { transform: rotate(-1deg); }
-      .question-card-two { transform: rotate(1deg); }
-      .question-card-three { transform: rotate(-0.5deg); }
-
-      .quiet-tech {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .quiet-tech i {
-        display: none;
-      }
-
-      .closing-section::before,
-      .closing-section::after {
-        display: none;
-      }
-
-      .closing-inner h2 {
-        font-size: clamp(4rem, 20vw, 6rem);
-      }
-    }
-
-    @media (max-width: 520px) {
-      .landing-v2 .header-actions .icon-btn {
-        display: none;
-      }
-
-      .landing-v2 .header-actions > .btn.primary {
-        min-height: 36px;
-        padding-inline: 0.9rem;
-      }
-
-      .raw-memory {
-        font-size: 1.17rem;
-      }
-
-      .memory-details p small {
-        display: block;
-        width: auto;
-        margin-bottom: 0.12rem;
-      }
+      .memo-hero { padding: 2.5rem 0 3rem; }
+      .memo-hero-intro { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+      .memo-hero h1 { font-size: clamp(2.6rem, 10vw, 4.5rem); }
+      .hero-intro { font-size: 1.0625rem; max-width: 45ch; }
+      .memo-entry-paths { grid-template-columns: minmax(0, 1fr); gap: 2rem; margin-top: 2rem; }
+      .memo-entry { padding-top: 1.25rem; }
+      .memo-entry h2 { font-size: 1.9rem; }
+      .memo-entry p { min-height: 0; font-size: 1rem; margin-bottom: 1rem; }
+      .memo-entry-status { font-size: 0.875rem; }
+      .missing-context { padding-block: 3.5rem; }
+      .context-heading h2 { font-size: clamp(2.5rem, 11vw, 4rem); }
 
       .context-grid,
       .recall-grid {
         gap: 4rem;
       }
 
-      .context-row {
-        grid-template-columns: 28px 1fr;
-        gap: 0.8rem;
-      }
     }
 
-    @media (prefers-reduced-motion: no-preference) {
-      .memory-paper {
-        animation: memory-arrive 700ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
-      }
-
-      .memory-date {
-        animation: date-arrive 650ms 180ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
-      }
-
-      @keyframes memory-arrive {
-        from { opacity: 0; transform: translateY(24px) rotate(2.4deg); }
-        to { opacity: 1; transform: translateY(0) rotate(1.2deg); }
-      }
-
-      @keyframes date-arrive {
-        from { opacity: 0; transform: translate(-8px, 12px) rotate(-9deg); }
-        to { opacity: 1; transform: translate(0, 0) rotate(-5deg); }
-      }
-    }
   </style>
 </BaseLayout>

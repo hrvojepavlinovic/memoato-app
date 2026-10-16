@@ -12,9 +12,9 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.57.0",
-    "react-router-dom": "^6.26.2",
     "tailwind-merge": "~2.6.0",
-    "wasp": "file:.wasp/out/sdk/wasp"
+    "wasp": "file:.wasp/out/sdk/wasp",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
@@ -31,24 +31,28 @@
     "typescript": "5.8.2",
     "typescript-eslint": "^8.32.1",
     "vite": "^7.0.6",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12",
+    "braces": "file:packages/braces"
   },
   "overrides": {
-    "@vitest/ui": "4.1.10",
+    "@vitest/ui": "4.1.12",
     "@xmldom/xmldom": "0.8.13",
-    "axios": "1.18.1",
+    "axios": "1.20.0",
     "cookie": "0.7.2",
     "esbuild": "0.25.12",
-    "morgan": "1.11.0",
+    "morgan": "1.12.1",
     "nodemon": "3.1.14",
-    "nodemailer": "9.0.3",
+    "nodemailer": "10.1.2",
     "picomatch": "4.0.5",
-    "postcss": "8.5.19",
-    "qs": "6.15.3",
+    "postcss": "8.5.30",
+    "qs": "6.16.1",
     "rollup": "4.62.2",
     "vite": "$vite",
     "vitest": "$vitest",
-    "ws": "8.21.0"
+    "ws": "8.21.0",
+    "braces": "$braces",
+    "react-router-dom": "$react-router-dom",
+    "postcss-selector-parser": "7.1.6"
   },
   "scripts": {
     "test": "vitest run"

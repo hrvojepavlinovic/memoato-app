@@ -16,9 +16,10 @@ function updatePackage(relativePath, update) {
 updatePackage(".wasp/out/sdk/wasp/package.json", (pkg) => {
   pkg.dependencies = {
     ...pkg.dependencies,
-    nodemailer: "^9.0.3",
-    vitest: "^4.1.10",
-    "@vitest/ui": "^4.1.10",
+    nodemailer: "^10.1.2",
+    "react-router-dom": "^7.18.4",
+    vitest: "^4.1.12",
+    "@vitest/ui": "^4.1.12",
     msw: "^2.15.0",
   };
 });
@@ -26,13 +27,17 @@ updatePackage(".wasp/out/sdk/wasp/package.json", (pkg) => {
 updatePackage(".wasp/build/server/package.json", (pkg) => {
   pkg.dependencies = {
     ...pkg.dependencies,
-    morgan: "^1.11.0",
-    nodemailer: "^9.0.3",
+    morgan: "^1.12.1",
+    nodemailer: "^10.1.2",
   };
   pkg.devDependencies = {
     ...pkg.devDependencies,
     nodemon: "^3.1.14",
   };
+});
+
+updatePackage(".wasp/build/web-app/package.json", (pkg) => {
+  pkg.dependencies = { ...pkg.dependencies, "react-router-dom": "^7.18.4" };
 });
 
 console.log("[patch_wasp_dependency_versions] Generated dependencies pinned to patched releases.");
