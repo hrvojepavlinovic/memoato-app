@@ -12,32 +12,58 @@ function fmtDate(input: any): string | null {
   if (!input) return null;
   const d = new Date(input);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+  return d.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit", timeZone: "UTC" });
 }
 ---
 
 <EditorialPageLayout
   title="Journal · memoato"
-  description="Notes about personal memory, low-friction logging, product decisions, and building Memoato in the open."
+  description="The Memoato journal: personal memory, product decisions, and the story behind the project."
   canonicalPath="/blog"
   eyebrow="Memoato journal"
-  heading="Thinking in public, remembering in private."
-  deck="Product notes, design decisions, and practical ideas for keeping the parts of life that normally disappear between apps."
+  heading="The Memoato journal."
+  deck="Notes on personal memory, product decisions, and how Memoato began. Earlier posts reflect the product at the time they were written."
   accent="ink"
   wide={true}
 >
-  <div class="post-list">
+  <ol class="journal-list" aria-label="Journal entries, newest first">
     {posts.map((p) => {
       const title = p.frontmatter.title ?? p.url;
       const desc = p.frontmatter.description ?? "";
       const dateLabel = fmtDate(p.frontmatter.date);
       return (
-        <a class="card post-card" href={p.url}>
-          {dateLabel ? <div class="post-kicker">{dateLabel}</div> : null}
-          <div class="post-title">{title}</div>
-          {desc ? <div class="post-desc">{desc}</div> : null}
-        </a>
+        <li>
+          <a class="journal-entry" href={p.url}>
+            {dateLabel ? <time datetime={new Date(p.frontmatter.date).toISOString()}>{dateLabel}</time> : <span />}
+            <div>
+              <h2>{title}</h2>
+              {desc ? <p>{desc}</p> : null}
+            </div>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10" /></svg>
+          </a>
+        </li>
       );
     })}
-  </div>
+  </ol>
 </EditorialPageLayout>
+
+<style>
+  .journal-list { margin: 0; padding: 0; list-style: none; }
+  .journal-list li { padding: 0; border: 0; border-top: 1px solid var(--editorial-sage); }
+  .journal-list li::before { content: none; }
+  .journal-entry { display: grid; grid-template-columns: 8rem minmax(0, 1fr) 20px; gap: 2rem; align-items: start; padding: 1.75rem 0; text-decoration: none; }
+  .journal-entry time { padding-top: 0.35rem; color: var(--editorial-muted); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+  .journal-entry h2 { margin: 0; padding: 0; border: 0; font-size: 1.9rem; line-height: 1.2; }
+  .journal-entry p { margin: 0.5rem 0 0; max-width: 65ch; font-size: 1rem; line-height: 1.6; }
+  .journal-entry svg { width: 20px; height: 20px; margin-top: 0.35rem; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .journal-entry:hover { text-decoration: none; }
+  .journal-entry:hover h2, .journal-entry:focus-visible h2 { text-decoration: underline; text-underline-offset: 0.15em; }
+  .journal-entry:focus-visible { outline: 2px solid var(--editorial-ink); outline-offset: 4px; }
+  @media (max-width: 680px) {
+    .journal-entry { grid-template-columns: minmax(0, 1fr) 20px; gap: 0.75rem 1rem; padding: 1.5rem 0; }
+    .journal-entry time { grid-column: 1; padding: 0; }
+    .journal-entry > div { grid-column: 1; }
+    .journal-entry svg { grid-column: 2; grid-row: 2; }
+    .journal-entry h2 { font-size: 1.6rem; }
+  }
+</style>

@@ -10,7 +10,7 @@ const faqJsonLd = {
       name: "How do I log something in Memoato?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Open Quick Log and write what happened naturally. Memoato saves the raw note first, then processes useful categories and details in the background.",
+        text: "Open Quick Log in Cloud mode and write what happened naturally. In Cloud mode, Memoato saves the raw note first, then processes useful categories and details in the background.",
       },
     },
     {
@@ -60,56 +60,68 @@ const faqJsonLdString = JSON.stringify(faqJsonLd);
 
 <EditorialPageLayout
   title="Help · memoato"
-  description="How to capture, organize, review, and protect your memories in Memoato."
+  description="Get started with personal memory, recall, privacy modes, MCP, and the Memoato Context pilot."
   canonicalPath="/help"
   eyebrow="Help & FAQ"
-  heading="Start with what happened."
-  deck="You do not need to design a tracking system before using Memoato. One honest sentence is enough to begin."
+  heading="Using Memoato."
+  deck="Write a first note, find it again, or connect an AI client. Project context has its own pilot entry point."
   accent="sage"
 >
   <script slot="head" type="application/ld+json" set:html={faqJsonLdString} />
 
+  <nav class="help-jumps" aria-label="Help topics">
+    <a href="#first-note">First note</a>
+    <a href="#recall">Find a memory</a>
+    <a href="#privacy-modes">Privacy</a>
+    <a href="#connect-mcp">MCP setup</a>
+  </nav>
+
+  <h2 id="first-note">Write your first note</h2>
   <p>
-    Open <a href="https://app.memoato.com">Quick Log</a>, write the thing in your own words, and submit it. Memoato saves
+    Sign in to <a href="https://app.memoato.com">Memoato</a>. In Cloud mode, open <strong>Quick Log</strong>, write what happened in your own words, and save it. Memoato saves
     the original note immediately. Useful structure can appear afterward without making you wait at capture time.
   </p>
 
-  <h2>What can I write?</h2>
-  <p>Anything that might matter later. Short is fine. Messy is fine. A few examples:</p>
+  <h3>What can I write?</h3>
+  <p>A detail you might want later. A few examples:</p>
   <ul>
-    <li><code>Low energy, skipped gym, walked 20 minutes after lunch</code></li>
+    <li><code>Lunch at Maru with Sam. Order the miso aubergine again.</code></li>
     <li><code>89.8 kg</code></li>
     <li><code>Pull ups 2 2 3</code></li>
     <li><code>Bought car battery, 59 EUR, two year warranty</code></li>
   </ul>
 
-  <h2>What happens to the raw note?</h2>
+  <h3>What happens to the raw note?</h3>
   <p>
     It stays intact. Memoato may derive categories, values, timestamps, and context from it, but the original source is
     preserved. Derived entries remain linked to the raw log so later corrections update the meaning without duplicating
     what you wrote.
   </p>
 
-  <h2>What are categories?</h2>
+  <h2 id="recall">Find a memory again</h2>
+  <p>In Cloud mode, open <strong>Recall</strong> and ask about a detail you saved. For example, after the lunch note above: <code>What did I want to order again at Maru?</code> Read the answer alongside its source note. If the evidence is missing or an interpretation is wrong, return to the note rather than treating the answer as certain.</p>
+  <p>With an AI client, a key needs <strong>Recall only</strong> or <strong>Log and recall</strong> access. See <a href="#connect-mcp">MCP setup</a>.</p>
+
+  <h3>What are categories?</h3>
   <p>
     Categories are useful views and metrics — Weight, Pull ups, Football, Energy, Notes, and anything personal to you.
     They are no longer the only way to begin a log. You can write naturally and let Memoato match existing categories,
     or open a category directly when you already know exactly what you want to add.
   </p>
 
-  <h2>How does the Timeline work?</h2>
+  <h3>How does the Timeline work?</h3>
   <p>
     Timeline gives you a day-by-day view of what happened. It groups related entries, keeps notes readable, and lets you
     move backward through your history without opening every category individually.
   </p>
 
-  <h2>Can I edit, delete, or reorder things?</h2>
+  <h3>Can I edit, delete, or reorder things?</h3>
   <p>
     Yes. Category history supports editing and deletion. Home categories can be reordered from Edit mode. Your profile
     also includes data export and account deletion controls.
   </p>
 
-  <h2>Privacy modes</h2>
+  <h2 id="privacy-modes">Privacy modes</h2>
   <ul>
     <li><strong>Cloud sync</strong> — the simplest multi-device experience.</li>
     <li><strong>Encrypted cloud</strong> — category titles and notes are encrypted on your device before saving.</li>
@@ -139,7 +151,10 @@ const faqJsonLdString = JSON.stringify(faqJsonLd);
 </EditorialPageLayout>
 
 <style>
-  #connect-mcp, #context-pilot { scroll-margin-top: 7rem; }
+  h2[id], #context-pilot { scroll-margin-top: 7rem; }
+  .help-jumps { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--editorial-sage); }
+  .help-jumps a { display: inline-flex; align-items: center; min-height: 44px; }
+  #first-note { margin-top: 1.75rem; padding-top: 0; border-top: 0; }
   .mcp-steps { margin: 1.5rem 0; padding-left: 1.4rem; list-style: decimal; }
   .mcp-steps li { padding-left: 0.5rem; }
   .mcp-steps li::before { content: none; }

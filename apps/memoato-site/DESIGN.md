@@ -93,6 +93,15 @@ cards or an oversized closing slogan. Setup links lead to the existing Help
 page; the privacy explainer keeps its existing URL and links to the unchanged
 legal policy.
 
+Informational pages use a compact, flat introduction and a centered reading
+column (760px). The title is at most 4rem, followed by publication metadata when
+relevant and a short deck. Content follows immediately; decorative grids,
+circles, repeated margin branding and oversized hero spacing are removed. The
+journal index expands to 1180px and lists dated entries in open horizontal rows,
+stacking dates over titles on mobile. Original article text and URLs are kept.
+Help exposes native topic anchors before its instructions. Header and footer
+reuse the official Primer Octicons GitHub mark within its original viewBox.
+
 ## Do's and Don'ts
 
 - Keep both audiences visible and give each a concrete next step.
