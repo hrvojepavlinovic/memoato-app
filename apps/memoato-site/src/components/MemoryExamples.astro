@@ -1,0 +1,225 @@
+<section class="memory-example example-personal" id="how-it-works" aria-labelledby="personal-example-title">
+  <div class="example-layout">
+    <div class="example-heading">
+      <h2 id="personal-example-title">Find the <br />detail again.</h2>
+      <p>A quick note is enough. Add a detail when you need to, then find what you meant with the original still there.</p>
+      <a class="memo-button memo-button-primary" href="https://app.memoato.com" rel="noreferrer" referrerpolicy="no-referrer">Try personal memory<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"></path></svg></a>
+    </div>
+
+    <figure class="memory-example-flow" aria-labelledby="personal-example-caption">
+      <figcaption id="personal-example-caption">Personal memory · Fictional example</figcaption>
+      <ol class="example-steps" role="list">
+        <li id="personal-example-note">
+          <h3>Capture</h3>
+          <div>
+            <blockquote>Lunch at Maru with Sam. Order the miso aubergine again.</blockquote>
+            <p class="example-meta">Your original note · 12 May</p>
+          </div>
+        </li>
+        <li>
+          <h3>Review</h3>
+          <div>
+            <dl class="remembered-details">
+              <div><dt>Remember</dt><dd>Order the miso aubergine again.</dd></div>
+              <div><dt>Place</dt><dd><del>Maru</del> <ins>Maru on Market Street</ins></dd></div>
+            </dl>
+            <p class="example-meta">Place clarified by you. The original note stays unchanged.</p>
+          </div>
+        </li>
+        <li>
+          <h3>Recall</h3>
+          <div>
+            <p class="example-question">“What did I want to order again at Maru?”</p>
+            <p class="example-answer">The miso aubergine.</p>
+            <a class="example-source-link" href="#personal-example-note">View the original lunch note</a>
+          </div>
+        </li>
+      </ol>
+    </figure>
+  </div>
+</section>
+
+<section class="memory-example example-project" id="ai-context" aria-labelledby="context-title">
+  <div class="example-layout">
+    <div class="example-heading">
+      <h2 id="context-title">Context you <br />can check.</h2>
+      <p>Bring a project source, review the claim, and give AI an answer that points back to the evidence.</p>
+      <p class="example-availability">Context is in pilot: one owner per workspace, with read-only GitHub and Linear sources.</p>
+      <div class="example-actions">
+        <a class="memo-button memo-button-light" href="mailto:hello@memoato.com?subject=Memoato%20Context%20pilot">Ask about the pilot<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4"></path></svg></a>
+        <a class="example-source-link" href="https://guide.hills-lab.hr" target="_blank" rel="noopener noreferrer">Read the approach</a>
+      </div>
+    </div>
+
+    <figure class="memory-example-flow" aria-labelledby="project-example-caption">
+      <figcaption id="project-example-caption">Project context · Fictional example</figcaption>
+      <ol class="example-steps" role="list">
+        <li id="project-example-source">
+          <h3>Source</h3>
+          <div>
+            <blockquote>Retry transient sync failures in the worker. The API accepts the job and returns.</blockquote>
+            <p class="example-meta">GitHub · docs/sync-retries.md · Version 2</p>
+          </div>
+        </li>
+        <li>
+          <h3>Review</h3>
+          <div>
+            <p class="reviewed-claim">Retries run in the background worker.</p>
+            <p class="example-meta">Accepted by the workspace owner.</p>
+            <dl class="source-checks">
+              <div><dt>Freshness</dt><dd>Within its review window</dd></div>
+              <div><dt>Access</dt><dd>Within the allowed project scope</dd></div>
+            </dl>
+          </div>
+        </li>
+        <li>
+          <h3>Retrieve</h3>
+          <div>
+            <p class="example-question">“Where should sync retries run?”</p>
+            <p class="example-answer">In the worker, so the API can return without waiting.</p>
+            <a class="example-source-link" href="#project-example-source">View the GitHub source example</a>
+          </div>
+        </li>
+      </ol>
+    </figure>
+  </div>
+</section>
+
+<style>
+  .memory-example {
+    --example-text: var(--ink);
+    --example-muted: var(--soft-ink);
+    --example-rule: rgba(29, 32, 27, 0.2);
+    padding-block: clamp(3.5rem, 7vw, 6rem);
+    color: var(--example-text);
+    scroll-margin-top: 5.5rem;
+  }
+  .example-personal { border-top: 1px solid var(--example-rule); }
+  .example-project {
+    --example-text: var(--paper);
+    --example-muted: #c8cec3;
+    --example-rule: rgba(244, 240, 231, 0.24);
+    background: var(--forest);
+  }
+  .example-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(2.5rem, 6vw, 6rem);
+    width: min(100% - 2rem, 1180px);
+    margin-inline: auto;
+    align-items: start;
+  }
+  .example-heading h2 {
+    margin: 0;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: clamp(2.5rem, 4.6vw, 4rem);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .example-heading > p {
+    max-width: 40ch;
+    margin: 1.25rem 0 0;
+    color: var(--example-muted);
+    font-size: 1.0625rem;
+    line-height: 1.65;
+  }
+  .example-heading > .memo-button { margin-top: 1.5rem; }
+  .example-heading > .example-availability { font-size: 1rem; }
+  .example-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.25rem;
+    margin-top: 1.5rem;
+  }
+  .example-actions .memo-button-light { color: var(--forest); }
+  .example-actions .memo-button-light:hover { color: white; }
+  .memory-example-flow { min-width: 0; margin: 0; }
+  figcaption {
+    padding-bottom: 1rem;
+    color: var(--example-muted);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+  .example-steps { margin: 0; padding: 0; list-style: none; }
+  .example-steps > li {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 1rem;
+    padding-block: 1.5rem;
+    border-top: 1px solid var(--example-rule);
+  }
+  .example-steps > li[id] { scroll-margin-top: 6rem; }
+  .example-steps h3 {
+    margin: 0;
+    padding-top: 0.25rem;
+    font: 500 0.9375rem/1.5 "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    color: var(--example-muted);
+  }
+  blockquote {
+    max-width: 34ch;
+    margin: 0;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: clamp(1.5rem, 2.1vw, 1.875rem);
+    line-height: 1.35;
+  }
+  .example-meta {
+    margin: 0.75rem 0 0;
+    color: var(--example-muted);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  .remembered-details, .source-checks { margin: 0; }
+  .remembered-details > div, .source-checks > div { margin-bottom: 0.75rem; }
+  dt {
+    margin-bottom: 0.25rem;
+    color: var(--example-muted);
+    font-size: 0.9375rem;
+  }
+  dd { margin: 0; font-size: 1rem; line-height: 1.6; }
+  del { margin-right: 0.4rem; color: var(--example-muted); }
+  ins { text-decoration-color: var(--rust); text-underline-offset: 0.25em; }
+  .reviewed-claim { margin: 0; font-size: 1.125rem; line-height: 1.6; }
+  .source-checks {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: 1.25rem;
+    margin-top: 1rem;
+  }
+  .source-checks > div { margin: 0; }
+  .source-checks dd { font-size: 0.9375rem; }
+  .example-question { margin: 0; color: var(--example-muted); font-size: 1rem; line-height: 1.6; }
+  .example-answer {
+    margin: 0.5rem 0 0;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 1.625rem;
+    line-height: 1.35;
+  }
+  .example-source-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 0.4rem;
+    color: inherit;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+  .example-source-link:hover { text-decoration-thickness: 2px; }
+  @media (max-width: 880px) {
+    .example-layout { grid-template-columns: minmax(0, 1fr); gap: 2.5rem; }
+    .example-heading { max-width: 42rem; }
+    .example-heading h2 br { display: none; }
+    .example-heading > p { max-width: 54ch; }
+  }
+  @media (max-width: 760px) {
+    .example-layout { width: min(100% - 2.4rem, 1180px); }
+    .example-steps > li { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+    .example-steps h3 { padding: 0; }
+    blockquote { max-width: 30ch; font-size: 1.625rem; }
+    .source-checks { gap: 1rem; }
+  }
+</style>

@@ -47,8 +47,13 @@ The landing container is at most 1180px. A desktop introduction pairs the title
 with a short explanation, followed by two equally sized open entry sections.
 Thin horizontal rules separate these sections without enclosing them in cards.
 Both desktop actions are visible at 1280×720. Mobile stacks the two paths and
-keeps the same title, body and action order. Detailed demos remain a subsequent
-work item.
+keeps the same title, body and action order.
+
+Two open example sections follow the introduction, personal first on cream and
+project context on forest. Each pairs an explanation with a three-step evidence
+flow. Functional rules separate capture/source, human review and recall/retrieval;
+they do not enclose the example in decorative cards. Below 880px the explanation
+sits above the flow; below 760px stage labels sit above their content.
 
 ## Elevation & Depth
 
@@ -72,6 +77,12 @@ content.
 The Personal action opens the existing app. The Context action leads to a pilot
 explanation and a contact link. It does not imply unrestricted team sign-up.
 Availability is stated next to each entry action.
+
+The examples are explicitly fictional, static explanatory content. The personal
+example shows a place clarification while preserving the original note. The
+project example shows a human-accepted claim, a source version, freshness and
+scope. Source links lead back to the matching example excerpt on the page. They
+do not imply access to a real user's note, GitHub project or live AI response.
 
 ## Do's and Don'ts
 
