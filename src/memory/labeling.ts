@@ -1,4 +1,5 @@
 import type { MemoryExtraction, MemoryFact, MemoryFactKind } from "./types";
+import { EXERCISE_CATALOG } from "./exercise";
 
 type PrismaLike = any;
 
@@ -23,6 +24,30 @@ export type MemoryConceptDefinition = {
 };
 
 export const MEMORY_CONCEPT_CATALOG: MemoryConceptDefinition[] = [
+  {
+    key: "movement.workout_session",
+    displayName: "Workout Session",
+    domain: "movement",
+    factKind: "movement",
+    description:
+      "An enclosing workout session linked to its individual exercise facts and sets.",
+    aliases: [
+      "workout session",
+      "strength workout",
+      "strength b workout",
+      "mini strength b",
+      "upper/core a",
+    ],
+  },
+  ...EXERCISE_CATALOG.map((exercise) => ({
+    key: exercise.conceptKey,
+    displayName: exercise.displayName,
+    domain: "movement" as const,
+    factKind: "movement" as const,
+    description: `${exercise.displayName} exercise with explicit set and execution details.`,
+    defaultUnit: exercise.defaultUnit,
+    aliases: exercise.aliases,
+  })),
   {
     key: "movement.football",
     displayName: "Football",
@@ -78,20 +103,6 @@ export const MEMORY_CONCEPT_CATALOG: MemoryConceptDefinition[] = [
     autoExtract: true,
   },
   {
-    key: "movement.indoor_bike",
-    displayName: "Indoor bike",
-    domain: "movement",
-    factKind: "movement",
-    description: "Stationary or indoor cycling.",
-    defaultUnit: "min",
-    aliases: [
-      "indoor bike",
-      "stationary bike",
-      "sobna bicikla",
-      "sobnu biciklu",
-    ],
-  },
-  {
     key: "movement.pull_ups",
     displayName: "Pull ups",
     domain: "movement",
@@ -102,22 +113,6 @@ export const MEMORY_CONCEPT_CATALOG: MemoryConceptDefinition[] = [
     aliases: ["pull ups", "pull up", "pullups", "zgibovi", "zgibove", "zgib"],
   },
   {
-    key: "movement.push_ups",
-    displayName: "Push ups",
-    domain: "movement",
-    factKind: "movement",
-    description: "Push ups or sklekovi.",
-    defaultUnit: "reps",
-    aliases: [
-      "push ups",
-      "push up",
-      "pushups",
-      "sklekovi",
-      "sklekove",
-      "sklek",
-    ],
-  },
-  {
     key: "movement.biceps_curls",
     displayName: "Biceps curls",
     domain: "movement",
@@ -125,15 +120,6 @@ export const MEMORY_CONCEPT_CATALOG: MemoryConceptDefinition[] = [
     description: "Biceps curl exercise with reps, sets or weight context.",
     defaultUnit: "reps",
     aliases: ["biceps curls", "biceps curl", "curlsa", "curls"],
-  },
-  {
-    key: "movement.calf_raises",
-    displayName: "Calf raises",
-    domain: "movement",
-    factKind: "movement",
-    description: "Calf raise exercise, including listovi.",
-    defaultUnit: "reps",
-    aliases: ["calf raises", "calf raise", "listovi", "listove"],
   },
   {
     key: "health.body_weight",

@@ -228,7 +228,7 @@ query getCategoryContributions {
 
 query getCategoryEvents {
   fn: import { getCategoryEvents } from "@src/focus/queries",
-  entities: [User, Event, Category]
+  entities: [User, Event, Category, WorkoutMetric]
 }
 
 query getCategoryTemplates {

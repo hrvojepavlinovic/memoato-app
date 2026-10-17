@@ -27,6 +27,7 @@ import {
 import type { BucketAggregation, GoalDirection } from "./types";
 import { QuickLogDialog } from "./components/QuickLogDialog";
 import { TodayMemoryPanel } from "../memory/components/TodayMemoryPanel";
+import { categoryIcon } from "./categoryIcon";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -451,7 +452,7 @@ function CoachCard({
                     style={{ borderColor: accent }}
                     aria-hidden="true"
                   >
-                    <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                    <div className="text-lg leading-none">{categoryIcon(c)}</div>
                   </div>
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">{displayTitle}</div>
@@ -495,7 +496,7 @@ function CoachCard({
                     style={{ borderColor: accent }}
                     aria-hidden="true"
                   >
-                    <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                    <div className="text-lg leading-none">{categoryIcon(c)}</div>
                   </div>
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">{displayTitle}</div>
@@ -950,7 +951,7 @@ export function HomePage() {
               style={{ borderColor: resolveAccentForTheme(activePromptCategory.accentHex, theme.isDark) ?? activePromptCategory.accentHex }}
               aria-hidden="true"
             >
-              <div className="text-lg leading-none">{activePromptCategory.emoji ?? ""}</div>
+              <div className="text-lg leading-none">{categoryIcon(activePromptCategory)}</div>
             </div>
             <div className="min-w-0 truncate text-sm font-semibold text-neutral-950 dark:text-neutral-100">
               {displayTitleById[activePromptCategory.id] ?? activePromptCategory.title}
@@ -1129,7 +1130,7 @@ export function HomePage() {
                     style={{ borderColor: accent }}
                     aria-hidden="true"
                   >
-                    <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                    <div className="text-lg leading-none">{categoryIcon(c)}</div>
                   </div>
 
                   <div className="min-w-0">
@@ -1186,7 +1187,7 @@ export function HomePage() {
                         style={{ borderColor: accent }}
                         aria-hidden="true"
                       >
-                        <div className="text-lg leading-none">{c.emoji ?? ""}</div>
+                        <div className="text-lg leading-none">{categoryIcon(c)}</div>
                       </div>
 	                      <div className="min-w-0">
 	                        <div className="flex items-center gap-2">

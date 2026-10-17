@@ -10,6 +10,7 @@ import type {
   GoalDirection,
 } from "./types";
 import { normalizeCategorySchedule } from "./schedule";
+import { normalizeCategoryAmount } from "./categoryEntrySemantics";
 
 export type LocalCategory = {
   id: string;
@@ -629,6 +630,7 @@ export async function localGetCategoryEvents(args: {
   return events.map((e) => ({
     id: e.id,
     amount: e.amount ?? null,
+    duration: e.duration ?? null,
     occurredAt: new Date(e.occurredAt),
     occurredOn: new Date(e.occurredOn),
     rawText: e.rawText ?? null,
@@ -859,6 +861,12 @@ export async function localCreateEvent(args: {
   scheduledStatus?: "went" | "missed" | "cancelled" | null;
 }): Promise<void> {
   const db = await openDb();
+  const category = await new Promise<LocalCategory | null>((resolve, reject) => {
+    const tx = db.transaction("categories", "readonly");
+    const req = tx.objectStore("categories").get(args.categoryId);
+    req.onsuccess = () => resolve((req.result as LocalCategory) ?? null);
+    req.onerror = () => reject(req.error);
+  });
   const nowIso = new Date().toISOString();
   const { occurredAt, occurredOn } = parseOccurred({ occurredOn: args.occurredOn, occurredAt: args.occurredAt });
 
@@ -895,8 +903,14 @@ export async function localCreateEvent(args: {
   if (status === "went" || status === "missed" || status === "cancelled") {
     nextData.scheduledStatus = status;
   }
+  const requestedAmount =
+    typeof args.amount === "number" && Number.isFinite(args.amount) ? args.amount : null;
   const resolvedAmount =
-    typeof args.amount === "number" && Number.isFinite(args.amount) ? args.amount : status === "missed" || status === "cancelled" ? 0 : 1;
+    normalizeCategoryAmount({
+      categoryType: category?.categoryType,
+      requestedAmount,
+      scheduledStatus: status,
+    }) ?? 1;
   const record: LocalEvent = {
     id,
     userId: args.userId,
@@ -935,6 +949,13 @@ export async function localUpdateEvent(args: {
   });
   if (!existing || existing.userId !== args.userId) throw new Error("Event not found");
 
+  const category = await new Promise<LocalCategory | null>((resolve, reject) => {
+    const tx = db.transaction("categories", "readonly");
+    const req = tx.objectStore("categories").get(existing.categoryId);
+    req.onsuccess = () => resolve((req.result as LocalCategory) ?? null);
+    req.onerror = () => reject(req.error);
+  });
+
   const occurred = parseOccurredAt(args.occurredAt);
   const baseData =
     existing.data && typeof existing.data === "object" && !Array.isArray(existing.data)
@@ -963,7 +984,13 @@ export async function localUpdateEvent(args: {
 
   const updated: LocalEvent = {
     ...existing,
-    amount: args.amount,
+    amount:
+      normalizeCategoryAmount({
+        categoryType: category?.categoryType,
+        requestedAmount: args.amount,
+        scheduledStatus:
+          typeof nextData.scheduledStatus === "string" ? nextData.scheduledStatus : null,
+      }) ?? args.amount,
     occurredAt: occurred.occurredAt.toISOString(),
     occurredOn: toIsoDate(occurred.occurredOn),
     data: nextData,

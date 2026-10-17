@@ -16,6 +16,7 @@ import { useTheme } from "../theme/ThemeProvider";
 import { resolveAccentForTheme } from "../theme/colors";
 import { NotFoundPage } from "../NotFoundPage";
 import { isEncryptedString } from "../privacy/crypto";
+import { categoryIcon } from "../focus/categoryIcon";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -265,7 +266,7 @@ export function PublicUserCategoryPage() {
                 style={{ borderColor: accentHex }}
                 aria-hidden="true"
               >
-                <div className="text-lg leading-none">{category.emoji ?? ""}</div>
+                <div className="text-lg leading-none">{categoryIcon(category)}</div>
               </div>
 
               <div className="min-w-0 flex-1">

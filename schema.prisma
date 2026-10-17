@@ -42,6 +42,7 @@ model User {
   MemoryConceptAlias     MemoryConceptAlias[]
   MemoryEntryConcept     MemoryEntryConcept[]
   MemoryConceptEmbedding MemoryConceptEmbedding[]
+  WorkoutMetric          WorkoutMetric[]
   WorkspacesCreated      Workspace[]              @relation("WorkspaceCreator")
   WorkspaceMemberships   WorkspaceMember[]
 }
@@ -162,11 +163,40 @@ model Event {
   memoryCorrections    MemoryCorrection[]
   memoryEmbeddings     MemoryEmbedding[]
   memoryConcepts       MemoryEntryConcept[]
+  workoutMetrics       WorkoutMetric[]       @relation("WorkoutMetrics")
 
   @@unique([source, kind, sourceId])
   @@index([userId])
   @@index([occurredOn])
   @@index([occurredAt])
+}
+
+// Typed dimensions that belong to one performed workout SESSION. The Event is
+// the parent; metrics must never be projected as additional workout sessions.
+model WorkoutMetric {
+  id String @id @default(uuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  workoutEvent   Event  @relation("WorkoutMetrics", fields: [workoutEventId], references: [id], onDelete: Cascade)
+  workoutEventId String
+
+  key                         String
+  value                       Float
+  unit                        String
+  role                        String  @default("dimension")
+  rollupTarget                String?
+  excludedFromDailyActiveKcal Boolean @default(false)
+  label                       String?
+  data                        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workoutEventId, key])
+  @@index([userId, key])
+  @@index([workoutEventId])
 }
 
 // The raw Event(kind=NOTE) remains the source of truth. These rows are a

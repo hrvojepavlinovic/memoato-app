@@ -2,6 +2,7 @@ import { Category, Event } from "wasp/entities";
 import { HttpError, prisma } from "wasp/server";
 import { normalizeCategorySchedule, normalizeScheduleTime } from "./schedule";
 import { createRawMemoryEntry } from "../memory/ingest";
+import { categoryEntryLabel, normalizeCategoryAmount } from "./categoryEntrySemantics";
 import {
   type CreateEvent,
   type CreateCategory,
@@ -899,7 +900,7 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
 
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { title: true, unit: true, categoryType: true },
+    select: { title: true, slug: true, unit: true, categoryType: true },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
@@ -910,15 +911,13 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
     if (s === "went" || s === "missed" || s === "cancelled") return s;
     return null;
   })();
-  let resolvedAmount =
-    typeof amount === "number" && Number.isFinite(amount) ? amount : null;
-  if (resolvedAmount == null) {
-    if (category.categoryType === "DO" || category.categoryType === "DONT") {
-      resolvedAmount = normalizedStatus === "went" || normalizedStatus == null ? 1 : 0;
-    } else {
-      throw new HttpError(400, "Amount is required.");
-    }
-  }
+  const requestedAmount = typeof amount === "number" && Number.isFinite(amount) ? amount : null;
+  const resolvedAmount = normalizeCategoryAmount({
+    categoryType: category.categoryType,
+    requestedAmount,
+    scheduledStatus: normalizedStatus,
+  });
+  if (resolvedAmount == null) throw new HttpError(400, "Amount is required.");
   if ((category.categoryType === "NUMBER" || category.categoryType === "GOAL") && !(resolvedAmount > 0)) {
     throw new HttpError(400, "Enter a positive number.");
   }
@@ -962,8 +961,13 @@ export const createEvent: CreateEvent<CreateEventArgs, Event> = async (
 
   const cleanRawText = typeof rawText === "string" ? rawText.trim() : "";
   const fallbackRawText =
-    normalizedStatus && (category.categoryType === "DO" || category.categoryType === "DONT")
-      ? `${category.title} ${normalizedStatus}`
+    category.categoryType === "DO" || category.categoryType === "DONT"
+      ? categoryEntryLabel({
+          categorySlug: category.slug,
+          categoryTitle: category.title,
+          scheduledStatus: normalizedStatus,
+          amount: resolvedAmount,
+        })
       : `${category.title} ${resolvedAmount}${unit}`;
   return context.entities.Event.create({
     data: {
@@ -1015,24 +1019,48 @@ export const updateEvent: UpdateEvent<UpdateEventArgs, Event> = async (
 
   const existing = await context.entities.Event.findFirst({
     where: { id: eventId, userId, kind: "SESSION" },
-    select: { id: true, data: true, rawText: true, categoryId: true, category: { select: { title: true, unit: true } } },
+    select: {
+      id: true,
+      data: true,
+      rawText: true,
+      categoryId: true,
+      category: { select: { title: true, slug: true, unit: true, categoryType: true } },
+    },
   });
   if (!existing) {
     throw new HttpError(404, "Event not found");
   }
 
   const occurred = parseOccurredAt(occurredAt);
+  const baseData =
+    existing.data && typeof existing.data === "object" && !Array.isArray(existing.data)
+      ? (existing.data as Record<string, unknown>)
+      : {};
+  const scheduledStatus =
+    typeof baseData.scheduledStatus === "string" ? baseData.scheduledStatus : null;
+  const requestedAmount = typeof amount === "number" && Number.isFinite(amount) ? amount : null;
+  const resolvedAmount = normalizeCategoryAmount({
+    categoryType: existing.category?.categoryType,
+    requestedAmount,
+    scheduledStatus,
+  });
+  if (resolvedAmount == null || resolvedAmount < 0) {
+    throw new HttpError(400, "Enter a valid amount.");
+  }
   const unit =
     existing.category?.unit && existing.category.unit !== "x"
       ? ` ${existing.category.unit}`
       : "";
   const title = existing.category?.title ?? "Entry";
-  const fallbackRawText = `${title} ${amount}${unit}`;
-
-  const baseData =
-    existing.data && typeof existing.data === "object" && !Array.isArray(existing.data)
-      ? (existing.data as Record<string, unknown>)
-      : {};
+  const fallbackRawText =
+    existing.category?.categoryType === "DO" || existing.category?.categoryType === "DONT"
+      ? categoryEntryLabel({
+          categorySlug: existing.category?.slug,
+          categoryTitle: title,
+          scheduledStatus,
+          amount: resolvedAmount,
+        })
+      : `${title} ${resolvedAmount}${unit}`;
   const nextData: Record<string, unknown> = { ...baseData };
   if ("tags" in nextData) {
     delete nextData.tags;
@@ -1058,7 +1086,7 @@ export const updateEvent: UpdateEvent<UpdateEventArgs, Event> = async (
   return context.entities.Event.update({
     where: { id: existing.id },
     data: {
-      amount,
+      amount: resolvedAmount,
       rawText: existing.rawText ?? fallbackRawText,
       occurredAt: occurred.occurredAt,
       occurredOn: occurred.occurredOn,

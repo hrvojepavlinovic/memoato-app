@@ -20,6 +20,7 @@ import type {
   SeriesBucket,
 } from "./types";
 import { buildScheduledDateTime, dateOnlyIso, normalizeCategorySchedule, scheduleAppliesToDate } from "./schedule";
+import { activeKcalByDay, compareWorkoutDetails, workoutDetailsFromEventData, type WorkoutDetails } from "../memory/workout";
 
 function slugifyTitle(title: string): string {
   const s = title
@@ -100,10 +101,7 @@ function normalizeChartType(v: unknown, fallback: CategoryChartType): CategoryCh
   return fallback;
 }
 
-export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
-  _args,
-  context,
-) => {
+export const getCategories: GetCategories<void, CategoryWithStats[]> = async (_args, context) => {
   if (!context.user) {
     throw new HttpError(401);
   }
@@ -159,10 +157,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
   type WindowStats = { sum: number; avg: number; count: number };
 
   const recentStart = addDays(dayStart, -30);
-  const recentTimingByCategory = new Map<
-    string,
-    { count: number; activeDays: Set<string>; sumMinutes: number }
-  >();
+  const recentTimingByCategory = new Map<string, { count: number; activeDays: Set<string>; sumMinutes: number }>();
   const recentAmountByCategory = new Map<string, { sum: number; count: number; lastAmount: number | null }>();
   if (categoryIds.length > 0) {
     const recentEvents = await context.entities.Event.findMany({
@@ -172,7 +167,12 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
         categoryId: { in: categoryIds },
         occurredAt: { gte: recentStart, lt: dayEnd },
       },
-      select: { categoryId: true, occurredAt: true, occurredOn: true, amount: true },
+      select: {
+        categoryId: true,
+        occurredAt: true,
+        occurredOn: true,
+        amount: true,
+      },
       orderBy: [{ occurredAt: "desc" }],
       take: 2000,
     });
@@ -186,8 +186,11 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
         if (Number.isNaN(d.getTime())) return t.toISOString().slice(0, 10);
         return d.toISOString().slice(0, 10);
       })();
-      const prev =
-        recentTimingByCategory.get(ev.categoryId) ?? { count: 0, activeDays: new Set<string>(), sumMinutes: 0 };
+      const prev = recentTimingByCategory.get(ev.categoryId) ?? {
+        count: 0,
+        activeDays: new Set<string>(),
+        sumMinutes: 0,
+      };
       prev.count += 1;
       prev.sumMinutes += minute;
       prev.activeDays.add(dayKey);
@@ -195,7 +198,11 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
 
       const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : null;
       if (amount != null) {
-        const aPrev = recentAmountByCategory.get(ev.categoryId) ?? { sum: 0, count: 0, lastAmount: null };
+        const aPrev = recentAmountByCategory.get(ev.categoryId) ?? {
+          sum: 0,
+          count: 0,
+          lastAmount: null,
+        };
         aPrev.sum += amount;
         aPrev.count += 1;
         if (aPrev.lastAmount == null) aPrev.lastAmount = amount; // events are sorted desc
@@ -319,8 +326,7 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       if (!key || !label) continue;
       if (type !== "number" && type !== "text") continue;
       const unit = typeof r.unit === "string" && r.unit.trim() ? r.unit.trim() : null;
-      const placeholder =
-        typeof r.placeholder === "string" && r.placeholder.trim() ? r.placeholder.trim() : null;
+      const placeholder = typeof r.placeholder === "string" && r.placeholder.trim() ? r.placeholder.trim() : null;
       const storeAs = typeof r.storeAs === "string" && r.storeAs.trim() ? r.storeAs.trim() : null;
       out.push({ key, label, type, unit, placeholder, storeAs });
     }
@@ -349,20 +355,12 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     const chartType = normalizeChartType(c.chartType, defaultChartTypeForCategoryType(c.categoryType));
     const agg = normalizeBucketAggregation(chartType, c.bucketAggregation);
     const period = normalizePeriod(c.period);
-    const periodStats =
-      period === "day"
-        ? dayStats
-        : period === "month"
-          ? monthStats
-          : period === "year"
-            ? yearStats
-            : weekStats;
+    const periodStats = period === "day" ? dayStats : period === "month" ? monthStats : period === "year" ? yearStats : weekStats;
 
     const timing = recentTimingByCategory.get(c.id);
     const recentActiveDays30d = timing ? timing.activeDays.size : 0;
     const recentAvgMinuteOfDay30d = timing && timing.count > 0 ? Math.round(timing.sumMinutes / timing.count) : null;
-    const recentAvgEventsPerDay30d =
-      timing && timing.activeDays.size > 0 ? timing.count / timing.activeDays.size : 0;
+    const recentAvgEventsPerDay30d = timing && timing.activeDays.size > 0 ? timing.count / timing.activeDays.size : 0;
     const recentAmt = recentAmountByCategory.get(c.id);
     const recentAvgAmount30d = recentAmt && recentAmt.count > 0 ? recentAmt.sum / recentAmt.count : null;
     const recentLastAmount30d = recentAmt?.lastAmount ?? null;
@@ -411,37 +409,42 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
     };
   });
 
-  // Active kcal rollup (optional, backwards compatible).
-  // If user has never logged anything into Active kcal, enable by default.
+  // Active kcal rollup is per day: a manual daily total wins on its day, while
+  // workout components fill days without a manual total. total_kcal is excluded.
   const activeKcal = result.find((c) => (c.slug ?? "").toLowerCase() === "active-kcal") ?? null;
   const pref = userPrefs?.activeKcalRollupEnabled;
-  const rollupEnabled =
-    pref === true ||
-    (pref == null && !!activeKcal && !lastOccurredAtByCategory.has(activeKcal.id));
+  const rollupEnabled = pref !== false && !!activeKcal;
 
   if (rollupEnabled && activeKcal) {
-    const contributors = result
-      .filter(
-        (c) =>
-          c.id !== activeKcal.id &&
-          c.rollupToActiveKcal === true,
-      )
-      .map((c) => c.id);
+    const contributors = result.filter((c) => c.id !== activeKcal.id && c.rollupToActiveKcal === true).map((c) => c.id);
 
     const rollupIds = [activeKcal.id, ...contributors];
-    const rollupMetaById = new Map(
-      result.map((c) => [c.id, { unit: normalizedUnit(c.unit), isActive: c.id === activeKcal.id }]),
-    );
+    const rollupMetaById = new Map(result.map((c) => [c.id, { unit: normalizedUnit(c.unit), isActive: c.id === activeKcal.id }]));
 
     // Fetch only once for the whole year window and compute day/week/month/year in memory.
     const rollupEvents = await context.entities.Event.findMany({
       where: {
         userId,
         kind: "SESSION",
-        categoryId: { in: rollupIds },
+        OR: [
+          { categoryId: { in: rollupIds } },
+          {
+            data: {
+              path: ["workout", "caloriePolicy", "dailyActiveComponentKey"],
+              equals: "active_kcal",
+            },
+          },
+        ],
         occurredAt: { gte: yearStart, lt: dayEnd },
       },
-      select: { categoryId: true, occurredAt: true, amount: true, data: true },
+      select: {
+        id: true,
+        categoryId: true,
+        occurredAt: true,
+        occurredOn: true,
+        amount: true,
+        data: true,
+      },
       take: 20000,
     });
 
@@ -452,22 +455,25 @@ export const getCategories: GetCategories<void, CategoryWithStats[]> = async (
       year: { sum: 0, count: 0 },
     };
 
-    for (const ev of rollupEvents) {
-      if (!ev.categoryId) continue;
-      const cat = rollupMetaById.get(ev.categoryId);
-      if (!cat) continue;
-      const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
-      let kcal = 0;
-      if (cat.isActive) {
-        kcal = amount;
-      } else if (cat.unit === "kcal") {
-        kcal = amount;
-      } else {
-        kcal = getNumberField(ev.data as any, "kcal") ?? 0;
-      }
-      if (!(kcal > 0)) continue;
+    const daily = activeKcalByDay(
+      rollupEvents.map((ev: any) => {
+        const cat = ev.categoryId ? rollupMetaById.get(ev.categoryId) : null;
+        const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+        const legacyComponent = cat && !cat.isActive ? (cat.unit === "kcal" ? amount : (getNumberField(ev.data as any, "kcal") ?? 0)) : null;
+        return {
+          id: ev.id,
+          occurredOn: dateOnlyIso(ev.occurredOn),
+          occurredAt: ev.occurredAt,
+          manualDailyTotal: cat?.isActive ? amount : null,
+          legacyComponent,
+          data: ev.data,
+        };
+      }),
+    );
 
-      const t = ev.occurredAt.getTime();
+    for (const [day, kcal] of daily) {
+      if (!(kcal > 0)) continue;
+      const t = new Date(`${day}T12:00:00`).getTime();
       if (t >= dayStart.getTime() && t < dayEnd.getTime()) {
         buckets.day.sum += kcal;
         buckets.day.count += 1;
@@ -573,10 +579,7 @@ type ScheduledPromptItem = {
   scheduledTime: string | null;
 };
 
-export const getScheduledPrompts: GetScheduledPrompts<void, ScheduledPromptItem[]> = async (
-  _args,
-  context,
-) => {
+export const getScheduledPrompts: GetScheduledPrompts<void, ScheduledPromptItem[]> = async (_args, context) => {
   if (!context.user) throw new HttpError(401);
 
   const userId = context.user.id;
@@ -685,7 +688,7 @@ function bucketLabel(start: Date, period: Period): string {
   if (period === "day") return `${dd}.${m}.`;
   if (period === "week") return `${dd}.${m}.`;
   if (period === "month") {
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     return months[start.getMonth()] ?? `${m}.${y}`;
   }
   return `${y}`;
@@ -714,10 +717,7 @@ function normalizeDir(v: unknown): GoalDirection | null {
   return null;
 }
 
-export const getCategorySeries: GetCategorySeries<
-  GetCategorySeriesArgs,
-  SeriesBucket[]
-> = async ({ categoryId, period, offset }, context) => {
+export const getCategorySeries: GetCategorySeries<GetCategorySeriesArgs, SeriesBucket[]> = async ({ categoryId, period, offset }, context) => {
   if (!context.user) {
     throw new HttpError(401);
   }
@@ -725,17 +725,23 @@ export const getCategorySeries: GetCategorySeries<
   const userId = context.user.id;
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { id: true, slug: true, categoryType: true, chartType: true, bucketAggregation: true },
+    select: {
+      id: true,
+      slug: true,
+      categoryType: true,
+      chartType: true,
+      bucketAggregation: true,
+    },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
   }
-  const chartType = normalizeChartType(
-    category.chartType,
-    defaultChartTypeForCategoryType((category as any).categoryType),
-  );
+  const chartType = normalizeChartType(category.chartType, defaultChartTypeForCategoryType((category as any).categoryType));
   const aggregation = normalizeAgg((category as any).bucketAggregation, chartType);
-  const isActiveKcal = String(category.slug ?? "").trim().toLowerCase() === "active-kcal";
+  const isActiveKcal =
+    String(category.slug ?? "")
+      .trim()
+      .toLowerCase() === "active-kcal";
 
   const rawOffset = Math.min(0, Math.trunc(offset ?? 0));
   const baseNow = new Date();
@@ -748,8 +754,7 @@ export const getCategorySeries: GetCategorySeries<
 
   let cursor: Date;
   if (period === "day") cursor = startOfDay(addDays(now, -(count - 1)));
-  else if (period === "week")
-    cursor = startOfWeek(addDays(now, -7 * (count - 1)));
+  else if (period === "week") cursor = startOfWeek(addDays(now, -7 * (count - 1)));
   else if (period === "month") cursor = startOfMonth(now);
   else cursor = startOfYear(now);
 
@@ -768,16 +773,14 @@ export const getCategorySeries: GetCategorySeries<
   let sourceCategoryIds: string[] = [categoryId];
   let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
   if (isActiveKcal) {
-    const pref = (await context.entities.User.findUnique({
-      where: { id: userId },
-      select: { activeKcalRollupEnabled: true },
-    }))?.activeKcalRollupEnabled;
+    const pref = (
+      await context.entities.User.findUnique({
+        where: { id: userId },
+        select: { activeKcalRollupEnabled: true },
+      })
+    )?.activeKcalRollupEnabled;
 
-    const hasManual = await context.entities.Event.findFirst({
-      where: { userId, kind: "SESSION", categoryId },
-      select: { id: true },
-    });
-    const rollupEnabled = pref === true || (pref == null && !hasManual);
+    const rollupEnabled = pref !== false;
 
     if (rollupEnabled) {
       const contributors = await context.entities.Category.findMany({
@@ -793,7 +796,10 @@ export const getCategorySeries: GetCategorySeries<
       rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
       rollupMetaById.set(categoryId, { unit: "kcal", isActive: true });
       for (const c of contributors as any[]) {
-        rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+        rollupMetaById.set(String(c.id), {
+          unit: normalizedUnit(c.unit),
+          isActive: false,
+        });
       }
     }
   }
@@ -802,10 +808,29 @@ export const getCategorySeries: GetCategorySeries<
     where: {
       userId,
       kind: "SESSION",
-      categoryId: { in: sourceCategoryIds },
+      ...(rollupMetaById
+        ? {
+            OR: [
+              { categoryId: { in: sourceCategoryIds } },
+              {
+                data: {
+                  path: ["workout", "caloriePolicy", "dailyActiveComponentKey"],
+                  equals: "active_kcal",
+                },
+              },
+            ],
+          }
+        : { categoryId: { in: sourceCategoryIds } }),
       occurredAt: { gte: start, lt: end },
     },
-    select: { occurredAt: true, amount: true, categoryId: true, data: true },
+    select: {
+      id: true,
+      occurredAt: true,
+      occurredOn: true,
+      amount: true,
+      categoryId: true,
+      data: true,
+    },
   });
 
   const buckets: { start: Date; end: Date; total: number; count: number }[] = [];
@@ -816,18 +841,34 @@ export const getCategorySeries: GetCategorySeries<
     bStart = bEnd;
   }
 
-  for (const ev of events) {
+  const contributionEvents = rollupMetaById
+    ? Array.from(
+        activeKcalByDay(
+          (events as any[]).map((ev) => {
+            const meta = rollupMetaById!.get(String(ev.categoryId ?? ""));
+            const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+            return {
+              id: ev.id,
+              occurredOn: dateOnlyIso(ev.occurredOn),
+              occurredAt: ev.occurredAt,
+              manualDailyTotal: meta?.isActive ? amount : null,
+              legacyComponent: meta && !meta.isActive ? (meta.unit === "kcal" ? amount : (getNumberField(ev.data, "kcal") ?? 0)) : null,
+              data: ev.data,
+            };
+          }),
+        ),
+      ).map(([day, amount]) => ({
+        occurredAt: new Date(`${day}T12:00:00`),
+        amount,
+      }))
+    : events.map((ev) => ({
+        occurredAt: ev.occurredAt,
+        amount: ev.amount ?? 0,
+      }));
+
+  for (const ev of contributionEvents) {
     const t = ev.occurredAt.getTime();
-    const amount = ev.amount ?? 0;
-    const maybeMeta = rollupMetaById?.get(String(ev.categoryId ?? "")) ?? null;
-    const contribution =
-      rollupMetaById && maybeMeta
-        ? maybeMeta.isActive
-          ? amount
-          : maybeMeta.unit === "kcal"
-            ? amount
-            : getNumberField(ev.data as any, "kcal") ?? 0
-        : amount;
+    const contribution = ev.amount;
     for (const b of buckets) {
       if (t >= b.start.getTime() && t < b.end.getTime()) {
         const inc = contribution;
@@ -847,10 +888,7 @@ export const getCategorySeries: GetCategorySeries<
   }));
 };
 
-export const getCategoryLineSeries: GetCategoryLineSeries<
-  GetCategorySeriesArgs,
-  LinePoint[]
-> = async ({ categoryId, period, offset }, context) => {
+export const getCategoryLineSeries: GetCategoryLineSeries<GetCategorySeriesArgs, LinePoint[]> = async ({ categoryId, period, offset }, context) => {
   if (!context.user) {
     throw new HttpError(401);
   }
@@ -858,15 +896,17 @@ export const getCategoryLineSeries: GetCategoryLineSeries<
   const userId = context.user.id;
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId },
-    select: { id: true, categoryType: true, chartType: true, bucketAggregation: true },
+    select: {
+      id: true,
+      categoryType: true,
+      chartType: true,
+      bucketAggregation: true,
+    },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
   }
-  const chartType = normalizeChartType(
-    category.chartType,
-    defaultChartTypeForCategoryType((category as any).categoryType),
-  );
+  const chartType = normalizeChartType(category.chartType, defaultChartTypeForCategoryType((category as any).categoryType));
   const aggregation = normalizeAgg((category as any).bucketAggregation, chartType);
 
   const rawOffset = Math.min(0, Math.trunc(offset ?? 0));
@@ -880,8 +920,7 @@ export const getCategoryLineSeries: GetCategoryLineSeries<
 
   let cursor: Date;
   if (period === "day") cursor = startOfDay(addDays(now, -(count - 1)));
-  else if (period === "week")
-    cursor = startOfWeek(addDays(now, -7 * (count - 1)));
+  else if (period === "week") cursor = startOfWeek(addDays(now, -7 * (count - 1)));
   else if (period === "month") cursor = startOfMonth(now);
   else cursor = startOfYear(now);
 
@@ -908,7 +947,13 @@ export const getCategoryLineSeries: GetCategoryLineSeries<
     orderBy: [{ occurredAt: "asc" }],
   });
 
-  const buckets: { start: Date; end: Date; value: number | null; sum: number; count: number }[] = [];
+  const buckets: {
+    start: Date;
+    end: Date;
+    value: number | null;
+    sum: number;
+    count: number;
+  }[] = [];
   let bStart = cursor;
   for (let i = 0; i < count; i++) {
     const bEnd = nextBucketStart(bStart, period);
@@ -946,10 +991,7 @@ type GetCategoryContributionsArgs = {
   categoryId: string;
 };
 
-export const getCategoryContributions = async (
-  { categoryId }: GetCategoryContributionsArgs,
-  context: any,
-): Promise<ContributionDay[]> => {
+export const getCategoryContributions = async ({ categoryId }: GetCategoryContributionsArgs, context: any): Promise<ContributionDay[]> => {
   if (!context.user) {
     throw new HttpError(401);
   }
@@ -957,7 +999,13 @@ export const getCategoryContributions = async (
   const userId = context.user.id;
   const category = await context.entities.Category.findFirst({
     where: { id: categoryId, userId, sourceArchivedAt: null },
-    select: { id: true, slug: true, chartType: true, categoryType: true, bucketAggregation: true },
+    select: {
+      id: true,
+      slug: true,
+      chartType: true,
+      categoryType: true,
+      bucketAggregation: true,
+    },
   });
   if (!category) {
     throw new HttpError(404, "Category not found");
@@ -967,28 +1015,25 @@ export const getCategoryContributions = async (
   const today = startOfDay(new Date());
   const start = addDays(today, -(DAYS - 1));
   const end = addDays(today, 1);
-  const normalizedSlug = String((category as any).slug ?? "").trim().toLowerCase();
+  const normalizedSlug = String((category as any).slug ?? "")
+    .trim()
+    .toLowerCase();
   const isActiveKcal = normalizedSlug === "active-kcal";
   const isNotes = normalizedSlug === "notes";
-  const chartType = normalizeChartType(
-    (category as any).chartType,
-    defaultChartTypeForCategoryType((category as any).categoryType),
-  );
+  const chartType = normalizeChartType((category as any).chartType, defaultChartTypeForCategoryType((category as any).categoryType));
   const aggregation = normalizeAgg((category as any).bucketAggregation, chartType);
   const useLastPerDay = !isNotes && !isActiveKcal && (chartType === "line" || aggregation === "last");
 
   let sourceCategoryIds: string[] = [categoryId];
   let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
   if (isActiveKcal) {
-    const pref = (await context.entities.User.findUnique({
-      where: { id: userId },
-      select: { activeKcalRollupEnabled: true },
-    }))?.activeKcalRollupEnabled;
-    const hasManual = await context.entities.Event.findFirst({
-      where: { userId, kind: "SESSION", categoryId },
-      select: { id: true },
-    });
-    const rollupEnabled = pref === true || (pref == null && !hasManual);
+    const pref = (
+      await context.entities.User.findUnique({
+        where: { id: userId },
+        select: { activeKcalRollupEnabled: true },
+      })
+    )?.activeKcalRollupEnabled;
+    const rollupEnabled = pref !== false;
 
     if (rollupEnabled) {
       const contributors = await context.entities.Category.findMany({
@@ -1004,7 +1049,10 @@ export const getCategoryContributions = async (
       rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
       rollupMetaById.set(categoryId, { unit: "kcal", isActive: true });
       for (const c of contributors as any[]) {
-        rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+        rollupMetaById.set(String(c.id), {
+          unit: normalizedUnit(c.unit),
+          isActive: false,
+        });
       }
     }
   }
@@ -1013,15 +1061,50 @@ export const getCategoryContributions = async (
     where: {
       userId,
       kind: "SESSION",
-      categoryId: { in: sourceCategoryIds },
+      ...(rollupMetaById
+        ? {
+            OR: [
+              { categoryId: { in: sourceCategoryIds } },
+              {
+                data: {
+                  path: ["workout", "caloriePolicy", "dailyActiveComponentKey"],
+                  equals: "active_kcal",
+                },
+              },
+            ],
+          }
+        : { categoryId: { in: sourceCategoryIds } }),
       occurredAt: { gte: start, lt: end },
     },
-    select: { occurredAt: true, amount: true, categoryId: true, data: true },
+    select: {
+      id: true,
+      occurredAt: true,
+      occurredOn: true,
+      amount: true,
+      categoryId: true,
+      data: true,
+    },
     orderBy: [{ occurredAt: "asc" }],
   });
 
-  const valueByDate = new Map<string, number>();
+  const valueByDate = rollupMetaById
+    ? activeKcalByDay(
+        (events as any[]).map((ev) => {
+          const meta = rollupMetaById!.get(String(ev.categoryId ?? ""));
+          const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
+          return {
+            id: ev.id,
+            occurredOn: dateOnlyIso(ev.occurredOn),
+            occurredAt: ev.occurredAt,
+            manualDailyTotal: meta?.isActive ? amount : null,
+            legacyComponent: meta && !meta.isActive ? (meta.unit === "kcal" ? amount : (getNumberField(ev.data, "kcal") ?? 0)) : null,
+            data: ev.data,
+          };
+        }),
+      )
+    : new Map<string, number>();
   for (const ev of events as any[]) {
+    if (rollupMetaById) break;
     const occurredAt = ev?.occurredAt instanceof Date ? ev.occurredAt : new Date(ev?.occurredAt);
     if (Number.isNaN(occurredAt.getTime())) continue;
     let contribution = 0;
@@ -1029,15 +1112,7 @@ export const getCategoryContributions = async (
       contribution = 1;
     } else {
       const amount = typeof ev?.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
-      const maybeMeta = rollupMetaById?.get(String(ev?.categoryId ?? "")) ?? null;
-      contribution =
-        rollupMetaById && maybeMeta
-          ? maybeMeta.isActive
-            ? amount
-            : maybeMeta.unit === "kcal"
-              ? amount
-              : getNumberField(ev?.data, "kcal") ?? 0
-          : amount;
+      contribution = amount;
     }
     const iso = toIsoDate(startOfDay(occurredAt));
     if (useLastPerDay) {
@@ -1062,10 +1137,7 @@ type GetCategoryEventsArgs = {
   before?: string; // ISO string
 };
 
-export const getCategoryEvents: GetCategoryEvents<
-  GetCategoryEventsArgs,
-  CategoryEventItem[]
-> = async ({ categoryId, take, before }, context) => {
+export const getCategoryEvents: GetCategoryEvents<GetCategoryEventsArgs, CategoryEventItem[]> = async ({ categoryId, take, before }, context) => {
   if (!context.user) {
     throw new HttpError(401);
   }
@@ -1081,20 +1153,21 @@ export const getCategoryEvents: GetCategoryEvents<
 
   const limit = Math.max(1, Math.min(200, take ?? 50));
   const beforeDate = before ? new Date(before) : null;
-  const isActiveKcal = String((ownsCategory as any).slug ?? "").trim().toLowerCase() === "active-kcal";
+  const isActiveKcal =
+    String((ownsCategory as any).slug ?? "")
+      .trim()
+      .toLowerCase() === "active-kcal";
 
   let sourceCategoryIds: string[] = [categoryId];
   let rollupMetaById: Map<string, { unit: string | null; isActive: boolean }> | null = null;
   if (isActiveKcal) {
-    const pref = (await context.entities.User.findUnique({
-      where: { id: userId },
-      select: { activeKcalRollupEnabled: true },
-    }))?.activeKcalRollupEnabled;
-    const hasManual = await context.entities.Event.findFirst({
-      where: { userId, kind: "SESSION", categoryId },
-      select: { id: true },
-    });
-    const rollupEnabled = pref === true || (pref == null && !hasManual);
+    const pref = (
+      await context.entities.User.findUnique({
+        where: { id: userId },
+        select: { activeKcalRollupEnabled: true },
+      })
+    )?.activeKcalRollupEnabled;
+    const rollupEnabled = pref !== false;
     if (rollupEnabled) {
       const contributors = await context.entities.Category.findMany({
         where: {
@@ -1109,7 +1182,10 @@ export const getCategoryEvents: GetCategoryEvents<
       rollupMetaById = new Map<string, { unit: string | null; isActive: boolean }>();
       rollupMetaById.set(categoryId, { unit: "kcal", isActive: true });
       for (const c of contributors as any[]) {
-        rollupMetaById.set(String(c.id), { unit: normalizedUnit(c.unit), isActive: false });
+        rollupMetaById.set(String(c.id), {
+          unit: normalizedUnit(c.unit),
+          isActive: false,
+        });
       }
     }
   }
@@ -1118,7 +1194,19 @@ export const getCategoryEvents: GetCategoryEvents<
     where: {
       userId,
       kind: "SESSION",
-      categoryId: { in: sourceCategoryIds },
+      ...(rollupMetaById
+        ? {
+            OR: [
+              { categoryId: { in: sourceCategoryIds } },
+              {
+                data: {
+                  path: ["workout", "caloriePolicy", "dailyActiveComponentKey"],
+                  equals: "active_kcal",
+                },
+              },
+            ],
+          }
+        : { categoryId: { in: sourceCategoryIds } }),
       ...(beforeDate
         ? {
             occurredAt: { lt: beforeDate },
@@ -1128,26 +1216,73 @@ export const getCategoryEvents: GetCategoryEvents<
     select: {
       id: true,
       amount: true,
+      duration: true,
       categoryId: true,
       occurredAt: true,
       occurredOn: true,
       rawText: true,
       data: true,
+      workoutMetrics: {
+        select: {
+          key: true,
+          value: true,
+          unit: true,
+          role: true,
+          rollupTarget: true,
+          excludedFromDailyActiveKcal: true,
+          label: true,
+          data: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
     orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
     take: limit,
   });
 
-  if (!rollupMetaById) return rows as any;
+  const detailsForRow = (ev: any): WorkoutDetails | null => {
+    const embedded = workoutDetailsFromEventData(ev.data);
+    if (embedded) return embedded;
+    if (!Array.isArray(ev.workoutMetrics) || ev.workoutMetrics.length === 0) return null;
+    return {
+      schemaVersion: 1,
+      parentEventId: ev.id,
+      metrics: ev.workoutMetrics.map((metric: any) => ({
+        key: metric.key,
+        value: metric.value,
+        unit: metric.unit,
+        role: metric.role,
+        rollupTarget: metric.rollupTarget ?? undefined,
+        excludedFromDailyActiveKcal: metric.excludedFromDailyActiveKcal === true,
+        label: metric.label ?? undefined,
+        dedupeKey: metric.data && typeof metric.data === "object" && typeof metric.data.dedupeKey === "string" ? metric.data.dedupeKey : undefined,
+      })),
+      caloriePolicy: {
+        dailyActiveComponentKey: "active_kcal",
+        excludedKeys: ["total_kcal"],
+        preventDoubleCount: true,
+      },
+    };
+  };
+
+  const decorate = (input: any[]): CategoryEventItem[] => {
+    const out = input.map((ev) => ({ ...ev, workout: detailsForRow(ev) }));
+    return out.map((ev, index) => ({
+      ...ev,
+      workoutComparison: compareWorkoutDetails(ev.workout, out.slice(index + 1).find((candidate) => candidate.workout)?.workout ?? null),
+    }));
+  };
+
+  if (!rollupMetaById) return decorate(rows as any[]);
 
   const mapped: CategoryEventItem[] = [];
   for (const ev of rows as any[]) {
     const meta = rollupMetaById.get(String(ev.categoryId ?? ""));
-    if (!meta) continue;
     const amount = typeof ev.amount === "number" && Number.isFinite(ev.amount) ? ev.amount : 0;
-    const contribution = meta.isActive ? amount : meta.unit === "kcal" ? amount : getNumberField(ev.data, "kcal") ?? 0;
+    const workoutActive = workoutDetailsFromEventData(ev.data)?.metrics.find((metric) => metric.key === "active_kcal")?.value;
+    const contribution = meta ? (meta.isActive ? amount : meta.unit === "kcal" ? amount : (getNumberField(ev.data, "kcal") ?? 0)) : (workoutActive ?? 0);
     if (!(contribution > 0)) continue;
     mapped.push({ ...ev, amount: contribution });
   }
-  return mapped;
+  return decorate(mapped);
 };

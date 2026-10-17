@@ -11,6 +11,7 @@ import { parseLocalIsoDate, startOfLocalDay, toLocalIsoDate, todayLocalIso } fro
 import { useTheme } from "../theme/ThemeProvider";
 import { resolveAccentForTheme } from "../theme/colors";
 import { buildScheduledDateTime, normalizeCategorySchedule, scheduleAppliesToDate } from "../focus/schedule";
+import { categoryIcon } from "../focus/categoryIcon";
 
 type DayEvent = {
   id: string;
@@ -545,7 +546,7 @@ export function TimelinePage() {
                     style={{ borderColor: accent }}
                     aria-hidden="true"
                   >
-                    <div className="text-lg leading-none">{s.emoji ?? ""}</div>
+                    <div className="text-lg leading-none">{categoryIcon(s)}</div>
                   </div>
                   <div className="w-full pl-10">
                     <div className="flex items-start justify-between gap-3">
