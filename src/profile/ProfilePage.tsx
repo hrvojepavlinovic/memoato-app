@@ -714,7 +714,7 @@ export function ProfilePage() {
     );
   }
 
-  if (q.isError || !q.data)
+  if (!q.data)
     return (
       <div className="memoato-tools-page">
         <h1>Profile</h1>
@@ -731,6 +731,7 @@ export function ProfilePage() {
           <p>Your account, privacy and how Memoato works for you.</p>
         </div>
       </header>
+      {q.isError ? <p role="alert" className="memoato-settings-feedback">Settings couldn’t refresh. Your last loaded settings and any new API key remain available. Refresh to try again.</p> : null}
       <nav className="memoato-settings-nav" aria-label="Profile settings">
         {profilePanels.map((panel) => (
           <Link

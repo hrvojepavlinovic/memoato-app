@@ -437,7 +437,7 @@ export function EditCategoryPage() {
     );
   }
 
-  if (privacy.mode !== "local" && categoriesQuery.isError)
+  if (privacy.mode !== "local" && categoriesQuery.isError && !categoriesQuery.data)
     return (
       <div className="memoato-tools-page">
         <h1>Edit view</h1>
@@ -471,6 +471,7 @@ export function EditCategoryPage() {
         </div>
       </div>
 
+      {categoriesQuery.isError && categoriesQuery.data ? <p role="alert" className="memoato-settings-feedback">This view couldn’t refresh. Your changes are still here; refresh when you are ready.</p> : null}
       {saveError ? (
         <p role="alert" className="memoato-settings-feedback">
           {saveError}

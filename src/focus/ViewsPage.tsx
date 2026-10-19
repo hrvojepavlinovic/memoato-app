@@ -108,7 +108,7 @@ export function ViewsPage() {
   }, [categories, privacy.key]);
 
   const loading = privacy.mode === "local" ? localLoading : remote.isLoading;
-  const failed = privacy.mode === "local" ? localError : remote.isError;
+  const failed = privacy.mode === "local" ? localError : remote.isError && !remote.data;
   return (
     <div className="memoato-tools-page">
       <header className="memoato-tools-heading">
@@ -123,6 +123,7 @@ export function ViewsPage() {
           <ButtonLink to="/categories/new">New view</ButtonLink>
         </div>
       </header>
+      {privacy.mode !== "local" && remote.isError && remote.data ? <p role="alert" className="memoato-settings-feedback">Views couldn’t refresh. Showing the last loaded values.</p> : null}
       {loading ? (
         <p className="memoato-tools-state" role="status">
           Loading views…

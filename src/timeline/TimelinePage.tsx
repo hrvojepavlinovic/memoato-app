@@ -506,6 +506,7 @@ export function TimelinePage() {
         ) : null}
       </div>
 
+      {privacy.mode !== "local" && serverQuery.isError && serverQuery.data ? <p role="alert" className="memoato-settings-feedback">Timeline couldn’t refresh. Showing the last loaded entries.</p> : null}
       <div className="mb-6">
         <div className="memoato-timeline-dates">
           <Button
@@ -590,7 +591,7 @@ export function TimelinePage() {
         </div>
       </div>
 
-      {(privacy.mode === "local" ? localError : serverQuery.isError) ? (
+      {(privacy.mode === "local" ? localError : serverQuery.isError && !serverQuery.data) ? (
         <p className="memoato-tools-state" role="alert">
           This day couldn’t be loaded. Refresh to try again.
         </p>
