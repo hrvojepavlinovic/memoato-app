@@ -54,14 +54,13 @@
   gap: 8px;
   min-height: 48px;
   padding: 8px 0;
+  border-bottom: 2px solid transparent;
   color: var(--memoato-muted);
   font-size: 0.875rem;
 }
 .memoato-memory-filters button[aria-pressed="true"] {
   color: var(--memoato-ink);
-  text-decoration: underline;
-  text-underline-offset: 8px;
-  text-decoration-thickness: 2px;
+  border-bottom-color: currentColor;
   font-weight: 600;
 }
 .memoato-filter-count {
