@@ -632,7 +632,7 @@ export function CategoryPage() {
         </p>
       </div>
     );
-  if (privacy.mode !== "local" && categoriesQuery.isError)
+  if (privacy.mode !== "local" && categoriesQuery.isError && !categoriesQuery.data)
     return (
       <div className="memoato-tools-page">
         <h1>View</h1>
@@ -657,6 +657,7 @@ export function CategoryPage() {
           Back to views
         </ButtonLink>
       </div>
+      {categoriesQuery.isError && categoriesQuery.data ? <p role="alert" className="memoato-settings-feedback">This view couldn’t refresh. Showing the last loaded values; your draft is still here.</p> : null}
       {entryError ? (
         <p role="alert" className="memoato-settings-feedback">
           {entryError}

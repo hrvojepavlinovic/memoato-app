@@ -26,6 +26,7 @@ const mock = vi.hoisted(() => ({
     apiKeys: [],
   },
   failed: false,
+  refreshFailed: false,
   refetch: vi.fn(),
   privacy: { mode: "cloud", key: null, userId: "example" },
   categories: [],
@@ -69,7 +70,7 @@ vi.mock("wasp/client/operations", () => ({
           ? mock.categories
           : mock.overview,
     isLoading: false,
-    isError: mock.failed,
+    isError: mock.failed || (operation === "profile" && mock.refreshFailed),
     refetch: mock.refetch,
   }),
 }));
@@ -89,6 +90,7 @@ vi.mock("wasp/client/router", async () => {
 });
 beforeEach(() => {
   mock.failed = false;
+  mock.refreshFailed = false;
   mock.privacy.mode = "cloud";
   vi.clearAllMocks();
   mock.refetch.mockResolvedValue({});
@@ -190,6 +192,19 @@ describe("Profile settings", () => {
     await screen.findByDisplayValue("synthetic-token");
     fireEvent.click(screen.getByRole("link", { name: "Account" }));
     fireEvent.click(screen.getByRole("link", { name: "AI & API" }));
+    expect(screen.getByDisplayValue("synthetic-token")).toBeTruthy();
+  });
+  it("keeps the one-time API token visible when the follow-up profile refresh fails", async () => {
+    mock.refetch.mockImplementation(async () => {
+      mock.refreshFailed = true;
+      return { error: new Error("Offline") };
+    });
+    mount("#ai");
+    fireEvent.click(screen.getByRole("button", { name: "Create key" }));
+    await screen.findByDisplayValue("synthetic-token");
+    expect(screen.getByRole("alert").textContent).toContain(
+      "any new API key remain available",
+    );
     expect(screen.getByDisplayValue("synthetic-token")).toBeTruthy();
   });
   it("shows a failed profile fetch without enabling account operations", () => {

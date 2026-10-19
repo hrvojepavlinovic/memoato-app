@@ -60,6 +60,27 @@ describe("Views", () => {
     expect(screen.getByRole("alert")).toBeTruthy();
     expect(screen.queryByText(/No views yet/)).toBeNull();
   });
+  it("keeps cached views visible when a background refresh fails", () => {
+    state.data = [
+      {
+        id: "walk",
+        slug: "walking",
+        title: "Walking",
+        accentHex: "#526b54",
+        unit: "min",
+        categoryType: "NUMBER",
+        chartType: "bar",
+        period: "week",
+        thisWeekTotal: 20,
+      },
+    ];
+    state.isError = true;
+    mount();
+    expect(screen.getByRole("alert").textContent).toContain("last loaded");
+    expect(
+      screen.getByRole("link", { name: /Walking Activity 20 min/ }),
+    ).toBeTruthy();
+  });
   it("keeps creation available for a genuinely empty account", () => {
     state.data = [];
     mount();
