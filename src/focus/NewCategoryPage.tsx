@@ -1,6 +1,12 @@
+import { ChoiceGroup } from "../shared/components/ChoiceGroup";
+import "../shared/tools.css";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createCategory, getCategoryTemplates, useQuery } from "wasp/client/operations";
+import {
+  createCategory,
+  getCategoryTemplates,
+  useQuery,
+} from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
 import type { GoalDirection, Period } from "./types";
 import { usePrivacy } from "../privacy/PrivacyProvider";
@@ -13,7 +19,11 @@ type BarAgg = "sum" | "avg";
 type LineAgg = "last" | "avg";
 
 const typeOptions: { value: CategoryType; label: string; hint: string }[] = [
-  { value: "NUMBER", label: "Track number", hint: "Counts, minutes, kcal, etc." },
+  {
+    value: "NUMBER",
+    label: "Track number",
+    hint: "Counts, minutes, kcal, etc.",
+  },
   { value: "DO", label: "Do's", hint: "Count each time you do it." },
   { value: "DONT", label: "Don'ts", hint: "Count each time you break it." },
 ];
@@ -59,11 +69,19 @@ function SelectChevron({ disabled }: { disabled?: boolean }) {
   return (
     <div
       className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${
-        disabled ? "text-neutral-400 dark:text-neutral-500" : "text-neutral-500 dark:text-neutral-400"
+        disabled
+          ? "text-neutral-400 dark:text-neutral-500"
+          : "text-neutral-500 dark:text-neutral-400"
       }`}
       aria-hidden="true"
     >
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <svg
+        className="h-4 w-4"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
         <path d="M6 9l6 6 6-6" />
       </svg>
     </div>
@@ -94,17 +112,24 @@ export function NewCategoryPage() {
   const [accentHexInput, setAccentHexInput] = useState("#0A0A0A");
   const [emoji, setEmoji] = useState("");
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [scheduleType, setScheduleType] = useState<"daily" | "weekly">("weekly");
-  const [scheduleDays, setScheduleDays] = useState<number[]>([new Date().getDay()]);
+  const [scheduleType, setScheduleType] = useState<"daily" | "weekly">(
+    "weekly",
+  );
+  const [scheduleDays, setScheduleDays] = useState<number[]>([
+    new Date().getDay(),
+  ]);
   const [scheduleTime, setScheduleTime] = useState("");
   const [fieldsSchema, setFieldsSchema] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const effectiveChartType: ChartType = chartType;
-  const bucketAggregation =
-    effectiveChartType === "line" ? lineAgg : barAgg;
+  const bucketAggregation = effectiveChartType === "line" ? lineAgg : barAgg;
   const needsPeriod = effectiveChartType !== "line";
-  const hint = useMemo(() => typeOptions.find((o) => o.value === categoryType)?.hint, [categoryType]);
+  const hint = useMemo(
+    () => typeOptions.find((o) => o.value === categoryType)?.hint,
+    [categoryType],
+  );
   const canSchedule = categoryType === "DO" || categoryType === "DONT";
 
   function toggleScheduleDay(day: number) {
@@ -144,7 +169,11 @@ export function NewCategoryPage() {
       setGoal(String(t.goalWeekly ?? ""));
       setGoalValue("");
     } else {
-      setLineAgg(((t.bucketAggregation ?? "").toLowerCase() === "avg" ? "avg" : "last") as LineAgg);
+      setLineAgg(
+        ((t.bucketAggregation ?? "").toLowerCase() === "avg"
+          ? "avg"
+          : "last") as LineAgg,
+      );
       setGoal("");
       setGoalValue(String(t.goalValue ?? ""));
     }
@@ -156,9 +185,13 @@ export function NewCategoryPage() {
     setScheduleType(t.scheduleType === "daily" ? "daily" : "weekly");
     setScheduleDays(
       Array.isArray(t.scheduleDays) && t.scheduleDays.length > 0
-        ? Array.from(new Set(t.scheduleDays.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))).sort(
-            (a, b) => a - b,
-          )
+        ? Array.from(
+            new Set(
+              t.scheduleDays.filter(
+                (d) => Number.isInteger(d) && d >= 0 && d <= 6,
+              ),
+            ),
+          ).sort((a, b) => a - b)
         : [new Date().getDay()],
     );
     setScheduleTime(typeof t.scheduleTime === "string" ? t.scheduleTime : "");
@@ -168,6 +201,8 @@ export function NewCategoryPage() {
   }
 
   async function onCreate() {
+    if (isSaving) return;
+    setSaveError(null);
     const cleanTitle = title.trim();
     if (!cleanTitle) {
       window.alert("Title is required.");
@@ -191,11 +226,21 @@ export function NewCategoryPage() {
       window.alert("Goal value must be a number.");
       return;
     }
-    if (canSchedule && scheduleEnabled && scheduleType === "weekly" && scheduleDays.length === 0) {
+    if (
+      canSchedule &&
+      scheduleEnabled &&
+      scheduleType === "weekly" &&
+      scheduleDays.length === 0
+    ) {
       window.alert("Pick at least one day.");
       return;
     }
-    if (canSchedule && scheduleEnabled && scheduleTime.trim() !== "" && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(scheduleTime.trim())) {
+    if (
+      canSchedule &&
+      scheduleEnabled &&
+      scheduleTime.trim() !== "" &&
+      !/^([01]\d|2[0-3]):([0-5]\d)$/.test(scheduleTime.trim())
+    ) {
       window.alert("Time must be in HH:mm format.");
       return;
     }
@@ -220,8 +265,14 @@ export function NewCategoryPage() {
           fieldsSchema,
           scheduleEnabled: canSchedule ? scheduleEnabled : false,
           scheduleType: canSchedule && scheduleEnabled ? scheduleType : null,
-          scheduleDays: canSchedule && scheduleEnabled && scheduleType === "weekly" ? scheduleDays : null,
-          scheduleTime: canSchedule && scheduleEnabled && scheduleTime.trim() ? scheduleTime.trim() : null,
+          scheduleDays:
+            canSchedule && scheduleEnabled && scheduleType === "weekly"
+              ? scheduleDays
+              : null,
+          scheduleTime:
+            canSchedule && scheduleEnabled && scheduleTime.trim()
+              ? scheduleTime.trim()
+              : null,
         });
         navigate(`/c/${created.slug ?? created.id}`);
         return;
@@ -230,10 +281,16 @@ export function NewCategoryPage() {
       let titleToStore = cleanTitle;
       if (privacy.mode === "encrypted") {
         if (!privacy.key || !privacy.cryptoParams) {
-          window.alert("Unlock encryption from Profile → Privacy before creating categories.");
+          window.alert(
+            "Unlock encryption from Profile → Privacy before creating categories.",
+          );
           return;
         }
-        titleToStore = await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, cleanTitle);
+        titleToStore = await encryptUtf8ToEncryptedString(
+          privacy.key,
+          privacy.cryptoParams,
+          cleanTitle,
+        );
       }
 
       const created = await createCategory({
@@ -245,29 +302,55 @@ export function NewCategoryPage() {
         period: needsPeriod ? period : undefined,
         unit: unit.trim() || undefined,
         goal: needsPeriod ? (g ?? undefined) : undefined,
-        goalValue: effectiveChartType === "line" ? (gv ?? undefined) : undefined,
+        goalValue:
+          effectiveChartType === "line" ? (gv ?? undefined) : undefined,
         accentHex: cleanHex,
         emoji: emoji.trim() || undefined,
         fieldsSchema: fieldsSchema ?? undefined,
         scheduleEnabled: canSchedule ? scheduleEnabled : false,
         scheduleType: canSchedule && scheduleEnabled ? scheduleType : null,
-        scheduleDays: canSchedule && scheduleEnabled && scheduleType === "weekly" ? scheduleDays : undefined,
-        scheduleTime: canSchedule && scheduleEnabled && scheduleTime.trim() ? scheduleTime.trim() : undefined,
+        scheduleDays:
+          canSchedule && scheduleEnabled && scheduleType === "weekly"
+            ? scheduleDays
+            : undefined,
+        scheduleTime:
+          canSchedule && scheduleEnabled && scheduleTime.trim()
+            ? scheduleTime.trim()
+            : undefined,
       } as any);
       navigate(`/c/${(created as any).slug ?? created.id}`);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "Couldn’t save this view. Your changes are still here; try again.",
+      );
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <div className="mx-auto w-full max-w-screen-md px-4 py-6">
-      <div className="mb-4">
-        <h2 className="text-2xl font-semibold tracking-tight">New category</h2>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">{hint}</p>
+    <div className="memoato-tools-page memoato-view-editor">
+      <div className="memoato-tools-heading">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">New view</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            {hint}
+          </p>
+        </div>
       </div>
 
-      <div className="card p-4">
+      {saveError ? (
+        <p role="alert" className="memoato-settings-feedback">
+          {saveError}
+        </p>
+      ) : null}
+      <fieldset
+        className="memoato-settings-body"
+        disabled={isSaving}
+        aria-busy={isSaving}
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="label">Template</span>
@@ -298,68 +381,58 @@ export function NewCategoryPage() {
             />
           </label>
 
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="label">Type</span>
             <div className="relative">
-              <select
+              <ChoiceGroup
+                label="Type"
                 value={categoryType}
-                onChange={(e) => {
-                  const nextType = e.target.value as CategoryType;
+                options={typeOptions}
+                onChange={(value) => {
+                  const nextType = value as CategoryType;
                   setCategoryType(nextType);
                   if (nextType !== "NUMBER") {
                     setChartType(defaultViewForType(nextType));
                   }
                 }}
-                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-              >
-                {typeOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <SelectChevron />
+              />
             </div>
-          </label>
+          </div>
 
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="label">Default view</span>
             <div className="relative">
-              <select
+              <ChoiceGroup
+                label="Chart"
                 value={effectiveChartType}
-                onChange={(e) => setChartType(e.target.value as ChartType)}
-                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-              >
-                <option value="bar">Bar</option>
-                <option value="line">Line</option>
-              </select>
-              <SelectChevron />
+                options={[
+                  { value: "bar", label: "Bar" },
+                  { value: "line", label: "Line" },
+                ]}
+                onChange={(value) => setChartType(value as ChartType)}
+              />
             </div>
-          </label>
+          </div>
 
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="label">Period</span>
             <div className="relative">
-              <select
+              <ChoiceGroup
+                label="Period"
                 value={period}
-                onChange={(e) => setPeriod(e.target.value as Period)}
+                options={periodOptions}
+                onChange={(value) => setPeriod(value as Period)}
                 disabled={!needsPeriod}
-                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
-              >
-                {periodOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              <SelectChevron disabled={!needsPeriod} />
+              />
             </div>
-          </label>
+          </div>
 
           {canSchedule ? (
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900/30 sm:col-span-2">
+            <div className="border-y border-neutral-300 py-5 dark:border-neutral-700 sm:col-span-2">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Schedule (optional)</div>
+                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  Schedule (optional)
+                </div>
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   <input
                     type="checkbox"
@@ -371,20 +444,22 @@ export function NewCategoryPage() {
               </div>
               {scheduleEnabled ? (
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1">
                     <span className="label">Frequency</span>
                     <div className="relative">
-                      <select
+                      <ChoiceGroup
+                        label="Frequency"
                         value={scheduleType}
-                        onChange={(e) => setScheduleType(e.target.value as "daily" | "weekly")}
-                        className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-                      >
-                        <option value="weekly">Weekly</option>
-                        <option value="daily">Daily</option>
-                      </select>
-                      <SelectChevron />
+                        options={[
+                          { value: "weekly", label: "Weekly" },
+                          { value: "daily", label: "Daily" },
+                        ]}
+                        onChange={(value) =>
+                          setScheduleType(value as "daily" | "weekly")
+                        }
+                      />
                     </div>
-                  </label>
+                  </div>
                   <label className="flex flex-col gap-1">
                     <span className="label">Time (optional)</span>
                     <input
@@ -404,6 +479,7 @@ export function NewCategoryPage() {
                             <button
                               key={day.value}
                               type="button"
+                              aria-pressed={active}
                               onClick={() => toggleScheduleDay(day.value)}
                               className={
                                 "rounded-full border px-3 py-1.5 text-xs font-semibold " +
@@ -425,34 +501,34 @@ export function NewCategoryPage() {
           ) : null}
 
           {categoryType === "NUMBER" ? (
-            <label className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <span className="label">Multiple entries</span>
               {effectiveChartType !== "line" ? (
                 <div className="relative">
-                  <select
+                  <ChoiceGroup
+                    label="Multiple entries"
                     value={barAgg}
-                    onChange={(e) => setBarAgg(e.target.value as BarAgg)}
-                    className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-                  >
-                    <option value="sum">Total (sum)</option>
-                    <option value="avg">Average</option>
-                  </select>
-                  <SelectChevron />
+                    options={[
+                      { value: "sum", label: "Total (sum)" },
+                      { value: "avg", label: "Average" },
+                    ]}
+                    onChange={(value) => setBarAgg(value as BarAgg)}
+                  />
                 </div>
               ) : (
                 <div className="relative">
-                  <select
+                  <ChoiceGroup
+                    label="Multiple entries"
                     value={lineAgg}
-                    onChange={(e) => setLineAgg(e.target.value as LineAgg)}
-                    className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-                  >
-                    <option value="last">Latest</option>
-                    <option value="avg">Average</option>
-                  </select>
-                  <SelectChevron />
+                    options={[
+                      { value: "last", label: "Latest" },
+                      { value: "avg", label: "Average" },
+                    ]}
+                    onChange={(value) => setLineAgg(value as LineAgg)}
+                  />
                 </div>
               )}
-            </label>
+            </div>
           ) : null}
 
           <label className="flex flex-col gap-1">
@@ -500,42 +576,50 @@ export function NewCategoryPage() {
             <input
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              placeholder={effectiveChartType === "line" ? "e.g. kg" : "e.g. ml"}
+              placeholder={
+                effectiveChartType === "line" ? "e.g. kg" : "e.g. ml"
+              }
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
           <label className="flex flex-col gap-1">
             <span className="label">
-              {effectiveChartType === "line" ? "Goal value (optional)" : "Goal (optional)"}
+              {effectiveChartType === "line"
+                ? "Goal value (optional)"
+                : "Goal (optional)"}
             </span>
             <input
               type="number"
               step="0.1"
               value={effectiveChartType === "line" ? goalValue : goal}
               onChange={(e) =>
-                effectiveChartType === "line" ? setGoalValue(e.target.value) : setGoal(e.target.value)
+                effectiveChartType === "line"
+                  ? setGoalValue(e.target.value)
+                  : setGoal(e.target.value)
               }
-              placeholder={effectiveChartType === "line" ? "e.g. 85" : "e.g. 2000"}
+              placeholder={
+                effectiveChartType === "line" ? "e.g. 85" : "e.g. 2000"
+              }
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="label">Goal direction</span>
             <div className="relative">
-              <select
+              <ChoiceGroup
+                label="Goal direction"
                 value={goalDirection}
-                onChange={(e) => setGoalDirection(e.target.value as GoalDirection)}
-                className="w-full appearance-none rounded-lg border border-neutral-300 bg-white py-2 pl-3 pr-10 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-              >
-                <option value="at_least">At least (higher is better)</option>
-                <option value="at_most">At most (lower is better)</option>
-                <option value="target">Target (hit the value)</option>
-              </select>
-              <SelectChevron />
+                options={[
+                  { value: "at_least", label: "At least" },
+                  { value: "at_most", label: "At most" },
+                  { value: "target", label: "Target" },
+                ]}
+                onChange={(value) => setGoalDirection(value as GoalDirection)}
+              />
             </div>
-          </label>
+          </div>
         </div>
 
         <div className="mt-5 flex items-center justify-end gap-3">
@@ -546,7 +630,7 @@ export function NewCategoryPage() {
             {isSaving ? "Creating…" : "Create"}
           </Button>
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 }

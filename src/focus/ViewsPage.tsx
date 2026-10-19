@@ -1,4 +1,5 @@
 import React from "react";
+import "../shared/tools.css";
 import { Link, routes } from "wasp/client/router";
 import { getCategories, useQuery } from "wasp/client/operations";
 import { ButtonLink } from "../shared/components/Button";
@@ -9,6 +10,8 @@ import { localGetCategoriesWithStats } from "./local";
 import type { CategoryWithStats } from "./types";
 import { resolveAccentForTheme } from "../theme/colors";
 import { useTheme } from "../theme/ThemeProvider";
+
+const EMPTY_CATEGORIES: CategoryWithStats[] = [];
 
 function formatValue(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -50,15 +53,32 @@ export function ViewsPage() {
     enabled: privacy.mode !== "local",
   });
   const [local, setLocal] = React.useState<CategoryWithStats[]>([]);
+  const [localLoading, setLocalLoading] = React.useState(true);
+  const [localError, setLocalError] = React.useState(false);
   const [titles, setTitles] = React.useState<Record<string, string>>({});
   const categories =
     privacy.mode === "local"
       ? local
-      : ((remote.data ?? []) as CategoryWithStats[]);
+      : ((remote.data ?? EMPTY_CATEGORIES) as CategoryWithStats[]);
 
   React.useEffect(() => {
     if (privacy.mode !== "local" || !privacy.userId) return;
-    void localGetCategoriesWithStats(privacy.userId).then(setLocal);
+    let cancelled = false;
+    setLocalLoading(true);
+    setLocalError(false);
+    void localGetCategoriesWithStats(privacy.userId)
+      .then((data) => {
+        if (!cancelled) setLocal(data);
+      })
+      .catch(() => {
+        if (!cancelled) setLocalError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLocalLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [privacy.mode, privacy.userId]);
 
   React.useEffect(() => {
@@ -87,79 +107,103 @@ export function ViewsPage() {
     };
   }, [categories, privacy.key]);
 
+  const loading = privacy.mode === "local" ? localLoading : remote.isLoading;
+  const failed = privacy.mode === "local" ? localError : remote.isError;
   return (
-    <div className="mx-auto w-full max-w-screen-lg px-4 pb-20 pt-7 sm:px-6 sm:pt-10">
-      <section className="flex flex-col justify-between gap-5 border-b border-neutral-300 pb-7 dark:border-neutral-700 sm:flex-row sm:items-end">
+    <div className="memoato-tools-page">
+      <header className="memoato-tools-heading">
         <div>
-          <div className="label">Views</div>
-          <h2 className="mt-2 text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">
-            Your life, shaped when useful.
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-600 dark:text-neutral-400">
-            Goals, charts and routines are views over memory—not boxes you must
-            fill before living.
-          </p>
+          <h1>Views</h1>
+          <p>Charts, goals and routines from your saved entries.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="memoato-tools-actions">
           <ButtonLink to="/timeline" variant="ghost">
             Timeline
           </ButtonLink>
           <ButtonLink to="/categories/new">New view</ButtonLink>
         </div>
-      </section>
-
-      <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {categories.map((category) => {
-          const title =
-            titles[category.id] ??
-            (isEncryptedString(category.title) ? "Locked" : category.title);
-          const accent =
-            resolveAccentForTheme(category.accentHex, theme.isDark) ??
-            category.accentHex;
-          const glance = categoryValue(category);
-          return (
-            <div
-              key={category.id}
-              className="card group relative min-h-40 overflow-hidden p-5 hover:border-neutral-950 dark:hover:border-neutral-200"
-            >
+      </header>
+      {loading ? (
+        <p className="memoato-tools-state" role="status">
+          Loading views…
+        </p>
+      ) : failed ? (
+        <div className="memoato-tools-state" role="alert">
+          <p>Views couldn’t be loaded. Refresh this page to try again.</p>
+        </div>
+      ) : categories.length === 0 ? (
+        <div className="memoato-tools-state">
+          <p>No views yet. Add a chart, goal or routine when you need one.</p>
+          <ButtonLink to="/categories/new">Create your first view</ButtonLink>
+        </div>
+      ) : (
+        <div className="memoato-view-list">
+          {categories.map((category) => {
+            const title =
+              titles[category.id] ??
+              (isEncryptedString(category.title) ? "Locked" : category.title);
+            const accent =
+              resolveAccentForTheme(category.accentHex, theme.isDark) ??
+              category.accentHex;
+            const glance = categoryValue(category);
+            return (
               <Link
+                key={category.id}
                 to={routes.CategoryRoute.to}
                 params={{ categorySlug: category.slug }}
-                className="absolute inset-0 z-10"
-                aria-label={`Open ${title}`}
-              />
-              <div
-                className="absolute inset-x-0 top-0 h-[3px]"
-                style={{ backgroundColor: accent }}
-              />
-              <div className="flex items-start justify-between gap-3">
-                <div
-                  className="flex h-10 w-10 items-center justify-center border bg-white text-lg dark:bg-neutral-950"
-                  style={{ borderColor: accent }}
+                className="memoato-view-row"
+              >
+                <span
+                  className="memoato-view-symbol"
+                  aria-hidden="true"
+                  style={{ color: accent }}
                 >
-                  {category.emoji ?? ""}
-                </div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-500">
-                  {category.chartType === "line"
-                    ? "signal"
-                    : category.unit || "count"}
-                </div>
-              </div>
-              <div className="mt-7 truncate text-lg font-bold tracking-[-0.025em]">
-                {title}
-              </div>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-semibold tabular-nums tracking-[-0.04em]">
-                  {glance.value}
+                  {category.emoji || (
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="24"
+                      height="24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                    >
+                      <path d="M4 19V5m0 14h16M8 15v-4m5 4V7m5 8V9" />
+                    </svg>
+                  )}
                 </span>
-                <span className="text-xs font-medium text-neutral-500">
-                  {glance.label}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </section>
+                <div>
+                  <div className="memoato-view-name">{title}</div>
+                  <div className="memoato-view-meta">
+                    {category.chartType === "line"
+                      ? "Trend"
+                      : category.categoryType === "DO" ||
+                          category.categoryType === "DONT"
+                        ? "Routine"
+                        : category.categoryType === "GOAL"
+                          ? "Goal"
+                          : "Activity"}
+                  </div>
+                </div>
+                <div className="memoato-view-value">
+                  <strong>{glance.value}</strong>
+                  <small>{glance.label}</small>
+                </div>
+                <svg
+                  aria-hidden="true"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                >
+                  <path d="M5 12h14m-5-5 5 5-5 5" />
+                </svg>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

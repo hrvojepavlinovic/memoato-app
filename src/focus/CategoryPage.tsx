@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import "../shared/tools.css";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   createEvent,
@@ -15,11 +16,19 @@ import { ContributionsChart } from "./components/ContributionsChart";
 import { HistoryList } from "./components/HistoryList";
 import { LineChart } from "./components/LineChart";
 import { PeriodPicker } from "./components/PeriodPicker";
-import type { BucketAggregation, CategoryWithStats, ContributionDay, Period } from "./types";
+import type {
+  BucketAggregation,
+  CategoryWithStats,
+  ContributionDay,
+  Period,
+} from "./types";
 import { parseNumberInput } from "../shared/lib/parseNumberInput";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
-import { encryptUtf8ToEncryptedString, isEncryptedString } from "../privacy/crypto";
+import {
+  encryptUtf8ToEncryptedString,
+  isEncryptedString,
+} from "../privacy/crypto";
 import {
   localCreateEvent,
   localGetBarSeries,
@@ -30,7 +39,8 @@ import {
 import { useTheme } from "../theme/ThemeProvider";
 import { resolveAccentForTheme } from "../theme/colors";
 
-const getCategoryContributions = (WaspOperations as any).getCategoryContributions;
+const getCategoryContributions = (WaspOperations as any)
+  .getCategoryContributions;
 
 function todayIso(): string {
   const d = new Date();
@@ -92,7 +102,8 @@ function scaleGoalToPeriod(args: {
   viewOffset: number;
   bucketAggregation?: BucketAggregation | null;
 }): number | null {
-  const { baseGoal, basePeriod, viewPeriod, viewOffset, bucketAggregation } = args;
+  const { baseGoal, basePeriod, viewPeriod, viewOffset, bucketAggregation } =
+    args;
   if (baseGoal == null || baseGoal <= 0) return null;
   if ((bucketAggregation ?? "").toLowerCase() === "avg") return baseGoal;
   const baseP: Period = basePeriod ?? "week";
@@ -107,21 +118,31 @@ function scaleGoalToPeriod(args: {
 
 function Summary({ category }: { category: CategoryWithStats }) {
   const theme = useTheme();
-  const accent = resolveAccentForTheme(category.accentHex, theme.isDark) ?? category.accentHex;
+  const accent =
+    resolveAccentForTheme(category.accentHex, theme.isDark) ??
+    category.accentHex;
   const unit =
-    category.unit && category.unit !== "x"
-      ? ` ${category.unit}`
-      : "";
+    category.unit && category.unit !== "x" ? ` ${category.unit}` : "";
 
   if (category.chartType === "line") {
-    const last = category.lastValue == null ? "n/a" : formatValue(category.lastValue);
-    const goal = category.goalValue == null ? null : formatValue(category.goalValue);
+    const last =
+      category.lastValue == null ? "n/a" : formatValue(category.lastValue);
+    const goal =
+      category.goalValue == null ? null : formatValue(category.goalValue);
     return (
       <div className="text-sm text-neutral-500 dark:text-neutral-400">
-        Last: <span className="font-semibold text-neutral-900 dark:text-neutral-100">{last}{unit}</span>
+        Last:{" "}
+        <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+          {last}
+          {unit}
+        </span>
         {goal ? (
           <>
-            {" · "}Goal: <span className="font-semibold text-neutral-900 dark:text-neutral-100">{goal}{unit}</span>
+            {" · "}Goal:{" "}
+            <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+              {goal}
+              {unit}
+            </span>
           </>
         ) : null}
       </div>
@@ -159,7 +180,8 @@ function Summary({ category }: { category: CategoryWithStats }) {
     <div className="text-sm text-neutral-500 dark:text-neutral-400">
       {label}:{" "}
       <span className="font-semibold text-neutral-900 dark:text-neutral-100">
-        {week}{unit}
+        {week}
+        {unit}
       </span>
     </div>
   );
@@ -188,14 +210,24 @@ function BarCategoryChart({
   localUserId: string | null;
   bucketAggregation?: any | null;
 }) {
-  const seriesQuery = useQuery(getCategorySeries, { categoryId, period, offset }, { enabled: !isLocal });
+  const seriesQuery = useQuery(
+    getCategorySeries,
+    { categoryId, period, offset },
+    { enabled: !isLocal },
+  );
   const [localData, setLocalData] = useState<any[] | null>(null);
 
   useEffect(() => {
     if (!isLocal) return;
     if (!localUserId) return;
     let cancelled = false;
-    localGetBarSeries({ userId: localUserId, categoryId, period, offset, aggregation: bucketAggregation }).then((d) => {
+    localGetBarSeries({
+      userId: localUserId,
+      categoryId,
+      period,
+      offset,
+      aggregation: bucketAggregation,
+    }).then((d) => {
       if (!cancelled) setLocalData(d);
     });
     return () => {
@@ -205,12 +237,29 @@ function BarCategoryChart({
 
   if (isLocal) {
     if (!localData) return <div className="h-[170px]" />;
-    return <BarChart data={localData as any} accentHex={accentHex} goal={goal} goalDirection={goalDirection} unit={unit} />;
+    return (
+      <BarChart
+        data={localData as any}
+        accentHex={accentHex}
+        goal={goal}
+        goalDirection={goalDirection}
+        unit={unit}
+      />
+    );
   }
 
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
-  if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
-  return <BarChart data={seriesQuery.data} accentHex={accentHex} goal={goal} goalDirection={goalDirection} unit={unit} />;
+  if (!seriesQuery.isSuccess)
+    return <div className="text-red-600">Failed to load chart.</div>;
+  return (
+    <BarChart
+      data={seriesQuery.data}
+      accentHex={accentHex}
+      goal={goal}
+      goalDirection={goalDirection}
+      unit={unit}
+    />
+  );
 }
 
 function LineCategoryChart({
@@ -236,14 +285,24 @@ function LineCategoryChart({
   localUserId: string | null;
   bucketAggregation?: any | null;
 }) {
-  const seriesQuery = useQuery(getCategoryLineSeries, { categoryId, period, offset }, { enabled: !isLocal });
+  const seriesQuery = useQuery(
+    getCategoryLineSeries,
+    { categoryId, period, offset },
+    { enabled: !isLocal },
+  );
   const [localData, setLocalData] = useState<any[] | null>(null);
 
   useEffect(() => {
     if (!isLocal) return;
     if (!localUserId) return;
     let cancelled = false;
-    localGetLineSeries({ userId: localUserId, categoryId, period, offset, aggregation: bucketAggregation }).then((d) => {
+    localGetLineSeries({
+      userId: localUserId,
+      categoryId,
+      period,
+      offset,
+      aggregation: bucketAggregation,
+    }).then((d) => {
       if (!cancelled) setLocalData(d);
     });
     return () => {
@@ -253,12 +312,29 @@ function LineCategoryChart({
 
   if (isLocal) {
     if (!localData) return <div className="h-[170px]" />;
-    return <LineChart data={localData as any} goal={goal} goalDirection={goalDirection} unit={unit} accentHex={accentHex} />;
+    return (
+      <LineChart
+        data={localData as any}
+        goal={goal}
+        goalDirection={goalDirection}
+        unit={unit}
+        accentHex={accentHex}
+      />
+    );
   }
 
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
-  if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
-  return <LineChart data={seriesQuery.data} goal={goal} goalDirection={goalDirection} unit={unit} accentHex={accentHex} />;
+  if (!seriesQuery.isSuccess)
+    return <div className="text-red-600">Failed to load chart.</div>;
+  return (
+    <LineChart
+      data={seriesQuery.data}
+      goal={goal}
+      goalDirection={goalDirection}
+      unit={unit}
+      accentHex={accentHex}
+    />
+  );
 }
 
 function ContributionCategoryChart({
@@ -278,16 +354,22 @@ function ContributionCategoryChart({
   isLocal: boolean;
   localUserId: string | null;
 }) {
-  const seriesQuery = useQuery(getCategoryContributions as any, { categoryId }, { enabled: !isLocal });
+  const seriesQuery = useQuery(
+    getCategoryContributions as any,
+    { categoryId },
+    { enabled: !isLocal },
+  );
   const [localData, setLocalData] = useState<ContributionDay[] | null>(null);
 
   useEffect(() => {
     if (!isLocal) return;
     if (!localUserId) return;
     let cancelled = false;
-    localGetContributionSeries({ userId: localUserId, categoryId }).then((d) => {
-      if (!cancelled) setLocalData(d);
-    });
+    localGetContributionSeries({ userId: localUserId, categoryId }).then(
+      (d) => {
+        if (!cancelled) setLocalData(d);
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -307,7 +389,8 @@ function ContributionCategoryChart({
   }
 
   if (seriesQuery.isLoading) return <div className="h-[170px]" />;
-  if (!seriesQuery.isSuccess) return <div className="text-red-600">Failed to load chart.</div>;
+  if (!seriesQuery.isSuccess)
+    return <div className="text-red-600">Failed to load chart.</div>;
   return (
     <ContributionsChart
       data={seriesQuery.data as ContributionDay[]}
@@ -326,7 +409,9 @@ export function CategoryPage() {
   const [offset, setOffset] = useState<number>(0);
   const [amount, setAmount] = useState<string>("");
   const [note, setNote] = useState<string>("");
-  const [scheduledStatus, setScheduledStatus] = useState<"went" | "missed" | "cancelled">("went");
+  const [scheduledStatus, setScheduledStatus] = useState<
+    "went" | "missed" | "cancelled"
+  >("went");
   const [occurredOn, setOccurredOn] = useState<string>(todayIso());
   const [displayTitle, setDisplayTitle] = useState<string | null>(null);
   const privacy = usePrivacy();
@@ -338,9 +423,14 @@ export function CategoryPage() {
     return next > today ? today : next;
   }
 
-  const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
-  const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>([]);
-  const categories = privacy.mode === "local" ? localCategories : categoriesQuery.data ?? [];
+  const categoriesQuery = useQuery(getCategories, undefined, {
+    enabled: privacy.mode !== "local",
+  });
+  const [localCategories, setLocalCategories] = useState<CategoryWithStats[]>(
+    [],
+  );
+  const categories =
+    privacy.mode === "local" ? localCategories : (categoriesQuery.data ?? []);
 
   const category = useMemo(() => {
     if (!categorySlug) return null;
@@ -354,7 +444,9 @@ export function CategoryPage() {
   useEffect(() => {
     if (privacy.mode !== "local") return;
     if (!privacy.userId) return;
-    localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats));
+    localGetCategoriesWithStats(privacy.userId).then((cats) =>
+      setLocalCategories(cats),
+    );
   }, [privacy.mode, privacy.userId]);
 
   useEffect(() => {
@@ -363,7 +455,9 @@ export function CategoryPage() {
     if (!userId) return;
     const onChanged = (e: any) => {
       if (e?.detail?.userId !== userId) return;
-      localGetCategoriesWithStats(userId).then((cats) => setLocalCategories(cats));
+      localGetCategoriesWithStats(userId).then((cats) =>
+        setLocalCategories(cats),
+      );
     };
     window.addEventListener("memoato:localChanged", onChanged);
     return () => window.removeEventListener("memoato:localChanged", onChanged);
@@ -383,7 +477,10 @@ export function CategoryPage() {
     if (!privacy.key) return;
     if (!isEncryptedString(category.title)) return;
     (async () => {
-      const t = await decryptCategoryTitle(privacy.key as CryptoKey, category.title);
+      const t = await decryptCategoryTitle(
+        privacy.key as CryptoKey,
+        category.title,
+      );
       if (cancelled) return;
       setDisplayTitle(t);
     })();
@@ -396,7 +493,28 @@ export function CategoryPage() {
     setOffset(0);
   }, [period]);
 
+  const addingRef = useRef(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [entryError, setEntryError] = useState<string | null>(null);
   async function onAdd() {
+    if (addingRef.current) return;
+    addingRef.current = true;
+    setIsAdding(true);
+    setEntryError(null);
+    try {
+      await saveEntry();
+    } catch (error) {
+      setEntryError(
+        error instanceof Error
+          ? error.message
+          : "Couldn’t save this entry. Your draft is still here; try again.",
+      );
+    } finally {
+      addingRef.current = false;
+      setIsAdding(false);
+    }
+  }
+  async function saveEntry() {
     if (!category?.id) return;
     if (occurredOn > today) {
       window.alert("Future dates are not allowed.");
@@ -404,9 +522,14 @@ export function CategoryPage() {
       return;
     }
     const isNotes = (category.slug ?? "") === "notes";
-    const isSimpleTracking = category.categoryType === "DO" || category.categoryType === "DONT";
+    const isSimpleTracking =
+      category.categoryType === "DO" || category.categoryType === "DONT";
     const amountForSimple = scheduledStatus === "went" ? 1 : 0;
-    const n = isNotes ? 1 : isSimpleTracking ? amountForSimple : parseNumberInput(amount);
+    const n = isNotes
+      ? 1
+      : isSimpleTracking
+        ? amountForSimple
+        : parseNumberInput(amount);
     if (!isNotes && !isSimpleTracking && (n == null || n <= 0)) {
       window.alert("Enter a positive number.");
       return;
@@ -422,7 +545,11 @@ export function CategoryPage() {
         categoryId: category.id,
         amount: n ?? 1,
         occurredOn,
-        rawText: isNotes ? note : isSimpleTracking ? `${category.title} ${scheduledStatus}` : amount.trim() || String(n ?? 1),
+        rawText: isNotes
+          ? note
+          : isSimpleTracking
+            ? `${category.title} ${scheduledStatus}`
+            : amount.trim() || String(n ?? 1),
         ...(isNotes ? { note } : note.trim() ? { note } : {}),
         ...(isSimpleTracking ? { scheduledStatus } : {}),
       });
@@ -436,8 +563,18 @@ export function CategoryPage() {
         window.alert("Unlock encryption from Profile → Privacy first.");
         return;
       }
-      const noteEnc = await encryptUtf8ToEncryptedString(privacy.key as CryptoKey, privacy.cryptoParams, note.trim());
-      await createEvent({ categoryId: category.id, amount: 1, occurredOn, noteEnc, rawText: null } as any);
+      const noteEnc = await encryptUtf8ToEncryptedString(
+        privacy.key as CryptoKey,
+        privacy.cryptoParams,
+        note.trim(),
+      );
+      await createEvent({
+        categoryId: category.id,
+        amount: 1,
+        occurredOn,
+        noteEnc,
+        rawText: null,
+      } as any);
       setAmount("");
       setNote("");
       setScheduledStatus("went");
@@ -451,7 +588,13 @@ export function CategoryPage() {
       ...(isSimpleTracking ? { scheduledStatus } : {}),
       ...(privacy.mode === "encrypted"
         ? {}
-        : { rawText: isNotes ? note : isSimpleTracking ? `${category.title} ${scheduledStatus}` : amount.trim() || String(n ?? 1) }),
+        : {
+            rawText: isNotes
+              ? note
+              : isSimpleTracking
+                ? `${category.title} ${scheduledStatus}`
+                : amount.trim() || String(n ?? 1),
+          }),
     } as any);
     setAmount("");
     setNote("");
@@ -460,18 +603,65 @@ export function CategoryPage() {
 
   const isWeight = category?.chartType === "line";
   const isNotes = (category?.slug ?? "") === "notes";
-  const isSimpleTracking = category?.categoryType === "DO" || category?.categoryType === "DONT";
-  const isScheduledTracking = isSimpleTracking && category?.scheduleEnabled === true;
+  const isSimpleTracking =
+    category?.categoryType === "DO" || category?.categoryType === "DONT";
+  const isScheduledTracking =
+    isSimpleTracking && category?.scheduleEnabled === true;
   const amountPlaceholder = isWeight ? "e.g. 84.5" : "e.g. 20";
   const resolvedCategoryId = category?.id ?? null;
   const resolvedTitle =
-    displayTitle ?? (category && isEncryptedString(category.title) ? "Locked" : category?.title ?? null);
-  const accentHex = category ? resolveAccentForTheme(category.accentHex, theme.isDark) ?? category.accentHex : "#0A0A0A";
-  const isLocked = !!category && isEncryptedString(category.title) && !privacy.key;
-  const activePrimaryView: "line" | "bar" = category?.chartType === "line" ? "line" : "bar";
+    displayTitle ??
+    (category && isEncryptedString(category.title)
+      ? "Locked"
+      : (category?.title ?? null));
+  const accentHex = category
+    ? (resolveAccentForTheme(category.accentHex, theme.isDark) ??
+      category.accentHex)
+    : "#0A0A0A";
+  const isLocked =
+    !!category && isEncryptedString(category.title) && !privacy.key;
+  const activePrimaryView: "line" | "bar" =
+    category?.chartType === "line" ? "line" : "bar";
 
+  if (privacy.mode !== "local" && categoriesQuery.isLoading)
+    return (
+      <div className="memoato-tools-page">
+        <h1>View</h1>
+        <p className="memoato-tools-state" role="status">
+          Loading view…
+        </p>
+      </div>
+    );
+  if (privacy.mode !== "local" && categoriesQuery.isError)
+    return (
+      <div className="memoato-tools-page">
+        <h1>View</h1>
+        <p className="memoato-tools-state" role="alert">
+          This view couldn’t be loaded. Refresh to try again.
+        </p>
+      </div>
+    );
+  if (privacy.mode !== "local" && !category)
+    return (
+      <div className="memoato-tools-page">
+        <h1>View not found</h1>
+        <ButtonLink to="/views" variant="ghost">
+          Back to views
+        </ButtonLink>
+      </div>
+    );
   return (
-    <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
+    <div className="memoato-tools-page memoato-view-detail">
+      <div className="mb-6">
+        <ButtonLink to="/views" variant="ghost">
+          Back to views
+        </ButtonLink>
+      </div>
+      {entryError ? (
+        <p role="alert" className="memoato-settings-feedback">
+          {entryError}
+        </p>
+      ) : null}
       <div className="mb-6 flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex w-full flex-col gap-2">
@@ -482,15 +672,26 @@ export function CategoryPage() {
                   style={{ borderColor: accentHex }}
                   aria-hidden="true"
                 >
-                  <div className="text-lg leading-none">{category.emoji ?? ""}</div>
+                  <div className="text-lg leading-none">
+                    {category.emoji || (
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                      >
+                        <path d="M7 3h7l4 4v14H6V3zm7 0v5h5M9 12h6m-6 4h6" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
               ) : null}
 
               <div className="min-w-0 flex-1">
                 <div className="flex w-full items-center justify-between gap-2 sm:justify-start">
-                  <h2 className="truncate text-2xl font-semibold tracking-tight">
-                    {resolvedTitle ?? "Category"}
-                  </h2>
+                  <h1>{resolvedTitle ?? "Category"}</h1>
                   {category ? (
                     <ButtonLink
                       to={routes.EditCategoryRoute.to}
@@ -512,12 +713,17 @@ export function CategoryPage() {
 
         {isLocked ? (
           <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300">
-            This category is encrypted. Unlock it from <span className="font-semibold">Profile → Privacy</span>.
+            This category is encrypted. Unlock it from{" "}
+            <span className="font-semibold">Profile → Privacy</span>.
           </div>
         ) : null}
 
         {isNotes ? (
-          <div className="card grid grid-cols-1 gap-3 p-4">
+          <fieldset
+            disabled={isAdding}
+            aria-busy={isAdding}
+            className="memoato-view-entry grid grid-cols-1 gap-3"
+          >
             <label className="flex min-w-0 flex-col gap-1">
               <span className="label">Note</span>
               <textarea
@@ -537,21 +743,31 @@ export function CategoryPage() {
                     type="date"
                     value={occurredOn}
                     max={today}
-                    onChange={(e) => setOccurredOn(clampOccurredOn(e.target.value))}
+                    onChange={(e) =>
+                      setOccurredOn(clampOccurredOn(e.target.value))
+                    }
                     className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
                     style={{ WebkitAppearance: "none" }}
                   />
                 </div>
               </label>
               <div className="flex min-w-0 items-end">
-                <Button className="h-10 w-full" onClick={onAdd} disabled={isLocked}>
+                <Button
+                  className="h-10 w-full"
+                  onClick={onAdd}
+                  disabled={isLocked}
+                >
                   Add
                 </Button>
               </div>
             </div>
-          </div>
+          </fieldset>
         ) : (
-          <div className="card grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
+          <fieldset
+            disabled={isAdding}
+            aria-busy={isAdding}
+            className="memoato-view-entry grid grid-cols-1 gap-3 sm:grid-cols-3"
+          >
             <label className="flex min-w-0 flex-col gap-1">
               <span className="label">Date</span>
               <div className="h-10 w-full overflow-hidden rounded-lg border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-950">
@@ -559,7 +775,9 @@ export function CategoryPage() {
                   type="date"
                   value={occurredOn}
                   max={today}
-                  onChange={(e) => setOccurredOn(clampOccurredOn(e.target.value))}
+                  onChange={(e) =>
+                    setOccurredOn(clampOccurredOn(e.target.value))
+                  }
                   className="h-full w-full min-w-0 appearance-none bg-transparent px-3 text-neutral-900 dark:text-neutral-100"
                   style={{ WebkitAppearance: "none" }}
                 />
@@ -582,7 +800,11 @@ export function CategoryPage() {
                           <button
                             key={opt.value}
                             type="button"
-                            onClick={() => setScheduledStatus(opt.value as "went" | "missed" | "cancelled")}
+                            onClick={() =>
+                              setScheduledStatus(
+                                opt.value as "went" | "missed" | "cancelled",
+                              )
+                            }
                             className={
                               "rounded-full border px-3 py-1.5 text-xs font-semibold " +
                               (active
@@ -597,8 +819,11 @@ export function CategoryPage() {
                     </div>
                     {category?.scheduleType || category?.scheduleTime ? (
                       <div className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-                        Scheduled {category.scheduleType === "daily" ? "daily" : "weekly"}
-                        {category.scheduleTime ? ` at ${category.scheduleTime}` : ""}
+                        Scheduled{" "}
+                        {category.scheduleType === "daily" ? "daily" : "weekly"}
+                        {category.scheduleTime
+                          ? ` at ${category.scheduleTime}`
+                          : ""}
                       </div>
                     ) : null}
                   </div>
@@ -609,7 +834,11 @@ export function CategoryPage() {
                   <input
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder={isScheduledTracking && scheduledStatus === "cancelled" ? "Why cancelled?" : "Any context"}
+                    placeholder={
+                      isScheduledTracking && scheduledStatus === "cancelled"
+                        ? "Why cancelled?"
+                        : "Any context"
+                    }
                     className="block h-10 w-full min-w-0 max-w-full rounded-lg border border-neutral-300 bg-white px-3 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
                   />
                 </label>
@@ -630,12 +859,18 @@ export function CategoryPage() {
               </label>
             )}
 
-            <div className={`flex min-w-0 items-end ${isSimpleTracking ? "sm:col-span-3 sm:justify-end" : ""}`}>
-              <Button className={`h-10 ${isSimpleTracking ? "w-full sm:w-40" : "w-full"}`} onClick={onAdd} disabled={isLocked}>
+            <div
+              className={`flex min-w-0 items-end ${isSimpleTracking ? "sm:col-span-3 sm:justify-end" : ""}`}
+            >
+              <Button
+                className={`h-10 ${isSimpleTracking ? "w-full sm:w-40" : "w-full"}`}
+                onClick={onAdd}
+                disabled={isLocked}
+              >
                 Add
               </Button>
             </div>
-          </div>
+          </fieldset>
         )}
       </div>
 

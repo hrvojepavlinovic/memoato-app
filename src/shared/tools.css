@@ -1,0 +1,397 @@
+/* Operational surfaces share the approved Memoato canvas and control language. */
+.memoato-tools-page {
+  width: 100%;
+  max-width: 68rem;
+  margin-inline: auto;
+  padding: 2.5rem 1.5rem 5rem;
+  overflow-wrap: anywhere;
+}
+.memoato-tools-page h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+.memoato-tools-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid var(--memoato-line);
+  margin-bottom: 1.75rem;
+}
+.memoato-tools-heading p {
+  color: var(--memoato-muted);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  max-width: 65ch;
+  margin-top: 0.65rem;
+}
+.memoato-tools-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+.memoato-tools-state {
+  padding-block: 2rem;
+  line-height: 1.7;
+  color: var(--memoato-muted);
+}
+.memoato-tools-state p + a {
+  margin-top: 1rem;
+}
+.memoato-tools-page
+  :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  min-height: 3rem;
+  font-size: 1rem;
+  background: var(--memoato-panel);
+  color: var(--memoato-ink);
+  border-color: var(--memoato-line);
+}
+.memoato-tools-page :is(button, a):focus-visible {
+  outline: 2px solid var(--memoato-accent);
+  outline-offset: 4px;
+}
+.memoato-tools-page :is(input, textarea):focus-visible {
+  outline: 2px solid var(--memoato-accent);
+  outline-offset: 2px;
+}
+.memoato-tools-page input:disabled {
+  opacity: 0.65;
+}
+.memoato-tools-page .label {
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--memoato-ink);
+}
+.memoato-view-list {
+  display: grid;
+}
+.memoato-view-row {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto 1.25rem;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0.25rem;
+  border-bottom: 1px solid var(--memoato-line);
+  text-decoration: none;
+  border-radius: 0;
+}
+.memoato-view-row:hover {
+  background: var(--memoato-panel);
+}
+.memoato-view-symbol {
+  font-size: 1.5rem;
+  text-align: center;
+}
+.memoato-view-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.memoato-view-meta {
+  color: var(--memoato-muted);
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+}
+.memoato-view-value {
+  display: grid;
+  gap: 0.2rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.memoato-view-value strong {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.memoato-view-value small {
+  color: var(--memoato-muted);
+  font-size: 0.8125rem;
+}
+.memoato-settings-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  border-bottom: 1px solid var(--memoato-line);
+  margin-bottom: 2rem;
+}
+.memoato-settings-nav a {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding-block: 0.5rem;
+  color: var(--memoato-muted);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.memoato-settings-nav a[aria-current="page"] {
+  color: var(--memoato-ink);
+  border-bottom-color: var(--memoato-accent);
+}
+.memoato-settings-body {
+  min-width: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.memoato-settings-section {
+  padding: 0 0 2rem;
+  margin: 0 0 2rem;
+  border-bottom: 1px solid var(--memoato-line);
+}
+.memoato-settings-section[hidden] {
+  display: none !important;
+}
+.memoato-settings-section:last-of-type {
+  margin-bottom: 0;
+}
+.memoato-settings-section h2 {
+  font-size: 1.125rem;
+  font-weight: 650;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.015em;
+}
+.memoato-settings-section > :is(.border-b, .border-t) {
+  padding-inline: 0;
+  background: transparent;
+}
+.memoato-settings-section > .grid > .p-4 {
+  padding-left: 0;
+}
+.memoato-settings-section :is(button:not(.memoato-choice), a.inline-flex) {
+  min-height: 2.75rem;
+}
+.memoato-settings-section :is(label, .space-y-3, .space-y-4) {
+  min-width: 0;
+}
+.memoato-settings-section .grid > label {
+  gap: 0.5rem;
+}
+.memoato-settings-section input[type="radio"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--memoato-accent);
+  flex-shrink: 0;
+}
+.memoato-settings-section
+  label:not(.memoato-choice):has(> input[type="radio"]) {
+  min-height: 3.5rem;
+  padding-block: 0.5rem;
+}
+.memoato-settings-feedback {
+  margin-bottom: 1.5rem;
+  padding-block: 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.memoato-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.memoato-choice {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+}
+.memoato-choice input {
+  position: absolute;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0;
+}
+.memoato-choice span {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--memoato-line);
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.memoato-choice input:checked + span {
+  background: var(--memoato-accent);
+  border-color: var(--memoato-accent);
+  color: var(--memoato-bg);
+}
+.memoato-choice input:focus-visible + span {
+  outline: 2px solid var(--memoato-accent);
+  outline-offset: 3px;
+}
+.memoato-choice input:disabled + span {
+  opacity: 0.5;
+  cursor: default;
+}
+.memoato-choice:hover input:not(:checked):not(:disabled) + span {
+  border-color: var(--memoato-ink);
+}
+.memoato-view-editor {
+  max-width: 58rem;
+}
+.memoato-view-editor > .card,
+.memoato-view-detail > .card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+.memoato-view-editor > .card > .grid {
+  gap: 1.75rem 2rem;
+}
+.memoato-view-editor .flex.flex-col.gap-1 {
+  gap: 0.5rem;
+}
+.memoato-view-editor select {
+  max-width: 100%;
+}
+.memoato-view-detail .memoato-view-entry {
+  border: 0;
+  border-radius: 0;
+  padding: 1.5rem 0;
+  background: transparent;
+  border-block: 1px solid var(--memoato-line);
+  box-shadow: none;
+}
+.memoato-view-detail h1 {
+  white-space: normal;
+  overflow: visible;
+}
+.memoato-timeline-dates {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 36rem;
+  margin-bottom: 2rem;
+}
+.memoato-timeline-dates > button {
+  width: 2.75rem;
+  padding-inline: 0.5rem;
+}
+.memoato-timeline-dates .grid button {
+  min-height: 3.75rem;
+  padding-inline: 0.25rem;
+}
+.memoato-timeline-rows > a {
+  padding: 1.25rem 0.5rem;
+  border-radius: 0;
+  border-bottom: 1px solid var(--memoato-line);
+}
+.memoato-timeline-rows .memoato-timeline-note {
+  padding: 0.5rem 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  line-height: 1.7;
+}
+.memoato-reminder-form {
+  max-width: 38rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.memoato-reminder-form > label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3rem;
+}
+.memoato-reminder-form input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--memoato-accent);
+}
+@media (max-width: 639px) {
+  .memoato-tools-page {
+    padding: 1.75rem 1rem 3rem;
+  }
+  .memoato-view-row {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    padding-block: 1.25rem;
+  }
+  .memoato-view-row > svg {
+    display: none;
+  }
+  .memoato-view-value strong {
+    font-size: 1.125rem;
+  }
+  .memoato-settings-nav {
+    gap: 0.25rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .memoato-settings-nav a {
+    font-size: 0.875rem;
+  }
+  .memoato-timeline-dates {
+    grid-template-columns: 1fr 1fr;
+  }
+  .memoato-timeline-dates > .grid {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    gap: 0.5rem;
+  }
+  .memoato-timeline-dates > button {
+    width: 100%;
+  }
+}
+
+.memoato-settings-page {
+  max-width: 58rem;
+}
+.memoato-view-editor button {
+  min-height: 2.75rem;
+}
+
+.memoato-view-editor > .memoato-settings-body > .grid {
+  gap: 1.75rem 2rem;
+}
+.memoato-view-editor .grid-cols-6 > .memoato-choices {
+  grid-column: span 2;
+}
+.memoato-settings-section:has(#settings-api-keys) > .space-y-4 > .grid {
+  grid-template-columns: 1fr;
+}
+.memoato-settings-section:has(#settings-api-keys)
+  > .space-y-4
+  > .grid
+  > button {
+  justify-self: start;
+}
+
+/* History rows can contain several editable fields; wrap before their inputs collide. */
+.memoato-view-detail .card.grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .memoato-view-detail .card.grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.memoato-view-detail .card.grid > label > .h-10 {
+  height: 3rem;
+}
+.memoato-view-detail .memoato-view-entry {
+  min-width: 0;
+  margin: 0;
+}
+.memoato-view-entry .h-10:has(> input) {
+  height: 3rem;
+}
+.memoato-view-detail :is(button, a.inline-flex) {
+  min-height: 2.75rem;
+}
