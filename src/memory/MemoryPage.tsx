@@ -32,8 +32,8 @@ export function MemoryPage() {
     { filter, take: 30 },
     {
       enabled,
-      refetchInterval: (query: { state: { data?: unknown } }) =>
-        (query.state.data as MemoryFeed | undefined)?.entries.some(
+      refetchInterval: (data: unknown) =>
+        (data as MemoryFeed | undefined)?.entries.some(
           (entry) =>
             entry.processingStatus === "queued" ||
             entry.processingStatus === "processing",
