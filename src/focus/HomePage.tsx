@@ -27,6 +27,7 @@ import {
 import type { BucketAggregation, GoalDirection } from "./types";
 import { QuickLogDialog } from "./components/QuickLogDialog";
 import { TodayMemoryPanel } from "../memory/components/TodayMemoryPanel";
+import { isOnboardingComplete } from "../onboarding/progress";
 
 function formatValue(v: number): string {
   if (Number.isInteger(v)) return String(v);
@@ -558,13 +559,7 @@ export function HomePage() {
   const [promptNote, setPromptNote] = useState("");
   const dragPointerIdRef = useRef<number | null>(null);
   const reorderItemByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
-  const onboardingDone = useMemo(() => {
-    try {
-      return localStorage.getItem("memoato:onboardingDone") === "1";
-    } catch {
-      return false;
-    }
-  }, []);
+  const onboardingDone = isOnboardingComplete();
 
   const notesCategoryId = useMemo(() => {
     const notes = categories.find((c) => (c.slug ?? "").trim().toLowerCase() === "notes");
@@ -750,14 +745,6 @@ export function HomePage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [notesCategoryId, orderMode, quickLogOpen]);
 
-  if (isLoading) {
-    return <div className="mx-auto w-full max-w-screen-lg px-4 py-6" />;
-  }
-
-  if (!isSuccess) {
-    return <div className="px-4 py-8 text-red-600">Failed to load.</div>;
-  }
-
   const orderedCategories: CategoryWithStats[] = orderMode
     ? draftOrderIds
         .map((id) => categories.find((c) => c.id === id))
@@ -900,27 +887,20 @@ export function HomePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-screen-lg px-4 pb-24 pt-6 sm:px-6 sm:pb-8 sm:pt-10">
-      <section className="mb-6 grid border-b border-neutral-300 pb-6 dark:border-neutral-700 sm:grid-cols-[1fr_auto] sm:items-end">
-        <div>
-          <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500 dark:text-neutral-400">
-            <span className="h-2 w-2 bg-[#ff5c35]" aria-hidden="true" />
-            {new Intl.DateTimeFormat("en", { weekday: "long", month: "short", day: "numeric" }).format(new Date())}
-          </div>
-          <h2 className="mt-3 text-[2rem] font-semibold leading-none tracking-[-0.055em] text-neutral-950 dark:text-neutral-100 sm:text-[2.7rem]">
-            What happened today?
-          </h2>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-600 dark:text-neutral-400">
-            Write it as it happened. Memoato keeps the context, not just the count.
-          </p>
-        </div>
-        <Button className="mt-5 hidden h-11 min-w-36 gap-2 sm:inline-flex" onClick={() => openQuickLog(null)}>
-          <span className="text-lg leading-none">+</span>
-          Quick log
-        </Button>
-      </section>
+    <div className={privacy.mode === "cloud" ? "mx-auto w-full max-w-screen-lg px-4 pb-8 pt-6 sm:px-6 sm:pt-10" : "mx-auto w-full max-w-screen-lg px-4 pb-24 pt-6 sm:px-6 sm:pb-8 sm:pt-10"}>
+      <header className="memoato-today-heading">
+        <h1>Today</h1>
+        <p>{new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric" }).format(new Date())}</p>
+      </header>
 
       <TodayMemoryPanel onOpenLegacyCapture={() => openQuickLog(null)} />
+
+      {isLoading ? <p role="status" className="mb-6 text-sm text-neutral-600 dark:text-neutral-400">Loading your views…</p> : !isSuccess ? (
+        <div role="alert" className="mb-6 text-sm text-red-700 dark:text-red-300">
+          <p>Couldn’t load your views. You can still use capture above.</p>
+          <Button variant="ghost" className="mt-3" onClick={() => void categoriesQuery.refetch()}>Try loading views again</Button>
+        </div>
+      ) : null}
 
       <CoachCard
         categories={orderedCategories}
@@ -1251,12 +1231,12 @@ export function HomePage() {
         </>
       )}
 
-      {!orderMode && !quickLogOpen ? (
+      {privacy.mode !== "cloud" && !orderMode && !quickLogOpen ? (
         <div className="fixed inset-x-4 bottom-[calc(16px+var(--memoato-install-banner-h)+var(--memoato-mobile-nav-h))] z-40 sm:hidden">
           <button
             type="button"
             onClick={() => openQuickLog(null)}
-            className="flex h-14 w-full items-center justify-between rounded-[4px] border border-neutral-950 bg-neutral-950 px-5 text-sm font-bold text-white shadow-[4px_4px_0_#ff5c35] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#ff5c35] dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
+            className="flex min-h-12 w-full items-center justify-between rounded-[7px] bg-[var(--memoato-accent)] px-5 text-sm font-semibold text-[color:var(--memoato-bg)]"
             aria-label="Quick log"
           >
             <span>Quick log</span>

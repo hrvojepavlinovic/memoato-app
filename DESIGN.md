@@ -36,3 +36,22 @@ context appear together without implying unshipped team functionality.
 Step 02 refines Today/capture/onboarding; step 03 Memory/Recall; step 04 Context;
 step 05 Views/profile/privacy and final QA. Shared foundations must keep existing
 screens usable while each surface is updated. No private test data is committed.
+
+## Today and first visit — step 02
+
+Today opens directly into a labeled writing area, with recent originals beside
+it on desktop and below it on mobile. Only the editable input has a containing
+surface. Recent notes use open rows, dates and explicit processing states;
+loading and errors never masquerade as zero counts or an empty memory.
+
+A successful raw write is separate from asynchronous processing and list refresh.
+Keep failed drafts, prevent duplicate pending submissions and preserve typing
+that happens during a write. A failed refresh must not ask for another save.
+Cloud capture stays available even when category views fail. Structured and
+local/encrypted capture retain their existing private flows.
+
+The first visit offers personal notes and AI Context as equal, visible action
+rows. Optional views are unselected native checkboxes below those paths, with no
+mandatory tracker setup or disclosure. Completion has an in-memory fallback when
+browser storage is unavailable. Keep source/claim capabilities truthful and
+separate local/encrypted notes from Context's cloud sources.

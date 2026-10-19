@@ -1,41 +1,37 @@
-import React from "react";
-import {
-  createRawLog,
-  getMemoryOverview,
-  queryClientInitialized,
-  useQuery,
-} from "wasp/client/operations";
-import { Button, ButtonLink } from "../../shared/components/Button";
+import { Link } from "react-router-dom";
+import { getMemoryOverview, useQuery } from "wasp/client/operations";
+import { Button } from "../../shared/components/Button";
 import { usePrivacy } from "../../privacy/PrivacyProvider";
+import { useRawCapture } from "./useRawCapture";
 
-function timeOnly(value: string | Date): string {
+type RecentEntry = {
+  id: string;
+  rawText: string;
+  occurredAt: string | Date;
+  processingStatus: string;
+};
+type Overview = {
+  capturedToday: number;
+  reviewCount: number;
+  failedCount: number;
+  recent: RecentEntry[];
+};
+
+function entryTime(value: string | Date): string {
+  const date = new Date(value);
+  const today = new Date().toDateString() === date.toDateString();
   return new Intl.DateTimeFormat("en", {
+    ...(today ? {} : ({ month: "short", day: "numeric" } as const)),
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value));
+  }).format(date);
 }
 
-function compactFact(fact: any): string {
-  const name = fact.canonical || fact.label;
-  if (typeof fact.amount === "number")
-    return `${name} · ${Number.isInteger(fact.amount) ? fact.amount : fact.amount.toFixed(1)}${fact.unit ? ` ${fact.unit}` : ""}`;
-  return name;
-}
-
-function compactEntryLabel(entry: any): string {
-  const primary = entry?.primaryLabel;
-  const fact = (entry?.facts ?? []).find(
-    (candidate: any) =>
-      candidate?.conceptKey && candidate.conceptKey === primary?.conceptKey,
-  );
-  if (fact && typeof fact.amount === "number") return compactFact(fact);
-  if (primary?.label) {
-    const domain = String(primary.domain || "personal").replace(/-/g, " ");
-    return `${domain} · ${primary.label}`;
-  }
-  return entry?.processingStatus === "complete"
-    ? "Life note"
-    : entry?.processingStatus;
+function processingLabel(status: string): string {
+  if (status === "queued") return "Waiting to process";
+  if (status === "processing") return "Processing";
+  if (status === "failed") return "Original saved · processing needs attention";
+  return "Original saved";
 }
 
 export function TodayMemoryPanel({
@@ -44,56 +40,29 @@ export function TodayMemoryPanel({
   onOpenLegacyCapture: () => void;
 }) {
   const privacy = usePrivacy();
-  const [text, setText] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
-  const [saved, setSaved] = React.useState(false);
+  const capture = useRawCapture();
   const overview = useQuery(getMemoryOverview, undefined, {
     enabled: privacy.mode === "cloud",
     refetchInterval: privacy.mode === "cloud" ? 5_000 : false,
   });
-  const data = overview.data as any;
-
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    const raw = text.trim();
-    if (!raw || saving) return;
-    setSaving(true);
-    setSaved(false);
-    try {
-      await createRawLog({ text: raw });
-      setText("");
-      setSaved(true);
-      const queryClient = await queryClientInitialized;
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["operations/get-memory-overview"],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["operations/get-memory-feed"],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["operations/get-categories"],
-        }),
-      ]);
-      globalThis.setTimeout(() => {
-        void overview.refetch();
-      }, 1_500);
-    } finally {
-      setSaving(false);
-    }
-  }
+  const data = overview.data as Overview | undefined;
 
   if (privacy.mode !== "cloud") {
     return (
-      <section className="mb-7 grid gap-4 border border-neutral-300 bg-[#fbfaf7] p-5 dark:border-neutral-700 dark:bg-[#181816] sm:grid-cols-[1fr_auto] sm:items-center">
+      <section
+        className="memoato-private-capture"
+        aria-labelledby="private-capture-title"
+      >
         <div>
-          <div className="label">
-            {privacy.mode === "local" ? "Local capture" : "Encrypted capture"}
-          </div>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-600 dark:text-neutral-400">
+          <h2 id="private-capture-title">
             {privacy.mode === "local"
-              ? "This stays on this device. Memoato will not send it to OpenRouter."
-              : "Encrypted notes keep their current flow and are never sent to OpenRouter."}
+              ? "Keep it on this device"
+              : "Capture an encrypted note"}
+          </h2>
+          <p>
+            {privacy.mode === "local"
+              ? "Your notes stay on this device and aren’t sent to AI services."
+              : "Use the private capture flow. Encrypted notes aren’t sent to AI services."}
           </p>
         </div>
         <Button onClick={onOpenLegacyCapture}>Capture privately</Button>
@@ -102,97 +71,126 @@ export function TodayMemoryPanel({
   }
 
   return (
-    <section className="mb-7 grid overflow-hidden border-2 border-neutral-950 bg-[#fbfaf7] dark:border-neutral-100 dark:bg-[#181816] lg:grid-cols-[1.35fr_0.65fr]">
-      <form onSubmit={submit} className="p-4 sm:p-5">
-        <label htmlFor="memoato-today-capture" className="label">
-          Raw entry
+    <section
+      className="memoato-today-memory"
+      aria-label="Capture and recent memory"
+    >
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void capture.save();
+        }}
+        className="memoato-capture"
+      >
+        <label htmlFor="memoato-today-capture">
+          What would you like to remember?
         </label>
+        <p id="capture-hint">
+          A moment, a conversation, an idea. Start with your own words.
+        </p>
         <textarea
           id="memoato-today-capture"
-          value={text}
-          onChange={(event) => {
-            setText(event.target.value);
-            setSaved(false);
-          }}
-          placeholder="e.g. Football at Karepovac, felt sharp after a slow morning…"
-          className="mt-3 min-h-28 w-full resize-y border-0 bg-transparent p-0 text-lg font-medium leading-7 tracking-[-0.02em] outline-none placeholder:text-neutral-400 sm:text-xl"
+          value={capture.text}
+          onChange={(event) => capture.updateText(event.target.value)}
+          placeholder="Had a useful conversation about the next release…"
+          aria-describedby={
+            capture.error ? "capture-hint capture-error" : "capture-hint"
+          }
           maxLength={4000}
+          rows={5}
         />
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-neutral-300 pt-3 dark:border-neutral-700">
-          <div className="min-w-0 text-xs font-medium text-neutral-500">
-            {saved ? (
-              <span className="text-emerald-700 dark:text-emerald-400">
-                Original saved. Reading in background.
-              </span>
-            ) : (
-              "Write naturally. Facts remain editable."
-            )}
-          </div>
+        <div className="memoato-capture-actions">
+          <span className="memoato-capture-count">
+            {capture.text.length > 3600
+              ? `${capture.text.length.toLocaleString()} / 4,000`
+              : "Your original comes first."}
+          </span>
           <Button
             type="submit"
-            disabled={!text.trim() || saving}
-            className="min-w-28"
+            disabled={!capture.text.trim() || capture.saving}
           >
-            {saving ? "Saving…" : "Remember"}
+            {capture.saving ? "Saving…" : "Save note"}
           </Button>
         </div>
+        <p className="memoato-capture-notice" role="status">
+          {capture.notice}
+        </p>
+        {capture.error ? (
+          <p id="capture-error" className="memoato-inline-error" role="alert">
+            {capture.error}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className="memoato-text-action"
+          onClick={onOpenLegacyCapture}
+        >
+          Log to a view instead <span aria-hidden="true">↗</span>
+        </button>
       </form>
 
-      <div className="border-t border-neutral-950 bg-neutral-950 p-4 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 sm:p-5 lg:border-l lg:border-t-0">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-[10px] font-bold uppercase tracking-[0.13em] text-neutral-400 dark:text-neutral-600">
-            Recent memory
-          </div>
-          <ButtonLink
-            to="/memory"
-            size="xs"
-            variant="ghost"
-            className="!border-neutral-700 !text-white hover:!border-white hover:!bg-neutral-900 hover:!text-white dark:!border-neutral-300 dark:!text-neutral-950 dark:hover:!border-neutral-950 dark:hover:!bg-neutral-200 dark:hover:!text-neutral-950"
-          >
-            Open
-          </ButtonLink>
+      <div className="memoato-recent">
+        <div className="memoato-recent-heading">
+          <h2>Recently remembered</h2>
+          <Link to="/memory">
+            All memory <span aria-hidden="true">↗</span>
+          </Link>
         </div>
-        <div className="mt-4 space-y-4">
-          {(data?.recent ?? []).slice(0, 2).map((entry: any) => (
-            <div
-              key={entry.id}
-              className="border-l border-neutral-700 pl-3 dark:border-neutral-300"
-            >
-              <div className="line-clamp-2 text-sm font-semibold leading-5">
-                {entry.rawText}
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400 dark:text-neutral-600">
-                <span>{timeOnly(entry.occurredAt)}</span>
-                <span>/</span>
-                <span className="truncate">{compactEntryLabel(entry)}</span>
-              </div>
-            </div>
-          ))}
-          {(data?.recent ?? []).length === 0 ? (
-            <p className="text-sm leading-6 text-neutral-400 dark:text-neutral-600">
-              Your originals will collect here without asking you to organize
-              first.
+        {overview.isLoading && !data ? (
+          <p role="status" className="memoato-muted">
+            Loading recent notes…
+          </p>
+        ) : null}
+        {overview.isError ? (
+          <div className="memoato-inline-error" role="alert">
+            <p>
+              {data
+                ? "Recent notes may be out of date."
+                : "Couldn’t load recent notes. You can still write a new one."}
             </p>
-          ) : null}
-        </div>
-        <div className="mt-5 grid grid-cols-2 border-t border-neutral-700 pt-4 dark:border-neutral-300">
-          <div>
-            <div className="text-xl font-semibold tabular-nums">
-              {data?.capturedToday ?? 0}
-            </div>
-            <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400 dark:text-neutral-600">
-              Today
-            </div>
+            <button
+              type="button"
+              className="memoato-text-action"
+              onClick={() => void overview.refetch()}
+            >
+              Try loading again
+            </button>
           </div>
-          <div className="border-l border-neutral-700 pl-4 dark:border-neutral-300">
-            <div className="text-xl font-semibold tabular-nums">
-              {data?.reviewCount ?? 0}
+        ) : null}
+        {data?.recent.length === 0 ? (
+          <p className="memoato-recent-empty">
+            Your first note starts here.
+            <br />
+            You can organize it later.
+          </p>
+        ) : null}
+        {data?.recent.slice(0, 3).map((entry) => (
+          <article className="memoato-recent-entry" key={entry.id}>
+            <p>{entry.rawText}</p>
+            <div className="memoato-entry-meta">
+              <time dateTime={new Date(entry.occurredAt).toISOString()}>
+                {entryTime(entry.occurredAt)}
+              </time>
+              <span>{processingLabel(entry.processingStatus)}</span>
             </div>
-            <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400 dark:text-neutral-600">
-              To review
-            </div>
+          </article>
+        ))}
+        {data ? (
+          <div className="memoato-memory-summary">
+            <p>
+              {data.capturedToday} {data.capturedToday === 1 ? "note" : "notes"}{" "}
+              today
+            </p>
+            {data.reviewCount > 0 || data.failedCount > 0 ? (
+              <Link to="/memory">
+                {data.reviewCount > 0
+                  ? `${data.reviewCount} facts to review`
+                  : `${data.failedCount} ${data.failedCount === 1 ? "note needs" : "notes need"} processing attention`}{" "}
+                <span aria-hidden="true">↗</span>
+              </Link>
+            ) : null}
           </div>
-        </div>
+        ) : null}
       </div>
     </section>
   );
