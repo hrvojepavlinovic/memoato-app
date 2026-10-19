@@ -1,5 +1,6 @@
-'use client';
+"use client";
 
+import { useAuth } from "wasp/client/auth";
 import { Outlet } from "react-router-dom";
 import "./App.css";
 import { Header } from "./shared/components/Header";
@@ -9,6 +10,7 @@ import { ThemeProvider } from "./theme/ThemeProvider";
 import { InstallBanner } from "./pwa/InstallBanner";
 
 export function App() {
+  const { data: user } = useAuth();
   useEffect(() => {
     if (import.meta.env.DEV) return;
     if (!("serviceWorker" in navigator)) return;
@@ -26,10 +28,22 @@ export function App() {
     <>
       <ThemeProvider>
         <PrivacyProvider>
-          <main className="memoato-app-shell flex min-h-screen w-full flex-col pb-[var(--memoato-install-banner-h)] text-neutral-950 dark:text-neutral-100">
+          <div
+            className={
+              user
+                ? "memoato-app-shell memoato-app-shell--signed-in"
+                : "memoato-app-shell"
+            }
+          >
             <Header />
-            <Outlet />
-          </main>
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="memoato-page-content"
+            >
+              <Outlet />
+            </main>
+          </div>
           <InstallBanner />
         </PrivacyProvider>
       </ThemeProvider>

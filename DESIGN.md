@@ -1,0 +1,38 @@
+# Memoato app design
+
+The app extends the approved memoato.com identity. This is an operational
+interface: capture, inspect, correct and recall should take precedence over
+marketing copy. Use the existing logo; do not invent another brand.
+
+## Shared language
+
+DM Sans is the self-hosted working typeface. Newsreader belongs to the wordmark
+and the short auth introduction; body copy, controls and records remain sans.
+Light canvas #f4f0e7, ink #1d201b, forest #26372f and rust #b75e3b come from the
+public site. Dark mode uses green charcoal #19201b, panel #212b23, warm light ink
+#eee9df and a pale sage focus ring. No decorative grid or pure-black canvas.
+
+Controls use clear text, 44px minimum touch targets for shared navigation,
+visible focus and restrained hover states. Keep state and user/category colors
+meaningful. Ordinary page content is not hidden behind disclosures.
+
+## Shell and authentication — step 01
+
+Desktop navigation shows Today, Memory, Recall, Views and Context. Mobile uses a
+fixed bottom navigation with the same five destinations and icon + text labels,
+never hiding Context. The top header keeps the full Memoato name, theme and
+profile accessible. Respect install-banner height and device safe areas.
+Navigation identifies the active route, including nested category/timeline routes.
+
+A skip link leads to the page content. The logo is a link, not the page h1.
+Auth uses an open two-column introduction/form layout on desktop and a form-first
+single-column layout on mobile (the desktop introduction stays available to assistive technology), without an outer card or decorative left stripe.
+The same layout serves login, signup, verification and reset flows. Labels use
+sentence case; provider branding remains unchanged. Personal memory and AI
+context appear together without implying unshipped team functionality.
+
+## Workflow
+
+Step 02 refines Today/capture/onboarding; step 03 Memory/Recall; step 04 Context;
+step 05 Views/profile/privacy and final QA. Shared foundations must keep existing
+screens usable while each surface is updated. No private test data is committed.

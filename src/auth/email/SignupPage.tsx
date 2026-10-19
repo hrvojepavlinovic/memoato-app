@@ -43,14 +43,21 @@ export function SignupPage() {
     if (!cleanEmail) return setErrorMessage("Email is required.");
     if (!cleanPassword) return setErrorMessage("Password is required.");
     if (!cleanUsername) return setErrorMessage("Username is required.");
-    if (/\s/.test(cleanUsername)) return setErrorMessage("Username cannot contain whitespace.");
+    if (/\s/.test(cleanUsername))
+      return setErrorMessage("Username cannot contain whitespace.");
 
     setIsLoading(true);
     try {
-      await signup({ email: cleanEmail, password: cleanPassword, username: cleanUsername });
+      await signup({
+        email: cleanEmail,
+        password: cleanPassword,
+        username: cleanUsername,
+      });
       setIsSuccess(true);
     } catch (err: any) {
-      setErrorMessage(err?.data?.data?.message ?? err?.message ?? "Sign up failed.");
+      setErrorMessage(
+        err?.data?.data?.message ?? err?.message ?? "Sign up failed.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -83,100 +90,115 @@ export function SignupPage() {
   return (
     <AuthLayout>
       <div className="memoato-auth memoato-auth--signup">
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Create your memory</h2>
-        <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">A quiet place for the details that matter later.</p>
-      </div>
-
-      {isSuccess ? (
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
-          <div className="font-semibold">Almost there.</div>
-          <div className="mt-1">
-            We sent you a confirmation link. Verify your email before signing in.
-          </div>
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Create your account
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+            Keep personal memories and useful context close to their source.
+          </p>
         </div>
-      ) : (
-        <>
-          <a
-            href={googleSignInUrl}
-            className="flex h-11 w-full items-center justify-center gap-3 rounded-[4px] border border-[#DADCE0] bg-white px-4 text-sm font-semibold text-neutral-900 hover:border-neutral-950 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:border-neutral-200"
-          >
-            <GoogleMark />
-            Continue with Google
-          </a>
 
-          <div className="my-4 flex items-center gap-3">
-            <div className="h-px w-full bg-neutral-200 dark:bg-neutral-800" />
-            <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">OR</div>
-            <div className="h-px w-full bg-neutral-200 dark:bg-neutral-800" />
-          </div>
-
-          <form onSubmit={onSubmit} className="space-y-4">
-          {errorMessage ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-200">
-              {errorMessage}
+        {isSuccess ? (
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
+            <div className="font-semibold">Almost there.</div>
+            <div className="mt-1">
+              We sent you a confirmation link. Verify your email before signing
+              in.
             </div>
-          ) : null}
+          </div>
+        ) : (
+          <>
+            <a
+              href={googleSignInUrl}
+              className="flex h-11 w-full items-center justify-center gap-3 rounded-[4px] border border-[#DADCE0] bg-white px-4 text-sm font-semibold text-neutral-900 hover:border-neutral-950 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:border-neutral-200"
+            >
+              <GoogleMark />
+              Continue with Google
+            </a>
 
-          <label className="flex flex-col gap-1">
-            <span className="label">E-mail</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-              autoComplete="email"
-              required
-            />
-          </label>
+            <div className="my-4 flex items-center gap-3">
+              <div className="h-px w-full bg-neutral-200 dark:bg-neutral-800" />
+              <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                OR
+              </div>
+              <div className="h-px w-full bg-neutral-200 dark:bg-neutral-800" />
+            </div>
 
-          <label className="flex flex-col gap-1">
-            <span className="label">Password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-              autoComplete="new-password"
-              required
-            />
-          </label>
+            <form onSubmit={onSubmit} className="space-y-4">
+              {errorMessage ? (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-200"
+                >
+                  {errorMessage}
+                </div>
+              ) : null}
 
-          <label className="flex flex-col gap-1">
-            <span className="label">Username</span>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => {
-                setUsernameTouched(true);
-                setUsername(e.target.value);
-              }}
-              disabled={isLoading}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-              autoComplete="username"
-              required
-            />
-            <span className="text-xs text-neutral-500 dark:text-neutral-400">No spaces.</span>
-          </label>
+              <label className="flex flex-col gap-1">
+                <span className="label">E-mail</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                  autoComplete="email"
+                  required
+                />
+              </label>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="h-10 w-full rounded-lg bg-neutral-950 px-4 font-semibold text-white hover:bg-neutral-900 disabled:opacity-60 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
+              <label className="flex flex-col gap-1">
+                <span className="label">Password</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+
+              <label className="flex flex-col gap-1">
+                <span className="label">Username</span>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => {
+                    setUsernameTouched(true);
+                    setUsername(e.target.value);
+                  }}
+                  disabled={isLoading}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                  autoComplete="username"
+                  required
+                />
+                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                  No spaces.
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="h-10 w-full rounded-lg bg-neutral-950 px-4 font-semibold text-white hover:bg-neutral-900 disabled:opacity-60 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200"
+              >
+                {isLoading ? "Signing up…" : "Sign up"}
+              </button>
+            </form>
+          </>
+        )}
+        <div className="mt-6 border-t border-neutral-200 pt-5 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-400">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="font-bold text-neutral-950 underline decoration-neutral-300 underline-offset-4 dark:text-neutral-100"
           >
-            {isLoading ? "Signing up…" : "Sign up"}
-          </button>
-          </form>
-        </>
-      )}
-      <div className="mt-6 border-t border-neutral-200 pt-5 text-sm text-neutral-600 dark:border-neutral-800 dark:text-neutral-400">
-        Already have an account?{" "}
-        <Link to="/login" className="font-bold text-neutral-950 underline decoration-neutral-300 underline-offset-4 dark:text-neutral-100">
-          Log in
-        </Link>
-      </div>
+            Log in
+          </Link>
+        </div>
       </div>
     </AuthLayout>
   );

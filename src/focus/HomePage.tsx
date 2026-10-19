@@ -1252,7 +1252,7 @@ export function HomePage() {
       )}
 
       {!orderMode && !quickLogOpen ? (
-        <div className="fixed inset-x-4 bottom-[calc(16px+var(--memoato-install-banner-h))] z-40 sm:hidden">
+        <div className="fixed inset-x-4 bottom-[calc(16px+var(--memoato-install-banner-h)+var(--memoato-mobile-nav-h))] z-40 sm:hidden">
           <button
             type="button"
             onClick={() => openQuickLog(null)}
