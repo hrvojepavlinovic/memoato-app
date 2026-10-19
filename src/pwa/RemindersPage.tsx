@@ -1,5 +1,6 @@
+import "../shared/tools.css";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "wasp/client/router";
+import { Link } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { Button } from "../shared/components/Button";
@@ -64,10 +65,15 @@ export function RemindersPage() {
   }
 
   async function cancelReminder(): Promise<void> {
-    await LocalNotifications.cancel({ notifications: [{ id: NOTIFICATION_ID }] });
+    await LocalNotifications.cancel({
+      notifications: [{ id: NOTIFICATION_ID }],
+    });
   }
 
-  async function scheduleDailyReminder(hour: number, minute: number): Promise<void> {
+  async function scheduleDailyReminder(
+    hour: number,
+    minute: number,
+  ): Promise<void> {
     await cancelReminder();
     await LocalNotifications.schedule({
       notifications: [
@@ -99,13 +105,12 @@ export function RemindersPage() {
         return;
       }
 
-      const ok = await ensurePermissions();
-      if (!ok) {
-        setMessage("Notifications permission not granted.");
-        return;
-      }
-
       if (enabled) {
+        const ok = await ensurePermissions();
+        if (!ok) {
+          setMessage("Notifications permission not granted.");
+          return;
+        }
         await scheduleDailyReminder(parsed.hour, parsed.minute);
       } else {
         await cancelReminder();
@@ -153,61 +158,43 @@ export function RemindersPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-screen-md px-4 py-6">
+    <div className="memoato-tools-page">
       <div className="mb-4">
         <div className="text-sm text-neutral-500 dark:text-neutral-400">
-          <Link to="/profile" className="hover:underline">
-            ← Back to profile
+          <Link to="/profile#preferences" className="hover:underline">
+            Back to profile
           </Link>
         </div>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Reminders</h2>
+        <h1 className="mt-4">Reminders</h1>
         <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
           Schedule a daily reminder. Notification text is generic for privacy.
         </p>
       </div>
 
       {!isNative ? (
-        <div className="card p-4">
+        <div className="memoato-tools-state">
           <div className="text-sm font-semibold">Mobile app required</div>
           <div className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
             Reminders are available only in the iOS/Android app.
           </div>
         </div>
       ) : (
-        <div className="card p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold">Daily reminder</div>
-              <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                Sends a generic notification at your chosen time.
-              </div>
-            </div>
-
-            <label className="inline-flex shrink-0 items-center">
-              <input
-                type="checkbox"
-                checked={enabled}
-                onChange={(e) => setEnabled(e.target.checked)}
-                className="peer sr-only"
-              />
-              <span
-                className={[
-                  "relative h-7 w-12 cursor-pointer rounded-full border transition-colors",
-                  "border-neutral-300 bg-neutral-200 dark:border-neutral-700 dark:bg-neutral-800",
-                  "peer-checked:border-neutral-950 peer-checked:bg-neutral-950 dark:peer-checked:border-white dark:peer-checked:bg-white",
-                ].join(" ")}
-                aria-hidden="true"
-              >
-                <span
-                  className={[
-                    "absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform",
-                    "peer-checked:translate-x-5 dark:bg-neutral-950 dark:peer-checked:bg-neutral-950",
-                  ].join(" ")}
-                />
-              </span>
-            </label>
-          </div>
-
+        <fieldset
+          className="memoato-reminder-form"
+          disabled={!!busy}
+          aria-busy={!!busy}
+        >
+          <label>
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(event) => setEnabled(event.target.checked)}
+            />
+            <span className="font-semibold">Daily reminder</span>
+          </label>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+            A private nudge at your chosen time, on this device.
+          </p>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <label className="flex flex-col gap-1">
               <span className="label">Time</span>
@@ -239,10 +226,17 @@ export function RemindersPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </fieldset>
       )}
 
-      {message ? <div className="mt-3 text-sm text-neutral-700 dark:text-neutral-300">{message}</div> : null}
+      {message ? (
+        <div
+          role="status"
+          className="mt-3 text-sm text-neutral-700 dark:text-neutral-300"
+        >
+          {message}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,5 +1,7 @@
+import { ChoiceGroup } from "../shared/components/ChoiceGroup";
+import "../shared/tools.css";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "wasp/client/auth";
 import {
   createCategory,
@@ -60,6 +62,18 @@ import { Capacitor } from "@capacitor/core";
 const inputClassName =
   "h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500";
 
+export const profilePanels = [
+  { id: "account", label: "Account" },
+  { id: "privacy", label: "Privacy" },
+  { id: "ai", label: "AI & API" },
+  { id: "preferences", label: "Preferences" },
+  { id: "data", label: "Data & sharing" },
+] as const;
+export function profilePanelForHash(hash: string): string {
+  const id = hash.replace(/^#/, "");
+  return profilePanels.some((panel) => panel.id === id) ? id : "account";
+}
+
 function toDatetimeLocal(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -101,6 +115,8 @@ async function pageAllCategoryEvents(
 
 export function ProfilePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const activePanel = profilePanelForHash(location.hash);
   const q = useQuery(getProfile);
   const privacy = usePrivacy();
   const theme = useTheme();
@@ -136,7 +152,7 @@ export function ProfilePage() {
     setUsername(q.data.username);
     setFirstName(q.data.firstName ?? "");
     setLastName(q.data.lastName ?? "");
-  }, [q.data]);
+  }, [q.data?.username, q.data?.firstName, q.data?.lastName]);
 
 	  useEffect(() => {
 	    if (!q.data) return;
@@ -688,35 +704,96 @@ export function ProfilePage() {
   }
 
   if (q.isLoading) {
-    return <div className="mx-auto w-full max-w-screen-md px-4 py-6" />;
+    return (
+      <div className="memoato-tools-page">
+        <h1>Profile</h1>
+        <p className="memoato-tools-state" role="status">
+          Loading settings…
+        </p>
+      </div>
+    );
   }
 
-  return (
-    <div className="mx-auto w-full max-w-screen-md px-4 py-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold tracking-tight">Profile</h2>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">Account, privacy, security, and appearance.</p>
+  if (q.isError || !q.data)
+    return (
+      <div className="memoato-tools-page">
+        <h1>Profile</h1>
+        <p className="memoato-tools-state" role="alert">
+          Settings couldn’t be loaded. Refresh this page to try again.
+        </p>
       </div>
-
-      <div className="space-y-6">
-        <div className="card p-4">
-          <div className="mb-3 text-sm font-semibold">Account</div>
+    );
+  return (
+    <div className="memoato-tools-page memoato-settings-page">
+      <header className="memoato-tools-heading">
+        <div>
+          <h1>Profile</h1>
+          <p>Your account, privacy and how Memoato works for you.</p>
+        </div>
+      </header>
+      <nav className="memoato-settings-nav" aria-label="Profile settings">
+        {profilePanels.map((panel) => (
+          <Link
+            key={panel.id}
+            to={"#" + panel.id}
+            aria-current={activePanel === panel.id ? "page" : undefined}
+            aria-disabled={busy ? true : undefined}
+            onClick={(event) => {
+              if (busy) event.preventDefault();
+            }}
+          >
+            {panel.label}
+          </Link>
+        ))}
+      </nav>
+      {message ? (
+        <p className="memoato-settings-feedback" role="status">
+          {message}
+        </p>
+      ) : null}
+      <fieldset
+        className="memoato-settings-body"
+        disabled={!!busy}
+        aria-busy={!!busy}
+      >
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "account"}
+          aria-labelledby="settings-account"
+        >
+          <h2 id="settings-account">Account</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1">
               <span className="label">Username</span>
-              <input value={username} onChange={(e) => setUsername(e.target.value)} className={inputClassName} />
+              <input name="username" autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={inputClassName}
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="label">Email</span>
-              <input value={emailLabel} disabled className={`${inputClassName} bg-neutral-100 dark:bg-neutral-900`} />
+              <input name="email" autoComplete="email"
+                value={emailLabel}
+                disabled
+                className={`${inputClassName} bg-neutral-100 dark:bg-neutral-900`}
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="label">First name</span>
-              <input value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClassName} />
+              <input name="given-name" autoComplete="given-name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className={inputClassName}
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="label">Last name</span>
-              <input value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClassName} />
+              <input name="family-name" autoComplete="family-name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className={inputClassName}
+              />
             </label>
           </div>
           <div className="mt-4 flex justify-end">
@@ -724,10 +801,14 @@ export function ProfilePage() {
               Save
             </Button>
           </div>
-        </div>
+        </section>
 
-        <div className="card p-4">
-          <div className="mb-3 text-sm font-semibold">Privacy</div>
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "privacy"}
+          aria-labelledby="settings-privacy"
+        >
+          <h2 id="settings-privacy">Privacy</h2>
           <div className="space-y-3">
             <div className="grid grid-cols-1 gap-2">
               <label className="flex items-start gap-3">
@@ -738,11 +819,13 @@ export function ProfilePage() {
                   onChange={() => setPendingMode("cloud")}
                   className="mt-1"
                 />
-                  <div>
-                    <div className="font-medium">Cloud sync</div>
-                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Data stored normally (default).</div>
+                <div>
+                  <div className="font-medium">Cloud sync</div>
+                  <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Data stored normally (default).
                   </div>
-                </label>
+                </div>
+              </label>
               <label className="flex items-start gap-3">
                 <input
                   type="radio"
@@ -751,13 +834,14 @@ export function ProfilePage() {
                   onChange={() => setPendingMode("encrypted")}
                   className="mt-1"
                 />
-                  <div>
-                    <div className="font-medium">Encrypted cloud</div>
-                    <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                      Titles and notes are encrypted before saving to the database.
-                    </div>
+                <div>
+                  <div className="font-medium">Encrypted cloud</div>
+                  <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Titles and notes are encrypted before saving to the
+                    database.
                   </div>
-                </label>
+                </div>
+              </label>
               <label className="flex items-start gap-3">
                 <input
                   type="radio"
@@ -766,20 +850,24 @@ export function ProfilePage() {
                   onChange={() => setPendingMode("local")}
                   className="mt-1"
                 />
-                  <div>
-                    <div className="font-medium">Local-only</div>
-                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Data stays on this device (server data wiped).</div>
+                <div>
+                  <div className="font-medium">Local-only</div>
+                  <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                    Data stays on this device (server data wiped).
                   </div>
-                </label>
-              </div>
+                </div>
+              </label>
+            </div>
 
             {pendingMode === "local" ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <div className="font-semibold">Heads up</div>
                 <div className="mt-1 text-amber-900/80">
-                  Local-only stores categories and entries in your browser (this device). Switching to local-only will{" "}
-                  <span className="font-semibold">delete your server data</span> for this account. If you clear browser
-                  storage or lose the device, you can lose your data.
+                  Local-only stores categories and entries in your browser (this
+                  device). Switching to local-only will{" "}
+                  <span className="font-semibold">delete your server data</span>{" "}
+                  for this account. If you clear browser storage or lose the
+                  device, you can lose your data.
                 </div>
               </div>
             ) : null}
@@ -788,7 +876,8 @@ export function ProfilePage() {
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <div className="font-semibold">Local-only is enabled</div>
                 <div className="mt-1 text-amber-900/80">
-                  Your tracker data is stored on this device only. Export periodically if you want a backup.
+                  Your tracker data is stored on this device only. Export
+                  periodically if you want a backup.
                 </div>
               </div>
             ) : null}
@@ -797,7 +886,7 @@ export function ProfilePage() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1">
                   <span className="label">Passphrase</span>
-                  <input
+                  <input name="passphrase"
                     type="password"
                     value={passphrase}
                     onChange={(e) => setPassphrase(e.target.value)}
@@ -841,12 +930,20 @@ export function ProfilePage() {
               </Button>
             </div>
 
-            {migrationProgress ? <div className="text-sm text-neutral-600">{migrationProgress}</div> : null}
+            {migrationProgress ? (
+              <div className="text-sm text-neutral-600">
+                {migrationProgress}
+              </div>
+            ) : null}
           </div>
-        </div>
+        </section>
 
-        <div className="card p-4">
-          <div className="mb-3 text-sm font-semibold">Appearance</div>
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "preferences"}
+          aria-labelledby="settings-appearance"
+        >
+          <h2 id="settings-appearance">Appearance</h2>
           <div className="grid grid-cols-2 gap-2">
             {(["light", "dark"] as ThemePreference[]).map((pref) => {
               const active = theme.preference === pref;
@@ -871,17 +968,23 @@ export function ProfilePage() {
           <div className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
             Synced to your account.
           </div>
-        </div>
+        </section>
 
-	        <div className="card p-4">
-	          <div className="mb-3 text-sm font-semibold">Home</div>
-	          <div className="mb-2 text-sm font-semibold">Next up</div>
-	          <div className="text-sm text-neutral-500 dark:text-neutral-400">
-	            Motivational suggestions based on your goals.
-	          </div>
-	          <div className="mt-3 grid grid-cols-2 gap-2">
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "preferences"}
+          aria-labelledby="settings-home"
+        >
+          <h2 id="settings-home">Home</h2>
+          <div className="mb-2 text-sm font-semibold">Next up</div>
+          <div className="text-sm text-neutral-500 dark:text-neutral-400">
+            Motivational suggestions based on your goals.
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
             {([true, false] as const).map((enabled) => {
-              const active = (nextUpEnabledPref ?? q.data?.nextUpEnabled ?? false) === enabled;
+              const active =
+                (nextUpEnabledPref ?? q.data?.nextUpEnabled ?? false) ===
+                enabled;
               const isDisabled = busy === "nextUp" || q.isLoading || !q.data;
               return (
                 <button
@@ -909,203 +1012,225 @@ export function ProfilePage() {
                     isDisabled
                       ? "cursor-not-allowed opacity-70"
                       : active
-                      ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
-                      : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+                        ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
                   ].join(" ")}
                 >
                   {enabled ? "Show" : "Hide"}
                 </button>
               );
-	            })}
-	          </div>
-	          <div className="mt-5">
-	            <div className="mb-2 text-sm font-semibold">Quick log button</div>
-	            <div className="text-sm text-neutral-500 dark:text-neutral-400">
-	              Choose which side the quick log button sits on.
-	            </div>
-	            <div className="mt-3 grid grid-cols-2 gap-2">
-	              {(["left", "right"] as const).map((side) => {
-	                const active = (fabSidePref ?? q.data?.quickLogFabSide ?? "right") === side;
-	                const isDisabled = busy === "fabSide" || q.isLoading || !q.data;
-	                return (
-	                  <button
-	                    key={side}
-	                    type="button"
-	                    disabled={isDisabled}
-	                    onClick={async () => {
-	                      if (!q.data) return;
-	                      setMessage(null);
-	                      setBusy("fabSide");
-	                      setFabSidePref(side);
-	                      try {
-	                        await setQuickLogFabSide({ side });
-	                        await q.refetch();
-	                      } catch (e: any) {
-	                        setFabSidePref(q.data.quickLogFabSide);
-	                        setMessage(e?.message ?? "Failed to update setting.");
-	                      } finally {
-	                        setBusy(null);
-	                      }
-	                    }}
-	                    aria-pressed={active}
-	                    className={[
-	                      "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
-	                      isDisabled
-	                        ? "cursor-not-allowed opacity-70"
-	                        : active
-	                        ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
-	                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
-	                    ].join(" ")}
-	                  >
-	                    {side === "left" ? "Left" : "Right"}
-	                  </button>
-	                );
-	              })}
-	            </div>
-	          </div>
-
-	          <div className="mt-5">
-	            <div className="mb-2 text-sm font-semibold">Categories layout</div>
-	            <div className="text-sm text-neutral-500 dark:text-neutral-400">
-	              Choose list or grid.
-	            </div>
-	            <div className="mt-3 grid grid-cols-2 gap-2">
-	              {(["list", "grid"] as const).map((layout) => {
-	                const active = (homeLayoutPref ?? q.data?.homeCategoryLayout ?? "list") === layout;
-	                const isDisabled = busy === "homeLayout" || q.isLoading || !q.data;
-	                return (
-	                  <button
-	                    key={layout}
-	                    type="button"
-	                    disabled={isDisabled}
-	                    onClick={async () => {
-	                      if (!q.data) return;
-	                      setMessage(null);
-	                      setBusy("homeLayout");
-	                      setHomeLayoutPref(layout);
-	                      try {
-	                        await setHomeCategoryLayout({ layout });
-	                        await q.refetch();
-	                      } catch (e: any) {
-	                        setHomeLayoutPref(q.data.homeCategoryLayout);
-	                        setMessage(e?.message ?? "Failed to update setting.");
-	                      } finally {
-	                        setBusy(null);
-	                      }
-	                    }}
-	                    aria-pressed={active}
-	                    className={[
-	                      "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
-	                      isDisabled
-	                        ? "cursor-not-allowed opacity-70"
-	                        : active
-	                        ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
-	                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
-	                    ].join(" ")}
-	                  >
-	                    {layout === "list" ? "List" : "Grid"}
-	                  </button>
-	                );
-	              })}
-	            </div>
-	          </div>
-
-	          <div className="mt-5">
-	            <div className="mb-2 text-sm font-semibold">Active kcal rollup</div>
-	            <div className="text-sm text-neutral-500 dark:text-neutral-400">
-	              When enabled, any kcal entries will also count towards Active kcal. Log Active kcal directly to add corrections.
-	            </div>
-	            <div className="mt-3 grid grid-cols-3 gap-2">
-	              {([
-	                { mode: "auto" as const, label: "Auto" },
-	                { mode: "on" as const, label: "On" },
-	                { mode: "off" as const, label: "Off" },
-	              ] as const).map(({ mode, label }) => {
-	                const active = (activeKcalRollupModePref ?? "auto") === mode;
-	                const isDisabled = busy === "activeKcalRollup" || q.isLoading || !q.data;
-	                return (
-	                  <button
-	                    key={mode}
-	                    type="button"
-	                    disabled={isDisabled}
-	                    onClick={async () => {
-	                      if (!q.data) return;
-	                      setMessage(null);
-	                      setBusy("activeKcalRollup");
-	                      setActiveKcalRollupModePref(mode);
-	                      try {
-	                        await setActiveKcalRollupMode({ mode });
-	                        await q.refetch();
-	                      } catch (e: any) {
-	                        const v = q.data.activeKcalRollupEnabled;
-	                        setActiveKcalRollupModePref(v == null ? "auto" : v === true ? "on" : "off");
-	                        setMessage(e?.message ?? "Failed to update setting.");
-	                      } finally {
-	                        setBusy(null);
-	                      }
-	                    }}
-	                    aria-pressed={active}
-	                    className={[
-	                      "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
-	                      isDisabled
-	                        ? "cursor-not-allowed opacity-70"
-	                        : active
-	                        ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
-	                        : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
-	                    ].join(" ")}
-	                  >
-	                    {label}
-	                  </button>
-	                );
-	              })}
-	            </div>
-	          </div>
-	        </div>
-
-        <div className="card overflow-hidden">
-          <div className="border-b border-neutral-300 p-4 dark:border-neutral-700">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold">Memory processing</div>
-                <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">How Memoato reads raw entries after they are safely stored.</div>
-              </div>
-              <span className={`h-2.5 w-2.5 ${memoryOverviewQuery.data?.processing?.openRouterConfigured ? "bg-emerald-500" : "bg-neutral-400"}`} aria-hidden="true" />
+            })}
+          </div>
+          <div className="mt-5">
+            <div className="mb-2 text-sm font-semibold">Quick log button</div>
+            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+              Choose which side the quick log button sits on.
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {(["left", "right"] as const).map((side) => {
+                const active =
+                  (fabSidePref ?? q.data?.quickLogFabSide ?? "right") === side;
+                const isDisabled = busy === "fabSide" || q.isLoading || !q.data;
+                return (
+                  <button
+                    key={side}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={async () => {
+                      if (!q.data) return;
+                      setMessage(null);
+                      setBusy("fabSide");
+                      setFabSidePref(side);
+                      try {
+                        await setQuickLogFabSide({ side });
+                        await q.refetch();
+                      } catch (e: any) {
+                        setFabSidePref(q.data.quickLogFabSide);
+                        setMessage(e?.message ?? "Failed to update setting.");
+                      } finally {
+                        setBusy(null);
+                      }
+                    }}
+                    aria-pressed={active}
+                    className={[
+                      "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
+                      isDisabled
+                        ? "cursor-not-allowed opacity-70"
+                        : active
+                          ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+                          : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+                    ].join(" ")}
+                  >
+                    {side === "left" ? "Left" : "Right"}
+                  </button>
+                );
+              })}
             </div>
           </div>
-          <div className="grid sm:grid-cols-3">
-            <div className="p-4">
-              <div className="label">1 / Preserve</div>
-              <div className="mt-2 text-sm font-semibold">Original first</div>
-              <p className="mt-1 text-xs leading-5 text-neutral-500">Your exact words are the source of truth and are never replaced by a model response.</p>
-            </div>
-            <div className="border-t border-neutral-300 p-4 dark:border-neutral-700 sm:border-l sm:border-t-0">
-              <div className="label">2 / Read</div>
-              <div className="mt-2 text-sm font-semibold">{memoryOverviewQuery.data?.processing?.openRouterConfigured ? "Hybrid" : "Local rules"}</div>
-              <p className="mt-1 text-xs leading-5 text-neutral-500">OpenRouter is used only when local parsing is uncertain or the entry carries multiple facts.</p>
-            </div>
-            <div className="border-t border-neutral-300 p-4 dark:border-neutral-700 sm:border-l sm:border-t-0">
-              <div className="label">3 / Review</div>
-              <div className="mt-2 text-sm font-semibold">Human-owned</div>
-              <p className="mt-1 text-xs leading-5 text-neutral-500">Low-confidence readings wait for you. Corrections become personal aliases, not silent guesses.</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-300 bg-white/50 px-4 py-3 text-xs dark:border-neutral-700 dark:bg-neutral-950/30">
-            <span className="font-semibold">OpenRouter: {memoryOverviewQuery.data?.processing?.openRouterConfigured ? "Connected" : "Not configured"}</span>
-            <span className="font-semibold">
-              Recall: {memoryOverviewQuery.data?.processing?.recall?.status === "ready"
-                ? "Semantic ready"
-                : memoryOverviewQuery.data?.processing?.recall?.status === "indexing"
-                  ? `Indexing (${(memoryOverviewQuery.data?.processing?.recall?.queued ?? 0) + (memoryOverviewQuery.data?.processing?.recall?.processing ?? 0)})`
-                  : memoryOverviewQuery.data?.processing?.recall?.status === "degraded"
-                    ? `Words available · ${memoryOverviewQuery.data?.processing?.recall?.failed ?? 0} retries needed`
-                    : "Words only"}
-            </span>
-            <span className="max-w-full truncate font-mono text-[10px] text-neutral-500">{memoryOverviewQuery.data?.processing?.model ?? "Local only"}</span>
-          </div>
-        </div>
 
-        <div className="card p-4">
-          <div className="mb-3 text-sm font-semibold">API keys</div>
+          <div className="mt-5">
+            <div className="mb-2 text-sm font-semibold">Categories layout</div>
+            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+              Choose list or grid.
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {(["list", "grid"] as const).map((layout) => {
+                const active =
+                  (homeLayoutPref ?? q.data?.homeCategoryLayout ?? "list") ===
+                  layout;
+                const isDisabled =
+                  busy === "homeLayout" || q.isLoading || !q.data;
+                return (
+                  <button
+                    key={layout}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={async () => {
+                      if (!q.data) return;
+                      setMessage(null);
+                      setBusy("homeLayout");
+                      setHomeLayoutPref(layout);
+                      try {
+                        await setHomeCategoryLayout({ layout });
+                        await q.refetch();
+                      } catch (e: any) {
+                        setHomeLayoutPref(q.data.homeCategoryLayout);
+                        setMessage(e?.message ?? "Failed to update setting.");
+                      } finally {
+                        setBusy(null);
+                      }
+                    }}
+                    aria-pressed={active}
+                    className={[
+                      "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
+                      isDisabled
+                        ? "cursor-not-allowed opacity-70"
+                        : active
+                          ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+                          : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+                    ].join(" ")}
+                  >
+                    {layout === "list" ? "List" : "Grid"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <div className="mb-2 text-sm font-semibold">Active kcal rollup</div>
+            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+              When enabled, any kcal entries will also count towards Active
+              kcal. Log Active kcal directly to add corrections.
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {(
+                [
+                  { mode: "auto" as const, label: "Auto" },
+                  { mode: "on" as const, label: "On" },
+                  { mode: "off" as const, label: "Off" },
+                ] as const
+              ).map(({ mode, label }) => {
+                const active = (activeKcalRollupModePref ?? "auto") === mode;
+                const isDisabled =
+                  busy === "activeKcalRollup" || q.isLoading || !q.data;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={async () => {
+                      if (!q.data) return;
+                      setMessage(null);
+                      setBusy("activeKcalRollup");
+                      setActiveKcalRollupModePref(mode);
+                      try {
+                        await setActiveKcalRollupMode({ mode });
+                        await q.refetch();
+                      } catch (e: any) {
+                        const v = q.data.activeKcalRollupEnabled;
+                        setActiveKcalRollupModePref(
+                          v == null ? "auto" : v === true ? "on" : "off",
+                        );
+                        setMessage(e?.message ?? "Failed to update setting.");
+                      } finally {
+                        setBusy(null);
+                      }
+                    }}
+                    aria-pressed={active}
+                    className={[
+                      "h-10 w-full rounded-lg border text-sm font-semibold transition-colors",
+                      isDisabled
+                        ? "cursor-not-allowed opacity-70"
+                        : active
+                          ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+                          : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+                    ].join(" ")}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "ai"}
+          aria-labelledby="settings-memory-processing"
+        >
+          <h2 id="settings-memory-processing">Memory processing</h2>
+          <p className="mb-5 max-w-prose text-sm leading-6 text-neutral-600 dark:text-neutral-400">
+            Your original entries are saved first. Uncertain facts stay
+            available for your review; corrections remain yours.
+          </p>
+          {privacy.mode === "local" ? (
+            <p className="py-4 text-sm">
+              Cloud processing is off in local-only mode.
+            </p>
+          ) : memoryOverviewQuery.isLoading ? (
+            <p role="status" className="py-4 text-sm">
+              Loading processing status…
+            </p>
+          ) : memoryOverviewQuery.isError ? (
+            <p role="alert" className="py-4 text-sm">
+              Processing status couldn’t be loaded. Refresh to try again.
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 py-3 text-sm">
+              <span className="font-semibold">
+                OpenRouter:{" "}
+                {memoryOverviewQuery.data?.processing?.openRouterConfigured
+                  ? "Connected"
+                  : "Not configured"}
+              </span>
+              <span className="font-semibold">
+                Recall:{" "}
+                {memoryOverviewQuery.data?.processing?.recall?.status ===
+                "ready"
+                  ? "Semantic ready"
+                  : memoryOverviewQuery.data?.processing?.recall?.status ===
+                      "indexing"
+                    ? `Indexing (${(memoryOverviewQuery.data?.processing?.recall?.queued ?? 0) + (memoryOverviewQuery.data?.processing?.recall?.processing ?? 0)})`
+                    : memoryOverviewQuery.data?.processing?.recall?.status ===
+                        "degraded"
+                      ? `Words available · ${memoryOverviewQuery.data?.processing?.recall?.failed ?? 0} retries needed`
+                      : "Words only"}
+              </span>
+              <span className="max-w-full break-all text-xs text-neutral-500">
+                {memoryOverviewQuery.data?.processing?.model ?? "Local only"}
+              </span>
+            </div>
+          )}
+        </section>
+
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "ai"}
+          aria-labelledby="settings-api-keys"
+        >
+          <h2 id="settings-api-keys">API keys</h2>
           {privacy.mode === "local" ? (
             <div className="text-sm text-neutral-500 dark:text-neutral-400">
               Available in Cloud mode.
@@ -1113,37 +1238,43 @@ export function ProfilePage() {
           ) : (
             <div className="space-y-4">
               <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                Create revocable keys for MCP clients and automations. Choose exactly what each key can do.
+                Create revocable keys for MCP clients and automations. Choose
+                exactly what each key can do.
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
                 <label className="flex flex-col gap-1">
                   <span className="label">Name</span>
-                  <input
+                  <input name="api-key-name" autoComplete="off"
                     value={apiKeyName}
                     onChange={(e) => setApiKeyName(e.target.value)}
                     className={inputClassName}
                     placeholder="ChatGPT MCP"
                   />
                 </label>
-                <label className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   <span className="label">Access</span>
-                  <select
+                  <ChoiceGroup
+                    label="API key access"
                     value={apiKeyAccess}
-                    onChange={(e) => setApiKeyAccess(e.target.value as "agent" | "logging" | "recall" | "context")}
-                    className={inputClassName}
-                  >
-                    <option value="agent">Log and recall</option>
-                    <option value="logging">Logging only</option>
-                    <option value="recall">Recall only</option>
-                    <option value="context">Context packets only</option>
-                  </select>
-                </label>
+                    options={[
+                      { value: "agent", label: "Log and recall" },
+                      { value: "logging", label: "Logging only" },
+                      { value: "recall", label: "Recall only" },
+                      { value: "context", label: "Context packets only" },
+                    ]}
+                    onChange={(value) =>
+                      setApiKeyAccess(
+                        value as "agent" | "logging" | "recall" | "context",
+                      )
+                    }
+                  />
+                </div>
                 <Button
                   variant="ghost"
                   onClick={onCreateApiKey}
                   disabled={busy === "apiKeyCreate" || q.isLoading || !q.data}
-                  className="h-10 w-full sm:w-auto"
+                  className="w-full sm:w-fit"
                 >
                   Create key
                 </Button>
@@ -1164,7 +1295,8 @@ export function ProfilePage() {
                       Expire this key
                     </span>
                     <span className="mt-0.5 block text-sm text-neutral-500 dark:text-neutral-400">
-                      Optional. Leave off for a permanent key you can revoke later.
+                      Optional. Leave off for a permanent key you can revoke
+                      later.
                     </span>
                   </span>
                   <span
@@ -1186,7 +1318,7 @@ export function ProfilePage() {
                 {apiKeyHasExpiry ? (
                   <label className="mt-3 flex flex-col gap-1">
                     <span className="label">Expires at</span>
-                    <input
+                    <input name="api-key-expiry" autoComplete="off"
                       type="datetime-local"
                       value={apiKeyExpiresAt}
                       onChange={(e) => setApiKeyExpiresAt(e.target.value)}
@@ -1200,10 +1332,11 @@ export function ProfilePage() {
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                   <div className="font-semibold">Copy this key now</div>
                   <div className="mt-1 text-amber-900/80">
-                    Memoato stores only a hash. This token will not be shown again.
+                    Memoato stores only a hash. This token will not be shown
+                    again.
                   </div>
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
-                    <input
+                    <input name="created-api-key" autoComplete="off" aria-label="New API key"
                       value={createdApiKeyToken}
                       readOnly
                       className={inputClassName}
@@ -1213,7 +1346,9 @@ export function ProfilePage() {
                       variant="ghost"
                       onClick={async () => {
                         try {
-                          await navigator.clipboard.writeText(createdApiKeyToken);
+                          await navigator.clipboard.writeText(
+                            createdApiKeyToken,
+                          );
                           setMessage("API key copied.");
                         } catch {
                           window.prompt("Copy API key:", createdApiKeyToken);
@@ -1229,11 +1364,15 @@ export function ProfilePage() {
 
               <div className="space-y-2">
                 {(q.data?.apiKeys ?? []).length === 0 ? (
-                  <div className="text-sm text-neutral-500 dark:text-neutral-400">No API keys yet.</div>
+                  <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                    No API keys yet.
+                  </div>
                 ) : (
                   (q.data?.apiKeys ?? []).map((key) => {
                     const revoked = !!key.revokedAt;
-                    const expired = key.expiresAt ? new Date(key.expiresAt).getTime() <= Date.now() : false;
+                    const expired = key.expiresAt
+                      ? new Date(key.expiresAt).getTime() <= Date.now()
+                      : false;
                     const active = !revoked && !expired;
                     return (
                       <div
@@ -1254,15 +1393,22 @@ export function ProfilePage() {
                                     : "bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300",
                                 ].join(" ")}
                               >
-                                {active ? "Active" : revoked ? "Revoked" : "Expired"}
+                                {active
+                                  ? "Active"
+                                  : revoked
+                                    ? "Revoked"
+                                    : "Expired"}
                               </span>
                             </div>
                             <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                               {key.tokenPrefix} · {key.scope}
                             </div>
                             <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                              Created {formatDateTime(key.createdAt)} · Last used {formatDateTime(key.lastUsedAt)}
-                              {key.expiresAt ? ` · Expires ${formatDateTime(key.expiresAt)}` : ""}
+                              Created {formatDateTime(key.createdAt)} · Last
+                              used {formatDateTime(key.lastUsedAt)}
+                              {key.expiresAt
+                                ? ` · Expires ${formatDateTime(key.expiresAt)}`
+                                : ""}
                             </div>
                           </div>
                           <div className="flex flex-col gap-2 sm:flex-row">
@@ -1295,10 +1441,14 @@ export function ProfilePage() {
               </div>
             </div>
           )}
-        </div>
+        </section>
 
-        <div className="card p-4">
-          <div className="mb-3 text-sm font-semibold">Public stats</div>
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "data"}
+          aria-labelledby="settings-public-stats"
+        >
+          <h2 id="settings-public-stats">Public stats</h2>
           {privacy.mode === "local" ? (
             <div className="text-sm text-neutral-500 dark:text-neutral-400">
               Available in Cloud mode.
@@ -1306,13 +1456,18 @@ export function ProfilePage() {
           ) : (
             <>
               <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                Share selected categories as a public JSON feed for your personal website.
+                Share selected categories as a public JSON feed for your
+                personal website.
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {([true, false] as const).map((enabled) => {
-                  const active = (publicStatsEnabledPref ?? q.data?.publicStatsEnabled ?? false) === enabled;
-                  const isDisabled = busy === "publicStats" || q.isLoading || !q.data;
+                  const active =
+                    (publicStatsEnabledPref ??
+                      q.data?.publicStatsEnabled ??
+                      false) === enabled;
+                  const isDisabled =
+                    busy === "publicStats" || q.isLoading || !q.data;
                   return (
                     <button
                       key={String(enabled)}
@@ -1339,8 +1494,8 @@ export function ProfilePage() {
                         isDisabled
                           ? "cursor-not-allowed opacity-70"
                           : active
-                          ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
-                          : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
+                            ? "border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950"
+                            : "border-neutral-200 bg-white text-neutral-900 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
                       ].join(" ")}
                     >
                       {enabled ? "On" : "Off"}
@@ -1351,7 +1506,9 @@ export function ProfilePage() {
 
               {isPublicStatsEnabled ? (
                 <div className="mt-5">
-                  <div className="mb-2 text-sm font-semibold">Public JSON URL</div>
+                  <div className="mb-2 text-sm font-semibold">
+                    Public JSON URL
+                  </div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
                     <input
                       value={publicStatsUrl ?? ""}
@@ -1394,7 +1551,9 @@ export function ProfilePage() {
                           setBusy(null);
                         }
                       }}
-                      disabled={busy === "publicStatsRotate" || q.isLoading || !q.data}
+                      disabled={
+                        busy === "publicStatsRotate" || q.isLoading || !q.data
+                      }
                       className="h-10 w-full sm:w-auto"
                     >
                       Rotate link
@@ -1403,7 +1562,9 @@ export function ProfilePage() {
                       variant="ghost"
                       onClick={async () => {
                         if (!q.data) return;
-                        const ok = window.confirm("Revoke the public link? You can enable it again later.");
+                        const ok = window.confirm(
+                          "Revoke the public link? You can enable it again later.",
+                        );
                         if (!ok) return;
                         setMessage(null);
                         setBusy("publicStatsRevoke");
@@ -1419,7 +1580,9 @@ export function ProfilePage() {
                           setBusy(null);
                         }
                       }}
-                      disabled={busy === "publicStatsRevoke" || q.isLoading || !q.data}
+                      disabled={
+                        busy === "publicStatsRevoke" || q.isLoading || !q.data
+                      }
                       className="h-10 w-full sm:w-auto"
                     >
                       Revoke
@@ -1436,9 +1599,18 @@ export function ProfilePage() {
                   </div>
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {shareCategories.map((c) => {
-                      const selected = (publicStatsCategoryIdsPref ?? q.data?.publicStatsCategoryIds ?? []).includes(c.id);
-                      const isDisabled = busy === "publicStatsCats" || q.isLoading || !q.data;
-                      const subtitle = c.unit ? `${c.unit}` : c.slug ? c.slug : "";
+                      const selected = (
+                        publicStatsCategoryIdsPref ??
+                        q.data?.publicStatsCategoryIds ??
+                        []
+                      ).includes(c.id);
+                      const isDisabled =
+                        busy === "publicStatsCats" || q.isLoading || !q.data;
+                      const subtitle = c.unit
+                        ? `${c.unit}`
+                        : c.slug
+                          ? c.slug
+                          : "";
                       return (
                         <label
                           key={c.id}
@@ -1468,15 +1640,26 @@ export function ProfilePage() {
                               if (!q.data) return;
                               setMessage(null);
                               setBusy("publicStatsCats");
-                              const current = publicStatsCategoryIdsPref ?? q.data.publicStatsCategoryIds ?? [];
-                              const next = selected ? current.filter((id) => id !== c.id) : [...current, c.id];
+                              const current =
+                                publicStatsCategoryIdsPref ??
+                                q.data.publicStatsCategoryIds ??
+                                [];
+                              const next = selected
+                                ? current.filter((id) => id !== c.id)
+                                : [...current, c.id];
                               setPublicStatsCategoryIdsPref(next);
                               try {
-                                await setPublicStatsCategories({ categoryIds: next });
+                                await setPublicStatsCategories({
+                                  categoryIds: next,
+                                });
                                 await q.refetch();
                               } catch (e: any) {
-                                setPublicStatsCategoryIdsPref(q.data.publicStatsCategoryIds);
-                                setMessage(e?.message ?? "Failed to update categories.");
+                                setPublicStatsCategoryIdsPref(
+                                  q.data.publicStatsCategoryIds,
+                                );
+                                setMessage(
+                                  e?.message ?? "Failed to update categories.",
+                                );
                               } finally {
                                 setBusy(null);
                               }
@@ -1491,15 +1674,21 @@ export function ProfilePage() {
               ) : null}
             </>
           )}
-        </div>
+        </section>
 
-        <div className="card p-4">
-          <div className="mb-3 text-sm font-semibold">Reminders</div>
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "preferences"}
+          aria-labelledby="settings-reminders"
+        >
+          <h2 id="settings-reminders">Reminders</h2>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-sm font-semibold">Daily reminder</div>
               <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                {isNative ? "Schedule local notifications." : "Available in the mobile app."}
+                {isNative
+                  ? "Schedule local notifications."
+                  : "Available in the mobile app."}
               </div>
             </div>
             <Button
@@ -1510,17 +1699,21 @@ export function ProfilePage() {
               Open reminders
             </Button>
           </div>
-        </div>
+        </section>
 
-        <div className="card p-4">
-          <div className="mb-3 text-sm font-semibold">Email & security</div>
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "account"}
+          aria-labelledby="settings-email-security"
+        >
+          <h2 id="settings-email-security">Email & security</h2>
           <div className="space-y-4">
             {q.data?.hasEmailAuth ? (
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <label className="flex flex-col gap-1">
                     <span className="label">Change email</span>
-                    <input
+                    <input name="new-email" autoComplete="email"
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
                       className={inputClassName}
@@ -1557,18 +1750,21 @@ export function ProfilePage() {
               </>
             ) : q.data?.hasGoogleAuth ? (
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
-                You are signed in with Google. Email change and password reset are not available for Google login.
+                You are signed in with Google. Email change and password reset
+                are not available for Google login.
               </div>
             ) : (
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">
-                Email change and password reset are not available for this account.
+                Email change and password reset are not available for this
+                account.
               </div>
             )}
 
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
               <div className="font-semibold">Danger zone</div>
               <div className="mt-1 text-red-900/80">
-                Deleting your account permanently removes your categories and entries. This can’t be undone.
+                Deleting your account permanently removes your categories and
+                entries. This can’t be undone.
               </div>
               <div className="mt-3 flex justify-end">
                 <Button
@@ -1582,34 +1778,50 @@ export function ProfilePage() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="card p-4">
-          <div className="mb-3 text-sm font-semibold">Data</div>
+        <section
+          className="memoato-settings-section"
+          hidden={activePanel !== "data"}
+          aria-labelledby="settings-data"
+        >
+          <h2 id="settings-data">Data</h2>
           <div className="space-y-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-sm font-semibold">Export your data</div>
-                <div className="text-sm text-neutral-500 dark:text-neutral-400">Downloads a JSON export of your profile, categories, and entries.</div>
+                <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                  Downloads a JSON export of your profile, categories, and
+                  entries.
+                </div>
               </div>
-              <Button variant="ghost" onClick={onExport} disabled={busy === "export"} className="w-full sm:w-auto">
+              <Button
+                variant="ghost"
+                onClick={onExport}
+                disabled={busy === "export"}
+                className="w-full sm:w-auto"
+              >
                 Export
               </Button>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-sm font-semibold">Session</div>
-                <div className="text-sm text-neutral-500 dark:text-neutral-400">Sign out of this device.</div>
+                <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                  Sign out of this device.
+                </div>
               </div>
-              <Button variant="ghost" onClick={logout} className="w-full sm:w-auto">
+              <Button
+                variant="ghost"
+                onClick={logout}
+                className="w-full sm:w-auto"
+              >
                 Log out
               </Button>
             </div>
           </div>
-        </div>
-
-        {message ? <div className="text-sm text-neutral-700 dark:text-neutral-300">{message}</div> : null}
-      </div>
+        </section>
+      </fieldset>
     </div>
   );
 }

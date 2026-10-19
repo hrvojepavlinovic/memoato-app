@@ -1,3 +1,4 @@
+import "../shared/tools.css";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, getDayEvents } from "wasp/client/operations";
@@ -7,10 +8,19 @@ import { decryptCategoryTitle, decryptEventNote } from "../privacy/decryptors";
 import { isEncryptedString } from "../privacy/crypto";
 import { Button } from "../shared/components/Button";
 import { localGetCategoryEvents, localListCategories } from "../focus/local";
-import { parseLocalIsoDate, startOfLocalDay, toLocalIsoDate, todayLocalIso } from "../shared/lib/localDate";
+import {
+  parseLocalIsoDate,
+  startOfLocalDay,
+  toLocalIsoDate,
+  todayLocalIso,
+} from "../shared/lib/localDate";
 import { useTheme } from "../theme/ThemeProvider";
 import { resolveAccentForTheme } from "../theme/colors";
-import { buildScheduledDateTime, normalizeCategorySchedule, scheduleAppliesToDate } from "../focus/schedule";
+import {
+  buildScheduledDateTime,
+  normalizeCategorySchedule,
+  scheduleAppliesToDate,
+} from "../focus/schedule";
 
 type DayEvent = {
   id: string;
@@ -37,6 +47,8 @@ type DayEvent = {
     scheduleTime?: string | null;
   } | null;
 };
+
+const EMPTY_EVENTS: DayEvent[] = [];
 
 function addDays(d: Date, days: number): Date {
   const x = new Date(d);
@@ -88,21 +100,32 @@ export function TimelinePage() {
     }
   }
 
-  const serverQuery = useQuery(getDayEvents, { occurredOn: selectedIso } as any, {
-    enabled: privacy.mode !== "local",
-    retry: false,
-  });
+  const serverQuery = useQuery(
+    getDayEvents,
+    { occurredOn: selectedIso } as any,
+    {
+      enabled: privacy.mode !== "local",
+      retry: false,
+    },
+  );
 
+  const [localError, setLocalError] = useState(false);
   const [localEvents, setLocalEvents] = useState<DayEvent[] | null>(null);
-  const [titleByCategoryId, setTitleByCategoryId] = useState<Record<string, string>>({});
-  const [noteByEventId, setNoteByEventId] = useState<Record<string, string>>({});
+  const [titleByCategoryId, setTitleByCategoryId] = useState<
+    Record<string, string>
+  >({});
+  const [noteByEventId, setNoteByEventId] = useState<Record<string, string>>(
+    {},
+  );
 
   // Load local-only day events.
   useEffect(() => {
     if (privacy.mode !== "local") return;
     if (!privacy.userId) return;
     let cancelled = false;
-    (async () => {
+    setLocalEvents(null);
+    setLocalError(false);
+    void (async () => {
       const categories = await localListCategories(privacy.userId!);
       const catById = new Map(categories.map((c) => [c.id, c]));
       const onIso = selectedIso;
@@ -111,7 +134,11 @@ export function TimelinePage() {
       // local.ts doesn't export a day query, so we use listCategories + their events isn't efficient,
       // but local-only datasets are expected to be small.
       for (const c of categories) {
-        const events = await localGetCategoryEvents({ userId: privacy.userId!, categoryId: c.id, take: 5000 });
+        const events = await localGetCategoryEvents({
+          userId: privacy.userId!,
+          categoryId: c.id,
+          take: 5000,
+        });
         for (const ev of events) {
           const iso = toLocalIsoDate(new Date(ev.occurredOn as any));
           if (iso !== onIso) continue;
@@ -146,7 +173,9 @@ export function TimelinePage() {
       }
 
       const selectedDay = parseLocalIsoDate(onIso);
-      const hasEventByCategory = new Set(allEvents.map((e) => e.category?.id).filter(Boolean) as string[]);
+      const hasEventByCategory = new Set(
+        allEvents.map((e) => e.category?.id).filter(Boolean) as string[],
+      );
       for (const c of categories as any[]) {
         if (hasEventByCategory.has(c.id)) continue;
         const schedule = normalizeCategorySchedule({
@@ -188,7 +217,9 @@ export function TimelinePage() {
       allEvents.sort((a, b) => (a.occurredAt as any) - (b.occurredAt as any));
       if (cancelled) return;
       setLocalEvents(allEvents);
-    })();
+    })().catch(() => {
+      if (!cancelled) setLocalError(true);
+    });
     return () => {
       cancelled = true;
     };
@@ -197,7 +228,8 @@ export function TimelinePage() {
   const events: DayEvent[] | null =
     privacy.mode === "local"
       ? localEvents
-      : (serverQuery.data as any) ?? (serverQuery.isLoading ? null : []);
+      : ((serverQuery.data as any) ??
+        (serverQuery.isLoading ? null : EMPTY_EVENTS));
 
   // Decrypt titles/notes (best effort).
   useEffect(() => {
@@ -219,7 +251,10 @@ export function TimelinePage() {
             continue;
           }
 
-          const note = typeof ev.data?.note === "string" ? (ev.data.note as string).trim() : "";
+          const note =
+            typeof ev.data?.note === "string"
+              ? (ev.data.note as string).trim()
+              : "";
           if (note) noteMap[ev.id] = note;
         }
         if (cancelled) return;
@@ -240,7 +275,9 @@ export function TimelinePage() {
         for (const ev of events) {
           const c = ev.category;
           if (!c) continue;
-          titleMap[c.id] = isEncryptedString(c.title) ? "Locked" : String(c.title).trim();
+          titleMap[c.id] = isEncryptedString(c.title)
+            ? "Locked"
+            : String(c.title).trim();
         }
         if (!cancelled) {
           setTitleByCategoryId(titleMap);
@@ -325,7 +362,12 @@ export function TimelinePage() {
       avg: number | null;
       notePreview: string | null;
       notes: Array<{ occurredAt: Date; text: string }>;
-      scheduled: { went: number; missed: number; cancelled: number; pending: number };
+      scheduled: {
+        went: number;
+        missed: number;
+        cancelled: number;
+        pending: number;
+      };
     }> = [];
 
     for (const chunk of chunks) {
@@ -350,17 +392,25 @@ export function TimelinePage() {
           .map((e) => {
             const fromMap = noteByEventId[e.id];
             if (fromMap && fromMap.trim()) return fromMap.trim();
-            const plain = typeof e.data?.note === "string" ? (e.data.note as string).trim() : "";
+            const plain =
+              typeof e.data?.note === "string"
+                ? (e.data.note as string).trim()
+                : "";
             if (plain) return plain;
             const enc =
-              e.data && typeof e.data === "object" && !Array.isArray(e.data) ? (e.data as any).noteEnc : null;
+              e.data && typeof e.data === "object" && !Array.isArray(e.data)
+                ? (e.data as any).noteEnc
+                : null;
             return isEncryptedString(enc) ? "Locked note" : "";
           })
           .find((s) => !!s) ?? null;
       const notes: Array<{ occurredAt: Date; text: string }> = [];
       const scheduled = { went: 0, missed: 0, cancelled: 0, pending: 0 };
       for (const e of evs) {
-        const statusRaw = typeof e.data?.scheduledStatus === "string" ? e.data.scheduledStatus.trim().toLowerCase() : "";
+        const statusRaw =
+          typeof e.data?.scheduledStatus === "string"
+            ? e.data.scheduledStatus.trim().toLowerCase()
+            : "";
         if (statusRaw === "went") scheduled.went += 1;
         else if (statusRaw === "missed") scheduled.missed += 1;
         else if (statusRaw === "cancelled") scheduled.cancelled += 1;
@@ -370,10 +420,16 @@ export function TimelinePage() {
         for (const e of evs) {
           const occurredAt = new Date(e.occurredAt as any);
           const fromMap = noteByEventId[e.id];
-          const plain = typeof e.data?.note === "string" ? (e.data.note as string).trim() : "";
+          const plain =
+            typeof e.data?.note === "string"
+              ? (e.data.note as string).trim()
+              : "";
           const enc =
-            e.data && typeof e.data === "object" && !Array.isArray(e.data) ? (e.data as any).noteEnc : null;
-          const text = fromMap || plain || (isEncryptedString(enc) ? "Locked note" : "");
+            e.data && typeof e.data === "object" && !Array.isArray(e.data)
+              ? (e.data as any).noteEnc
+              : null;
+          const text =
+            fromMap || plain || (isEncryptedString(enc) ? "Locked note" : "");
           if (!text) continue;
           notes.push({ occurredAt, text });
         }
@@ -421,22 +477,29 @@ export function TimelinePage() {
   }
 
   function fmtRange(first: Date, last: Date): string | null {
-    if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime())) return null;
+    if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime()))
+      return null;
     const a = fmtTime(first);
     const b = fmtTime(last);
     return a === b ? a : `${a}–${b}`;
   }
 
   return (
-    <div className="mx-auto w-full max-w-screen-lg px-4 py-6">
-      <div className="mb-4 flex items-start justify-between gap-3">
+    <div className="memoato-tools-page">
+      <div className="memoato-tools-heading">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Timeline</h2>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">{isToday ? "Today" : formatDayLabel(day)}</p>
+          <h1>Timeline</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            {isToday ? "Today" : formatDayLabel(day)}
+          </p>
         </div>
         {!isToday ? (
           <div className="flex items-center">
-            <Button variant="ghost" size="sm" onClick={() => selectIso(todayIso)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => selectIso(todayIso)}
+            >
               Today
             </Button>
           </div>
@@ -444,9 +507,24 @@ export function TimelinePage() {
       </div>
 
       <div className="mb-6">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => selectIso(toLocalIsoDate(addDays(day, -1)))}>
-            ←
+        <div className="memoato-timeline-dates">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="Previous day"
+            onClick={() => selectIso(toLocalIsoDate(addDays(day, -1)))}
+          >
+            <svg
+              aria-hidden="true"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+            >
+              <path d="m14 6-6 6 6 6" />
+            </svg>
           </Button>
           <div className="grid min-w-0 flex-1 grid-cols-5 gap-2">
             {daysStrip.map((d) => {
@@ -460,6 +538,13 @@ export function TimelinePage() {
                   key={iso}
                   type="button"
                   disabled={disabled}
+                  aria-label={d.toLocaleDateString(undefined, {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                  aria-pressed={active}
                   onClick={() => selectIso(iso)}
                   className={`flex min-w-0 flex-col items-center justify-center rounded-xl border px-2 py-2 text-center ${
                     disabled
@@ -471,7 +556,9 @@ export function TimelinePage() {
                 >
                   <div
                     className={`text-xs font-semibold ${
-                      active ? "text-white/70 dark:text-neutral-950/70" : "text-neutral-500 dark:text-neutral-400"
+                      active
+                        ? "text-white/70 dark:text-neutral-950/70"
+                        : "text-neutral-500 dark:text-neutral-400"
                     }`}
                   >
                     {w}
@@ -485,25 +572,47 @@ export function TimelinePage() {
             variant="ghost"
             size="sm"
             disabled={isToday}
+            aria-label="Next day"
             onClick={() => selectIso(toLocalIsoDate(addDays(day, 1)))}
           >
-            →
+            <svg
+              aria-hidden="true"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+            >
+              <path d="m10 6 6 6-6 6" />
+            </svg>
           </Button>
         </div>
       </div>
 
-      {privacy.mode !== "local" && serverQuery.isLoading ? (
-        <div className="card p-4 text-sm text-neutral-500 dark:text-neutral-400">Loading…</div>
-      ) : summary.length === 0 ? (
-        <div className="card p-4 text-sm text-neutral-500 dark:text-neutral-400">Nothing logged for this day.</div>
+      {(privacy.mode === "local" ? localError : serverQuery.isError) ? (
+        <p className="memoato-tools-state" role="alert">
+          This day couldn’t be loaded. Refresh to try again.
+        </p>
       ) : (
-        <div className="relative space-y-1">
-          <div className="absolute left-6 top-0 h-full w-px bg-neutral-200 dark:bg-neutral-800" aria-hidden="true" />
+          privacy.mode === "local"
+            ? localEvents === null
+            : serverQuery.isLoading
+        ) ? (
+        <div className="memoato-tools-state" role="status">
+          Loading timeline…
+        </div>
+      ) : summary.length === 0 ? (
+        <div className="memoato-tools-state">Nothing logged for this day.</div>
+      ) : (
+        <div className="memoato-timeline-rows">
           {summary.map((s) => {
             const unit = s.unit && s.unit !== "x" ? ` ${s.unit}` : "";
             const isNotes = s.slug === "notes";
-            const isWeight = s.chartType === "line" || s.categoryType === "GOAL";
-            const accent = resolveAccentForTheme(s.accentHex, theme.isDark) ?? s.accentHex;
+            const isWeight =
+              s.chartType === "line" || s.categoryType === "GOAL";
+            const accent =
+              resolveAccentForTheme(s.accentHex, theme.isDark) ?? s.accentHex;
 
             let main = "";
             if (isNotes) {
@@ -514,14 +623,23 @@ export function TimelinePage() {
               const kgUnit = unit || " kg";
               const v = Math.round(s.total * 10) / 10;
               if (s.count <= 1) main = `${v}${kgUnit}`;
-              else if (s.avg != null) main = `avg ${Math.round(s.avg * 10) / 10}${kgUnit} · ×${s.count}`;
+              else if (s.avg != null)
+                main = `avg ${Math.round(s.avg * 10) / 10}${kgUnit} · ×${s.count}`;
               else main = `×${s.count}`;
             } else {
               const total = Math.round(s.total * 100) / 100;
-              if (s.count <= 1 && unit === "" && Math.abs(total - 1) < 1e-9 && s.notePreview) {
+              if (
+                s.count <= 1 &&
+                unit === "" &&
+                Math.abs(total - 1) < 1e-9 &&
+                s.notePreview
+              ) {
                 main = s.notePreview;
               } else {
-                main = s.count <= 1 ? `${total}${unit}` : `${total}${unit} total · ${s.count} entries`;
+                main =
+                  s.count <= 1
+                    ? `${total}${unit}`
+                    : `${total}${unit} total · ${s.count} entries`;
               }
             }
 
@@ -545,38 +663,68 @@ export function TimelinePage() {
                     style={{ borderColor: accent }}
                     aria-hidden="true"
                   >
-                    <div className="text-lg leading-none">{s.emoji ?? ""}</div>
+                    <div className="text-lg leading-none">
+                      {s.emoji || (
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                        >
+                          <path d="M7 3h7l4 4v14H6V3zm7 0v5h5M9 12h6m-6 4h6" />
+                        </svg>
+                      )}
+                    </div>
                   </div>
                   <div className="w-full pl-10">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate text-base font-semibold">{s.title}</div>
-                        {main ? <div className="text-sm text-neutral-600 dark:text-neutral-300">{main}</div> : null}
+                        <div className="text-base font-semibold">{s.title}</div>
+                        {main ? (
+                          <div className="text-sm text-neutral-600 dark:text-neutral-300">
+                            {main}
+                          </div>
+                        ) : null}
                       </div>
                       <div className="shrink-0 text-right">
-                        {time ? <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">{time}</div> : null}
-                        {sub ? <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{sub}</div> : null}
+                        {time ? (
+                          <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                            {time}
+                          </div>
+                        ) : null}
+                        {sub ? (
+                          <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                            {sub}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
                     {isNotes && s.notes.length > 0 ? (
-	                      <div className="mt-2 space-y-2">
-	                        {s.notes.map((n, i) => {
-	                          const t = fmtMaybeTime(n.occurredAt);
-	                          return (
-	                            <div key={`${s.categoryId}-${i}`} className="flex items-start justify-between gap-3">
-	                              <div className="min-w-0 flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
-	                                <div className="min-w-0 whitespace-pre-wrap break-words">{n.text}</div>
-	                              </div>
-	                              {t ? (
-	                                <div className="shrink-0 text-right tabular-nums text-xs font-semibold text-neutral-500 dark:text-neutral-400">
-	                                  {t}
-	                                </div>
-	                              ) : null}
-	                            </div>
-	                          );
-	                        })}
-	                      </div>
+                      <div className="mt-2 space-y-2">
+                        {s.notes.map((n, i) => {
+                          const t = fmtMaybeTime(n.occurredAt);
+                          return (
+                            <div
+                              key={`${s.categoryId}-${i}`}
+                              className="flex items-start justify-between gap-3"
+                            >
+                              <div className="memoato-timeline-note min-w-0 flex-1 text-sm">
+                                <div className="min-w-0 whitespace-pre-wrap break-words">
+                                  {n.text}
+                                </div>
+                              </div>
+                              {t ? (
+                                <div className="shrink-0 text-right text-xs font-semibold tabular-nums text-neutral-500 dark:text-neutral-400">
+                                  {t}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
                     ) : null}
                   </div>
                 </div>

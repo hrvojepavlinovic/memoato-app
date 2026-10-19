@@ -1,12 +1,26 @@
+import { ChoiceGroup } from "../shared/components/ChoiceGroup";
+import "../shared/tools.css";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { deleteCategory, getCategories, updateCategory, useQuery } from "wasp/client/operations";
+import {
+  deleteCategory,
+  getCategories,
+  updateCategory,
+  useQuery,
+} from "wasp/client/operations";
 import { Button } from "../shared/components/Button";
 import type { GoalDirection, Period, BucketAggregation } from "./types";
 import { usePrivacy } from "../privacy/PrivacyProvider";
 import { decryptCategoryTitle } from "../privacy/decryptors";
-import { encryptUtf8ToEncryptedString, isEncryptedString } from "../privacy/crypto";
-import { localDeleteCategory, localGetCategoriesWithStats, localUpdateCategory } from "./local";
+import {
+  encryptUtf8ToEncryptedString,
+  isEncryptedString,
+} from "../privacy/crypto";
+import {
+  localDeleteCategory,
+  localGetCategoriesWithStats,
+  localUpdateCategory,
+} from "./local";
 
 type CategoryType = "NUMBER" | "DO" | "DONT";
 type ChartType = "bar" | "line";
@@ -33,7 +47,11 @@ const weekdayOptions: Array<{ value: number; label: string }> = [
 ];
 
 const typeOptions: { value: CategoryType; label: string; hint: string }[] = [
-  { value: "NUMBER", label: "Track number", hint: "Counts, minutes, kcal, etc." },
+  {
+    value: "NUMBER",
+    label: "Track number",
+    hint: "Counts, minutes, kcal, etc.",
+  },
   { value: "DO", label: "Do's", hint: "Count each time you do it." },
   { value: "DONT", label: "Don'ts", hint: "Count each time you break it." },
 ];
@@ -54,13 +72,22 @@ export function EditCategoryPage() {
   const navigate = useNavigate();
   const { categorySlug } = useParams<{ categorySlug: string }>();
   const privacy = usePrivacy();
-  const categoriesQuery = useQuery(getCategories, undefined, { enabled: privacy.mode !== "local" });
+  const categoriesQuery = useQuery(getCategories, undefined, {
+    enabled: privacy.mode !== "local",
+  });
   const [localCategories, setLocalCategories] = useState<any[]>([]);
 
   const category = useMemo(() => {
-    const list = privacy.mode === "local" ? localCategories : categoriesQuery.data ?? null;
+    const list =
+      privacy.mode === "local"
+        ? localCategories
+        : (categoriesQuery.data ?? null);
     if (!categorySlug || !list) return null;
-    return list.find((c: any) => c.slug === categorySlug) ?? list.find((c: any) => c.id === categorySlug) ?? null;
+    return (
+      list.find((c: any) => c.slug === categorySlug) ??
+      list.find((c: any) => c.id === categorySlug) ??
+      null
+    );
   }, [categoriesQuery.data, categorySlug, localCategories, privacy.mode]);
 
   const [title, setTitle] = useState("");
@@ -78,12 +105,17 @@ export function EditCategoryPage() {
   const [emoji, setEmoji] = useState("");
   const [rollupToActiveKcal, setRollupToActiveKcal] = useState<boolean>(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [scheduleType, setScheduleType] = useState<"daily" | "weekly">("weekly");
-  const [scheduleDays, setScheduleDays] = useState<number[]>([new Date().getDay()]);
+  const [scheduleType, setScheduleType] = useState<"daily" | "weekly">(
+    "weekly",
+  );
+  const [scheduleDays, setScheduleDays] = useState<number[]>([
+    new Date().getDay(),
+  ]);
   const [scheduleTime, setScheduleTime] = useState("");
   const [fieldsSchema, setFieldsSchema] = useState<FieldDef[]>([]);
-  const [fieldsOpen, setFieldsOpen] = useState(false);
+  const fieldsOpen = true;
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function defaultGoalDirectionForCategory(c: any): GoalDirection {
     const dir = (c?.goalDirection ?? "").toLowerCase();
@@ -105,7 +137,11 @@ export function EditCategoryPage() {
   useEffect(() => {
     if (!category) return;
     setTitle(category.title ?? "");
-    setCategoryType((category.categoryType === "GOAL" ? "NUMBER" : (category.categoryType as CategoryType)) ?? "NUMBER");
+    setCategoryType(
+      (category.categoryType === "GOAL"
+        ? "NUMBER"
+        : (category.categoryType as CategoryType)) ?? "NUMBER",
+    );
     setPeriod((category.period as Period) ?? "week");
     const nextChartType = category.chartType === "line" ? "line" : "bar";
     setChartType(nextChartType);
@@ -125,9 +161,12 @@ export function EditCategoryPage() {
     setEmoji(category.emoji ?? "");
     setRollupToActiveKcal(category.rollupToActiveKcal === true);
     setScheduleEnabled((category as any).scheduleEnabled === true);
-    setScheduleType((category as any).scheduleType === "daily" ? "daily" : "weekly");
+    setScheduleType(
+      (category as any).scheduleType === "daily" ? "daily" : "weekly",
+    );
     setScheduleDays(
-      Array.isArray((category as any).scheduleDays) && (category as any).scheduleDays.length > 0
+      Array.isArray((category as any).scheduleDays) &&
+        (category as any).scheduleDays.length > 0
         ? Array.from(
             new Set(
               ((category as any).scheduleDays as any[]).filter(
@@ -137,7 +176,11 @@ export function EditCategoryPage() {
           ).sort((a, b) => a - b)
         : [new Date().getDay()],
     );
-    setScheduleTime(typeof (category as any).scheduleTime === "string" ? ((category as any).scheduleTime as string) : "");
+    setScheduleTime(
+      typeof (category as any).scheduleTime === "string"
+        ? ((category as any).scheduleTime as string)
+        : "",
+    );
     const rawSchema = (category as any).fieldsSchema;
     setFieldsSchema(Array.isArray(rawSchema) ? (rawSchema as FieldDef[]) : []);
   }, [category]);
@@ -145,7 +188,9 @@ export function EditCategoryPage() {
   useEffect(() => {
     if (privacy.mode !== "local") return;
     if (!privacy.userId) return;
-    localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats as any));
+    localGetCategoriesWithStats(privacy.userId).then((cats) =>
+      setLocalCategories(cats as any),
+    );
   }, [privacy.mode, privacy.userId]);
 
   useEffect(() => {
@@ -154,7 +199,10 @@ export function EditCategoryPage() {
     if (!privacy.key) return;
     if (!isEncryptedString(category.title)) return;
     (async () => {
-      const t = await decryptCategoryTitle(privacy.key as CryptoKey, category.title);
+      const t = await decryptCategoryTitle(
+        privacy.key as CryptoKey,
+        category.title,
+      );
       if (cancelled) return;
       if (t) setTitle(t);
     })();
@@ -164,9 +212,13 @@ export function EditCategoryPage() {
   }, [category, privacy.key]);
 
   const effectiveChartType: ChartType = chartType;
-  const bucketAggregation: BucketAggregation = effectiveChartType === "line" ? lineAgg : barAgg;
+  const bucketAggregation: BucketAggregation =
+    effectiveChartType === "line" ? lineAgg : barAgg;
   const needsPeriod = effectiveChartType !== "line";
-  const hint = useMemo(() => typeOptions.find((o) => o.value === categoryType)?.hint, [categoryType]);
+  const hint = useMemo(
+    () => typeOptions.find((o) => o.value === categoryType)?.hint,
+    [categoryType],
+  );
   const canSchedule = categoryType === "DO" || categoryType === "DONT";
 
   function toggleScheduleDay(day: number) {
@@ -197,6 +249,8 @@ export function EditCategoryPage() {
   }
 
   async function onSave() {
+    if (isSaving) return;
+    setSaveError(null);
     if (!category?.id) return;
 
     const cleanTitle = title.trim();
@@ -222,29 +276,48 @@ export function EditCategoryPage() {
       window.alert("Goal value must be a number.");
       return;
     }
-    if (canSchedule && scheduleEnabled && scheduleType === "weekly" && scheduleDays.length === 0) {
+    if (
+      canSchedule &&
+      scheduleEnabled &&
+      scheduleType === "weekly" &&
+      scheduleDays.length === 0
+    ) {
       window.alert("Pick at least one day.");
       return;
     }
-    if (canSchedule && scheduleEnabled && scheduleTime.trim() !== "" && !/^([01]\d|2[0-3]):([0-5]\d)$/.test(scheduleTime.trim())) {
+    if (
+      canSchedule &&
+      scheduleEnabled &&
+      scheduleTime.trim() !== "" &&
+      !/^([01]\d|2[0-3]):([0-5]\d)$/.test(scheduleTime.trim())
+    ) {
       window.alert("Time must be in HH:mm format.");
       return;
     }
 
     setIsSaving(true);
     try {
-      const shouldEncrypt = privacy.mode === "encrypted" || isEncryptedString(category.title);
+      const shouldEncrypt =
+        privacy.mode === "encrypted" || isEncryptedString(category.title);
       let titleToStore = cleanTitle;
       if (shouldEncrypt) {
         if (!privacy.key || !privacy.cryptoParams) {
-          window.alert("Unlock encryption from Profile → Privacy before editing encrypted categories.");
+          window.alert(
+            "Unlock encryption from Profile → Privacy before editing encrypted categories.",
+          );
           return;
         }
-        titleToStore = await encryptUtf8ToEncryptedString(privacy.key, privacy.cryptoParams, cleanTitle);
+        titleToStore = await encryptUtf8ToEncryptedString(
+          privacy.key,
+          privacy.cryptoParams,
+          cleanTitle,
+        );
       }
 
       if (isEncryptedString(category.title) && !privacy.key) {
-        window.alert("Unlock encryption from Profile → Privacy before editing encrypted categories.");
+        window.alert(
+          "Unlock encryption from Profile → Privacy before editing encrypted categories.",
+        );
         return;
       }
 
@@ -268,10 +341,18 @@ export function EditCategoryPage() {
           fieldsSchema,
           scheduleEnabled: canSchedule ? scheduleEnabled : false,
           scheduleType: canSchedule && scheduleEnabled ? scheduleType : null,
-          scheduleDays: canSchedule && scheduleEnabled && scheduleType === "weekly" ? scheduleDays : null,
-          scheduleTime: canSchedule && scheduleEnabled && scheduleTime.trim() ? scheduleTime.trim() : null,
+          scheduleDays:
+            canSchedule && scheduleEnabled && scheduleType === "weekly"
+              ? scheduleDays
+              : null,
+          scheduleTime:
+            canSchedule && scheduleEnabled && scheduleTime.trim()
+              ? scheduleTime.trim()
+              : null,
         });
-        await localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats as any));
+        await localGetCategoriesWithStats(privacy.userId).then((cats) =>
+          setLocalCategories(cats as any),
+        );
         navigate(`/c/${category.slug ?? category.id}`);
       } else {
         const updated = await updateCategory({
@@ -284,21 +365,32 @@ export function EditCategoryPage() {
           period: needsPeriod ? period : undefined,
           unit: unit.trim() || undefined,
           goal: needsPeriod ? (g ?? undefined) : undefined,
-          goalValue: effectiveChartType === "line" ? (gv ?? undefined) : undefined,
+          goalValue:
+            effectiveChartType === "line" ? (gv ?? undefined) : undefined,
           accentHex: cleanHex,
           emoji: emoji.trim() || undefined,
           rollupToActiveKcal,
           fieldsSchema,
           scheduleEnabled: canSchedule ? scheduleEnabled : false,
           scheduleType: canSchedule && scheduleEnabled ? scheduleType : null,
-          scheduleDays: canSchedule && scheduleEnabled && scheduleType === "weekly" ? scheduleDays : undefined,
-          scheduleTime: canSchedule && scheduleEnabled && scheduleTime.trim() ? scheduleTime.trim() : undefined,
+          scheduleDays:
+            canSchedule && scheduleEnabled && scheduleType === "weekly"
+              ? scheduleDays
+              : undefined,
+          scheduleTime:
+            canSchedule && scheduleEnabled && scheduleTime.trim()
+              ? scheduleTime.trim()
+              : undefined,
         } as any);
         await categoriesQuery.refetch();
         navigate(`/c/${(updated as any).slug ?? updated.id}`);
       }
-    } catch (e: any) {
-      window.alert(e?.message ?? "Failed to update category.");
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "Couldn’t save this view. Your changes are still here; try again.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -306,13 +398,23 @@ export function EditCategoryPage() {
 
   async function onDelete() {
     if (!category?.id) return;
-    if (!window.confirm("Delete this category and all its entries? This cannot be undone.")) return;
+    if (
+      !window.confirm(
+        "Delete this category and all its entries? This cannot be undone.",
+      )
+    )
+      return;
 
     try {
       if (privacy.mode === "local") {
         if (!privacy.userId) return;
-        await localDeleteCategory({ userId: privacy.userId, categoryId: category.id });
-        await localGetCategoriesWithStats(privacy.userId).then((cats) => setLocalCategories(cats as any));
+        await localDeleteCategory({
+          userId: privacy.userId,
+          categoryId: category.id,
+        });
+        await localGetCategoriesWithStats(privacy.userId).then((cats) =>
+          setLocalCategories(cats as any),
+        );
         navigate("/");
       } else {
         await deleteCategory({ categoryId: category.id });
@@ -325,14 +427,32 @@ export function EditCategoryPage() {
   }
 
   if (privacy.mode !== "local" && categoriesQuery.isLoading) {
-    return <div className="mx-auto w-full max-w-screen-md px-4 py-6" />;
+    return (
+      <div className="memoato-tools-page memoato-view-editor">
+        <h1>Edit view</h1>
+        <p role="status" className="memoato-tools-state">
+          Loading view…
+        </p>
+      </div>
+    );
   }
 
+  if (privacy.mode !== "local" && categoriesQuery.isError)
+    return (
+      <div className="memoato-tools-page">
+        <h1>Edit view</h1>
+        <p className="memoato-tools-state" role="alert">
+          This view couldn’t be loaded. Refresh to try again.
+        </p>
+      </div>
+    );
   if (!category) {
     return (
       <div className="mx-auto w-full max-w-screen-md px-4 py-10">
         <div className="text-2xl font-semibold tracking-tight">404</div>
-        <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Category not found.</div>
+        <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+          Category not found.
+        </div>
         <div className="mt-4">
           <Button onClick={() => navigate("/")}>Go home</Button>
         </div>
@@ -341,13 +461,26 @@ export function EditCategoryPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-screen-md px-4 py-6">
-      <div className="mb-4">
-        <h2 className="text-2xl font-semibold tracking-tight">Edit category</h2>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">{hint}</p>
+    <div className="memoato-tools-page memoato-view-editor">
+      <div className="memoato-tools-heading">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Edit view</h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            {hint}
+          </p>
+        </div>
       </div>
 
-      <div className="card p-4">
+      {saveError ? (
+        <p role="alert" className="memoato-settings-feedback">
+          {saveError}
+        </p>
+      ) : null}
+      <fieldset
+        className="memoato-settings-body"
+        disabled={isSaving}
+        aria-busy={isSaving}
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-1 sm:col-span-2">
             <span className="label">Title</span>
@@ -359,59 +492,52 @@ export function EditCategoryPage() {
             />
           </label>
 
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="label">Type</span>
-            <select
+            <ChoiceGroup
+              label="Type"
               value={categoryType}
-              onChange={(e) => {
-                const nextType = e.target.value as CategoryType;
+              options={typeOptions}
+              onChange={(value) => {
+                const nextType = value as CategoryType;
                 setCategoryType(nextType);
                 if (nextType !== "NUMBER") {
                   setChartType(defaultViewForType(nextType));
                 }
               }}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-            >
-              {typeOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            />
+          </div>
 
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="label">Default view</span>
-            <select
+            <ChoiceGroup
+              label="Chart"
               value={effectiveChartType}
-              onChange={(e) => onChartTypeChange(e.target.value as ChartType)}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-            >
-              <option value="bar">Bar</option>
-              <option value="line">Line</option>
-            </select>
-          </label>
+              options={[
+                { value: "bar", label: "Bar" },
+                { value: "line", label: "Line" },
+              ]}
+              onChange={(value) => onChartTypeChange(value as ChartType)}
+            />
+          </div>
 
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="label">Period</span>
-            <select
+            <ChoiceGroup
+              label="Period"
               value={period}
-              onChange={(e) => setPeriod(e.target.value as Period)}
+              options={periodOptions}
+              onChange={(value) => setPeriod(value as Period)}
               disabled={!needsPeriod}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:disabled:bg-neutral-900"
-            >
-              {periodOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            />
+          </div>
 
           {canSchedule ? (
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900/30 sm:col-span-2">
+            <div className="border-y border-neutral-300 py-5 dark:border-neutral-700 sm:col-span-2">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Schedule (optional)</div>
+                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  Schedule (optional)
+                </div>
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
                   <input
                     type="checkbox"
@@ -423,17 +549,20 @@ export function EditCategoryPage() {
               </div>
               {scheduleEnabled ? (
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1">
                     <span className="label">Frequency</span>
-                    <select
+                    <ChoiceGroup
+                      label="Frequency"
                       value={scheduleType}
-                      onChange={(e) => setScheduleType(e.target.value as "daily" | "weekly")}
-                      className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-                    >
-                      <option value="weekly">Weekly</option>
-                      <option value="daily">Daily</option>
-                    </select>
-                  </label>
+                      options={[
+                        { value: "weekly", label: "Weekly" },
+                        { value: "daily", label: "Daily" },
+                      ]}
+                      onChange={(value) =>
+                        setScheduleType(value as "daily" | "weekly")
+                      }
+                    />
+                  </div>
                   <label className="flex flex-col gap-1">
                     <span className="label">Time (optional)</span>
                     <input
@@ -453,6 +582,7 @@ export function EditCategoryPage() {
                             <button
                               key={day.value}
                               type="button"
+                              aria-pressed={active}
                               onClick={() => toggleScheduleDay(day.value)}
                               className={
                                 "rounded-full border px-3 py-1.5 text-xs font-semibold " +
@@ -474,28 +604,30 @@ export function EditCategoryPage() {
           ) : null}
 
           {categoryType === "NUMBER" ? (
-            <label className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <span className="label">Multiple entries</span>
               {effectiveChartType !== "line" ? (
-                <select
+                <ChoiceGroup
+                  label="Multiple entries"
                   value={barAgg}
-                  onChange={(e) => setBarAgg(e.target.value as BarAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-                >
-                  <option value="sum">Total (sum)</option>
-                  <option value="avg">Average</option>
-                </select>
+                  options={[
+                    { value: "sum", label: "Total (sum)" },
+                    { value: "avg", label: "Average" },
+                  ]}
+                  onChange={(value) => setBarAgg(value as BarAgg)}
+                />
               ) : (
-                <select
+                <ChoiceGroup
+                  label="Multiple entries"
                   value={lineAgg}
-                  onChange={(e) => setLineAgg(e.target.value as LineAgg)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-                >
-                  <option value="last">Latest</option>
-                  <option value="avg">Average</option>
-                </select>
+                  options={[
+                    { value: "last", label: "Latest" },
+                    { value: "avg", label: "Average" },
+                  ]}
+                  onChange={(value) => setLineAgg(value as LineAgg)}
+                />
               )}
-            </label>
+            </div>
           ) : null}
 
           <label className="flex flex-col gap-1">
@@ -550,88 +682,111 @@ export function EditCategoryPage() {
 
           <label className="flex flex-col gap-1">
             <span className="label">
-              {effectiveChartType === "line" ? "Goal value (optional)" : "Goal (optional)"}
+              {effectiveChartType === "line"
+                ? "Goal value (optional)"
+                : "Goal (optional)"}
             </span>
             <input
               type="number"
               step="0.1"
               value={effectiveChartType === "line" ? goalValue : goal}
               onChange={(e) =>
-                effectiveChartType === "line" ? setGoalValue(e.target.value) : setGoal(e.target.value)
+                effectiveChartType === "line"
+                  ? setGoalValue(e.target.value)
+                  : setGoal(e.target.value)
               }
-              placeholder={effectiveChartType === "line" ? "e.g. 85" : "e.g. 10"}
+              placeholder={
+                effectiveChartType === "line" ? "e.g. 85" : "e.g. 10"
+              }
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
           </label>
 
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="label">Goal direction</span>
-            <select
+            <ChoiceGroup
+              label="Goal direction"
               value={goalDirection}
-              onChange={(e) => setGoalDirection(e.target.value as GoalDirection)}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-            >
-              <option value="at_least">At least</option>
-              <option value="at_most">At most</option>
-              <option value="target">Target</option>
-            </select>
-          </label>
+              options={[
+                { value: "at_least", label: "At least" },
+                { value: "at_most", label: "At most" },
+                { value: "target", label: "Target" },
+              ]}
+              onChange={(value) => setGoalDirection(value as GoalDirection)}
+            />
+          </div>
 
           <div className="sm:col-span-2">
-            <div className="rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
+            <div className="border-t border-neutral-300 pt-5 dark:border-neutral-700">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Extra fields (optional)</div>
+                  <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                    Extra fields (optional)
+                  </div>
                   <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                    Add dimensions like km or minutes. Only used when you fill them in.
+                    Add dimensions like km or minutes. Only used when you fill
+                    them in.
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setFieldsOpen((v) => !v)}
-                  className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 active:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
-                >
-                  {fieldsOpen ? "Hide" : "Edit"}
-                </button>
               </div>
 
               {fieldsOpen ? (
                 <div className="mt-3 space-y-3">
                   {fieldsSchema.map((f, idx) => (
-                    <div key={`${f.key}-${idx}`} className="grid grid-cols-1 gap-2 sm:grid-cols-6">
+                    <div
+                      key={`${f.key}-${idx}`}
+                      className="grid grid-cols-1 gap-2 sm:grid-cols-6"
+                    >
                       <input
                         value={f.label}
                         onChange={(e) => {
                           const label = e.target.value;
-                          setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, label } : x)));
+                          setFieldsSchema((prev) =>
+                            prev.map((x, i) =>
+                              i === idx ? { ...x, label } : x,
+                            ),
+                          );
                         }}
                         placeholder="Label"
-                        className="sm:col-span-2 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 sm:col-span-2"
                       />
                       <input
                         value={f.key}
                         onChange={(e) => {
                           const key = e.target.value;
-                          setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, key } : x)));
+                          setFieldsSchema((prev) =>
+                            prev.map((x, i) => (i === idx ? { ...x, key } : x)),
+                          );
                         }}
                         placeholder="key (e.g. km)"
-                        className="sm:col-span-2 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 sm:col-span-2"
                       />
-                      <select
+                      <ChoiceGroup
+                        label="Field type"
                         value={f.type}
-                        onChange={(e) => {
-                          const type = (e.target.value === "text" ? "text" : "number") as FieldType;
-                          setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, type } : x)));
+                        options={[
+                          { value: "number", label: "Number" },
+                          { value: "text", label: "Text" },
+                        ]}
+                        onChange={(value) => {
+                          const type = (
+                            value === "text" ? "text" : "number"
+                          ) as FieldType;
+                          setFieldsSchema((prev) =>
+                            prev.map((x, i) =>
+                              i === idx ? { ...x, type } : x,
+                            ),
+                          );
                         }}
-                        className="sm:col-span-1 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100"
-                      >
-                        <option value="number">Number</option>
-                        <option value="text">Text</option>
-                      </select>
+                      />
                       <button
                         type="button"
-                        onClick={() => setFieldsSchema((prev) => prev.filter((_, i) => i !== idx))}
-                        className="sm:col-span-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:bg-neutral-900 dark:active:bg-neutral-800"
+                        onClick={() =>
+                          setFieldsSchema((prev) =>
+                            prev.filter((_, i) => i !== idx),
+                          )
+                        }
+                        className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 dark:hover:bg-neutral-900 dark:active:bg-neutral-800 sm:col-span-1"
                       >
                         Remove
                       </button>
@@ -640,29 +795,48 @@ export function EditCategoryPage() {
                         value={f.unit ?? ""}
                         onChange={(e) => {
                           const unit = e.target.value;
-                          setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, unit: unit.trim() || null } : x)));
+                          setFieldsSchema((prev) =>
+                            prev.map((x, i) =>
+                              i === idx
+                                ? { ...x, unit: unit.trim() || null }
+                                : x,
+                            ),
+                          );
                         }}
                         placeholder="Unit (optional)"
-                        className="sm:col-span-2 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 sm:col-span-2"
                       />
                       <input
                         value={f.placeholder ?? ""}
                         onChange={(e) => {
                           const placeholder = e.target.value;
                           setFieldsSchema((prev) =>
-                            prev.map((x, i) => (i === idx ? { ...x, placeholder: placeholder.trim() || null } : x)),
+                            prev.map((x, i) =>
+                              i === idx
+                                ? {
+                                    ...x,
+                                    placeholder: placeholder.trim() || null,
+                                  }
+                                : x,
+                            ),
                           );
                         }}
                         placeholder="Placeholder (optional)"
-                        className="sm:col-span-3 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
+                        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500 sm:col-span-3"
                       />
-                      <label className="sm:col-span-1 flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
+                      <label className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200 sm:col-span-1">
                         <input
                           type="checkbox"
                           checked={f.storeAs === "duration"}
                           onChange={(e) => {
-                            const storeAs = e.target.checked ? ("duration" as const) : null;
-                            setFieldsSchema((prev) => prev.map((x, i) => (i === idx ? { ...x, storeAs } : x)));
+                            const storeAs = e.target.checked
+                              ? ("duration" as const)
+                              : null;
+                            setFieldsSchema((prev) =>
+                              prev.map((x, i) =>
+                                i === idx ? { ...x, storeAs } : x,
+                              ),
+                            );
                           }}
                         />
                         Duration
@@ -677,7 +851,14 @@ export function EditCategoryPage() {
                       onClick={() =>
                         setFieldsSchema((prev) => [
                           ...prev,
-                          { key: "", label: "", type: "number", unit: null, placeholder: null, storeAs: null },
+                          {
+                            key: "",
+                            label: "",
+                            type: "number",
+                            unit: null,
+                            placeholder: null,
+                            storeAs: null,
+                          },
                         ])
                       }
                       className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100 active:bg-neutral-200 disabled:opacity-60 dark:text-neutral-100 dark:hover:bg-neutral-800 dark:active:bg-neutral-700"
@@ -697,12 +878,16 @@ export function EditCategoryPage() {
             </div>
           </div>
 
-          {(category.slug ?? "").toLowerCase() !== "active-kcal" && (category.slug ?? "").toLowerCase() !== "notes" ? (
-            <label className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950">
+          {(category.slug ?? "").toLowerCase() !== "active-kcal" &&
+          (category.slug ?? "").toLowerCase() !== "notes" ? (
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-950 sm:col-span-2">
               <div>
-                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Counts toward Active kcal</div>
+                <div className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                  Counts toward Active kcal
+                </div>
                 <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-                  When enabled, entries in this category can contribute to Active kcal, either via a kcal unit or a captured kcal field.
+                  When enabled, entries in this category can contribute to
+                  Active kcal, either via a kcal unit or a captured kcal field.
                 </div>
               </div>
               <input
@@ -717,7 +902,9 @@ export function EditCategoryPage() {
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {category.isSystem ? (
-            <div className="text-sm font-medium text-neutral-500 dark:text-neutral-400">This category can’t be deleted.</div>
+            <div className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
+              This category can’t be deleted.
+            </div>
           ) : (
             <Button
               variant="ghost"
@@ -728,7 +915,10 @@ export function EditCategoryPage() {
             </Button>
           )}
           <div className="flex items-center justify-end gap-3">
-            <Button variant="ghost" onClick={() => navigate(`/c/${category.slug ?? category.id}`)}>
+            <Button
+              variant="ghost"
+              onClick={() => navigate(`/c/${category.slug ?? category.id}`)}
+            >
               Cancel
             </Button>
             <Button onClick={onSave} disabled={isSaving}>
@@ -736,7 +926,7 @@ export function EditCategoryPage() {
             </Button>
           </div>
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 }

@@ -100,3 +100,25 @@ a successful save visible even if a subsequent overview refresh fails.
 
 No backend, membership, source-grant, credential or retrieval-policy changes are
 part of this visual revamp. Use synthetic data for connected-source QA.
+
+## Views and settings — step 05
+
+Views are open rows with their actual aggregate period or latest trend value.
+Keep graphs, goals, history and private capture available. View editors expose
+short choices as native radio groups, with arrow-key navigation; the longer
+optional template catalog retains its native select. Loading, failure and an
+empty account are distinct states. Capture and view saves lock overlapping
+submissions and retain failed drafts.
+
+Profile uses five wrapping, hash-linked destinations: Account, Privacy, AI & API,
+Preferences, and Data & sharing. Sections stay mounted so unsaved fields and
+one-time API tokens survive navigation. Lock settings navigation and mutations
+while a request is pending. Preserve existing scopes, storage/encryption
+contracts, export behavior and irreversible-action confirmations. No production
+privacy or credential changes are part of visual QA.
+
+Timeline keeps readable open entries, accessible day names and a separate row
+for previous/next day controls on small screens. Reminders use a labeled native
+checkbox, request notification permission only on explicit enable/test actions,
+and remain unavailable in a browser. Use synthetic fixtures for notification,
+API key, sharing and account-deletion QA.
