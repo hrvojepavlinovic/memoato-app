@@ -2,14 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/dm-sans-latin-v1.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url("/fonts/newsreader-latin-v1.woff2") format("woff2");
+}
 :root {
   --memoato-install-banner-h: 0px;
-  --memoato-bg: #f3f1ec;
-  --memoato-panel: #fbfaf7;
-  --memoato-ink: #171713;
-  --memoato-muted: #706f68;
-  --memoato-line: #d8d5cc;
-  --memoato-accent: #ff5c35;
+  --memoato-mobile-nav-h: 0px;
+  --memoato-bg: #f4f0e7;
+  --memoato-panel: #fbf9f4;
+  --memoato-ink: #1d201b;
+  --memoato-muted: #62665b;
+  --memoato-line: #d5d0c4;
+  --memoato-accent: #26372f;
 }
 
 html {
@@ -20,7 +35,8 @@ body {
   overflow-y: scroll;
   margin: 0;
   background: var(--memoato-bg);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  color: var(--memoato-ink);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
 }
@@ -33,12 +49,12 @@ body {
 }
 
 .dark {
-  --memoato-bg: #11110f;
-  --memoato-panel: #181816;
-  --memoato-ink: #f3f1ea;
-  --memoato-muted: #9b9a92;
-  --memoato-line: #34332e;
-  --memoato-accent: #ff6b45;
+  --memoato-bg: #19201b;
+  --memoato-panel: #212b23;
+  --memoato-ink: #eee9df;
+  --memoato-muted: #b1b7a9;
+  --memoato-line: #414a3e;
+  --memoato-accent: #b9cfb2;
   --chart-text: rgba(255, 255, 255, 0.88);
   --chart-muted: rgba(255, 255, 255, 0.6);
   --goal-fallback-stroke: rgba(255, 255, 255, 0.25);
@@ -47,7 +63,7 @@ body {
 
 ::selection {
   background: var(--memoato-accent);
-  color: #11110f;
+  color: var(--memoato-bg);
 }
 
 button,
@@ -56,7 +72,8 @@ input,
 textarea,
 select {
   transition-duration: 140ms;
-  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+  transition-property:
+    color, background-color, border-color, opacity, transform, box-shadow;
   transition-timing-function: ease-out;
 }
 
@@ -70,24 +87,28 @@ select:focus-visible {
 }
 
 .memoato-app-shell {
-  background-color: var(--memoato-bg);
-  background-image:
-    linear-gradient(rgba(23, 23, 19, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(23, 23, 19, 0.025) 1px, transparent 1px);
-  background-size: 32px 32px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--memoato-bg);
+  padding-bottom: calc(
+    var(--memoato-install-banner-h) + var(--memoato-mobile-nav-h)
+  );
 }
-
-.dark .memoato-app-shell {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+.memoato-page-content {
+  flex: 1;
+  min-width: 0;
+}
+.memoato-page-content:focus {
+  outline: none;
 }
 
 /* Override Wasp auth form theme. */
 :root {
-  --color-waspYellow: #ff5c35 !important;
-  --color-brand: #171713 !important;
-  --color-brandAccent: #ff5c35 !important;
+  --color-waspYellow: #26372f !important;
+  --color-brand: #26372f !important;
+  --color-brandAccent: #26372f !important;
   --color-submitButtonText: #ffffff !important;
 }
 
@@ -134,7 +155,7 @@ a[href$="/auth/google/login"]::before {
   margin-top: 0 !important;
   color: var(--memoato-ink) !important;
   font-size: 1.75rem !important;
-  font-weight: 680 !important;
+  font-weight: 600 !important;
   letter-spacing: -0.035em !important;
 }
 
@@ -142,7 +163,7 @@ a[href$="/auth/google/login"]::before {
 .memoato-auth button,
 .memoato-auth a[href$="/auth/google/login"] {
   min-height: 46px !important;
-  border-radius: 4px !important;
+  border-radius: 7px !important;
 }
 
 .memoato-auth input {
@@ -157,12 +178,13 @@ a[href$="/auth/google/login"]::before {
   box-shadow: none !important;
 }
 
-.memoato-auth label {
+.memoato-auth label,
+.memoato-auth .label {
   color: var(--memoato-muted) !important;
-  font-size: 0.75rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
 }
 
 .memoato-auth a {
@@ -180,4 +202,268 @@ a[href$="/auth/google/login"]::before {
     @apply text-xs font-bold uppercase tracking-[0.08em];
     color: var(--memoato-muted);
   }
+}
+
+/* The app inherits the approved public site's quiet paper/forest identity. */
+.memoato-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--memoato-bg);
+  border-bottom: 1px solid var(--memoato-line);
+}
+.memoato-header-inner {
+  max-width: 1180px;
+  margin: auto;
+  min-height: 76px;
+  padding: 0.65rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+.memoato-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.memoato-brand span {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 1.65rem;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.memoato-brand img {
+  width: 30px;
+  height: 30px;
+}
+.memoato-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.memoato-icon-button {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--memoato-muted);
+}
+.memoato-icon-button:hover,
+.memoato-icon-button[aria-current] {
+  background: var(--memoato-panel);
+  color: var(--memoato-ink);
+}
+.memoato-profile-link {
+  position: relative;
+}
+.memoato-verification-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #b75e3b;
+}
+.memoato-auth-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.memoato-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.memoato-navigation a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.5rem 0.8rem;
+  border-radius: 7px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--memoato-muted);
+}
+.memoato-navigation a:hover {
+  background: var(--memoato-panel);
+  color: var(--memoato-ink);
+}
+.memoato-navigation a[aria-current="page"] {
+  color: var(--memoato-accent);
+  background: var(--memoato-panel);
+  text-decoration: underline;
+  text-underline-offset: 0.4em;
+  text-decoration-thickness: 1px;
+}
+.memoato-navigation svg {
+  display: none;
+}
+.memoato-skip {
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  transform: translateY(-200%);
+  z-index: 60;
+  padding: 0.7rem 1rem;
+  background: var(--memoato-ink);
+  color: var(--memoato-bg);
+  border-radius: 6px;
+}
+.memoato-skip:focus {
+  transform: translateY(0);
+}
+.memoato-auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
+  gap: clamp(3rem, 8vw, 9rem);
+  width: min(100%, 1080px);
+  margin: auto;
+  padding: clamp(3rem, 8vh, 6rem) 2rem 5rem;
+  align-items: start;
+}
+.memoato-auth-intro h1 {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(2.5rem, 4.5vw, 3.7rem);
+  line-height: 1.08;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+}
+.memoato-auth-intro > p {
+  margin-top: 1.5rem;
+  max-width: 34ch;
+  font-size: 1.125rem;
+  line-height: 1.65;
+  color: var(--memoato-muted);
+}
+.memoato-auth-uses {
+  margin-top: 3rem;
+  display: grid;
+  gap: 1.5rem;
+}
+.memoato-auth-uses div {
+  padding-top: 1rem;
+  border-top: 1px solid var(--memoato-line);
+}
+.memoato-auth-uses dt {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.memoato-auth-uses dd {
+  margin-top: 0.3rem;
+  color: var(--memoato-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.memoato-auth-form-region {
+  min-width: 0;
+}
+.memoato-auth-privacy {
+  margin-top: 2rem;
+  color: var(--memoato-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.memoato-auth-privacy a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.memoato-auth input {
+  font-size: 1rem;
+  color: var(--memoato-ink);
+}
+.memoato-auth input:focus-visible {
+  outline: 2px solid var(--memoato-accent);
+  outline-offset: 2px;
+}
+.memoato-auth button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.memoato-auth [role="alert"] {
+  line-height: 1.5;
+}
+@media (max-width: 800px) {
+  .memoato-header-inner {
+    min-height: 64px;
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+  }
+  .memoato-app-shell--signed-in {
+    --memoato-mobile-nav-h: calc(68px + env(safe-area-inset-bottom));
+  }
+  .memoato-navigation {
+    position: fixed;
+    bottom: var(--memoato-install-banner-h);
+    inset-inline: 0;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    padding: 0.35rem 0.5rem max(0.35rem, env(safe-area-inset-bottom));
+    background: var(--memoato-bg);
+    border-top: 1px solid var(--memoato-line);
+  }
+  .memoato-navigation a {
+    min-width: 0;
+    min-height: 56px;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.4rem 0;
+    font-size: 0.75rem;
+    line-height: 1;
+    text-decoration: none !important;
+  }
+  .memoato-navigation a[aria-current="page"] {
+    font-weight: 700;
+  }
+  .memoato-navigation svg {
+    display: block;
+  }
+  .memoato-auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+    max-width: 480px;
+    padding: 2rem 1.5rem 3rem;
+  }
+  .memoato-auth-intro {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .memoato-auth-intro > p,
+  .memoato-auth-uses {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    transition: none;
+  }
+}
+
+.memoato-auth a[href$="/auth/google/login"] {
+  color: #1d201b !important;
+}
+.memoato-auth .text-neutral-500 {
+  color: var(--memoato-muted);
 }
