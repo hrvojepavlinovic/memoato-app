@@ -1,0 +1,501 @@
+.memoato-context-page {
+  width: 100%;
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 40px 24px 48px;
+}
+.memoato-context-page [hidden] {
+  display: none !important;
+}
+.memoato-context-page :is(h1, h2, h3, h4, p) {
+  margin: 0;
+}
+.memoato-context-page h1 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+.memoato-context-page h2 {
+  font-size: 1.375rem;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.memoato-context-page h3 {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.memoato-context-page h4 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.memoato-context-heading {
+  margin-bottom: 32px;
+}
+.memoato-context-heading > p {
+  margin-top: 12px;
+  max-width: 65ch;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--memoato-muted);
+}
+.memoato-context-heading > .memoato-context-pilot {
+  font-size: 0.8125rem;
+  margin-top: 16px;
+}
+.memoato-context-page a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.memoato-context-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.memoato-workspaces {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--memoato-line);
+}
+.memoato-workspaces > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.memoato-workspaces button {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--memoato-line);
+  border-radius: 7px;
+  font-size: 0.875rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.memoato-workspaces button small {
+  color: var(--memoato-muted);
+  font-size: 0.75rem;
+}
+.memoato-workspaces button > span {
+  min-width: 0;
+}
+.memoato-workspaces button:not(:disabled):hover,
+.memoato-context-provider-options button:not(:disabled):hover {
+  background: var(--memoato-panel);
+  border-color: var(--memoato-accent);
+}
+.memoato-context-tabs button:not(:disabled):hover {
+  color: var(--memoato-ink);
+}
+.memoato-workspaces button[aria-pressed="true"] {
+  background: var(--memoato-panel);
+  border-color: var(--memoato-accent);
+  font-weight: 600;
+}
+.memoato-context-page button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.memoato-context-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 24px 0 16px;
+  font-size: 0.8125rem;
+  color: var(--memoato-muted);
+  font-variant-numeric: tabular-nums;
+}
+.memoato-context-summary p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.memoato-context-summary strong {
+  color: var(--memoato-ink);
+  font-weight: 600;
+}
+.memoato-context-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 28px;
+  border-bottom: 1px solid var(--memoato-line);
+  margin-bottom: 28px;
+}
+.memoato-context-tabs button {
+  min-height: 48px;
+  padding: 8px 0;
+  border-bottom: 2px solid transparent;
+  font-size: 0.875rem;
+  color: var(--memoato-muted);
+}
+.memoato-context-tabs button[aria-pressed="true"] {
+  color: var(--memoato-ink);
+  border-bottom-color: currentColor;
+  font-weight: 600;
+}
+.memoato-context-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+.memoato-context-intro {
+  max-width: 65ch;
+  margin-top: 10px !important;
+  color: var(--memoato-muted);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+.memoato-context-muted,
+.memoato-context-version {
+  color: var(--memoato-muted);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+.memoato-context-section > .memoato-context-muted {
+  margin-top: 16px;
+}
+.memoato-context-start {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 48px;
+  padding: 32px 0;
+  border-top: 1px solid var(--memoato-line);
+}
+.memoato-context-start p {
+  margin-top: 16px;
+  line-height: 1.7;
+  font-size: 0.9375rem;
+  max-width: 60ch;
+}
+.memoato-context-start .memoato-context-muted {
+  font-size: 0.8125rem;
+}
+.memoato-context-form,
+.memoato-context-source-form fieldset {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.memoato-context-page label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.memoato-context-page label span {
+  color: var(--memoato-muted);
+  font-weight: 400;
+}
+.memoato-context-page :is(input, textarea) {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid var(--memoato-line);
+  border-radius: 7px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  background: var(--memoato-panel);
+  color: var(--memoato-ink);
+  caret-color: var(--memoato-accent);
+}
+.memoato-context-page textarea {
+  resize: vertical;
+}
+.memoato-context-page :is(input, textarea)::placeholder {
+  color: var(--memoato-muted);
+  opacity: 1;
+}
+.memoato-context-form button {
+  justify-self: start;
+  margin-top: 6px;
+  white-space: normal;
+  line-height: 1.4;
+}
+.memoato-context-source-form {
+  max-width: 640px;
+  margin-top: 24px;
+  padding: 24px 0;
+  border-block: 1px solid var(--memoato-line);
+}
+.memoato-context-provider-options {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+}
+.memoato-context-provider-options button {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--memoato-line);
+  border-radius: 7px;
+  font-size: 0.875rem;
+}
+.memoato-context-provider-options button[aria-pressed="true"] {
+  border-color: var(--memoato-accent);
+  background: var(--memoato-panel);
+  font-weight: 600;
+}
+.memoato-context-source-form fieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 20px 0;
+}
+.memoato-context-source-form label:not(:first-of-type) {
+  margin-top: 8px;
+}
+.memoato-context-source-form .memoato-context-warning {
+  margin-top: 16px;
+}
+.memoato-context-source {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--memoato-line);
+}
+.memoato-context-source > div {
+  min-width: 0;
+  flex: 1 1 260px;
+  overflow-wrap: anywhere;
+}
+.memoato-context-source p {
+  margin-top: 6px;
+}
+.memoato-context-source > button {
+  flex-shrink: 0;
+}
+.memoato-context-empty,
+.memoato-context-notice {
+  padding: 32px 0;
+  max-width: 65ch;
+}
+.memoato-context-empty p,
+.memoato-context-notice p {
+  color: var(--memoato-muted);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  margin-top: 10px;
+}
+.memoato-context-text-action {
+  min-height: 44px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-size: 0.875rem;
+}
+.memoato-context-empty button,
+.memoato-context-notice button {
+  margin-top: 16px;
+}
+.memoato-context-page .memoato-context-error {
+  color: #a33e2d;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.dark .memoato-context-page .memoato-context-error {
+  color: #efb09e;
+}
+.memoato-context-page .memoato-context-warning {
+  color: #805228;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+.dark .memoato-context-page .memoato-context-warning {
+  color: #dfbd94;
+}
+.memoato-context-feedback {
+  margin-block: 20px !important;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+.memoato-context-error[role="alert"] {
+  margin-block: 20px;
+}
+.memoato-context-error button {
+  margin-top: 12px;
+}
+.memoato-context-loading {
+  padding: 32px 0;
+  color: var(--memoato-muted);
+  font-size: 0.875rem;
+}
+.memoato-context-loading > div {
+  height: 16px;
+  background: var(--memoato-line);
+  max-width: 70%;
+  margin-top: 20px;
+  border-radius: 3px;
+}
+.memoato-context-loading > div + div {
+  max-width: 50%;
+  margin-top: 12px;
+}
+.memoato-context-claim {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--memoato-line);
+  overflow-wrap: anywhere;
+}
+.memoato-context-kind {
+  font-size: 0.75rem;
+  color: var(--memoato-muted);
+  margin-bottom: 8px !important;
+}
+.memoato-context-claim > .memoato-context-muted {
+  margin-top: 8px;
+}
+.memoato-context-evidence {
+  margin-top: 20px;
+}
+.memoato-context-evidence > div {
+  margin-top: 12px;
+}
+.memoato-context-evidence a,
+.memoato-context-evidence > div > span {
+  display: inline-block;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  min-height: 44px;
+  padding-block: 4px;
+}
+.memoato-context-evidence blockquote {
+  margin: 6px 0 8px;
+  color: var(--memoato-muted);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.memoato-context-version code {
+  font-size: 0.75rem;
+}
+.memoato-context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+.memoato-packet-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 12px;
+  margin: 24px 0;
+  align-items: end;
+}
+.memoato-packet-form label {
+  grid-column: 1/-1;
+}
+.memoato-packet-form button {
+  min-height: 48px;
+  line-height: 1.4;
+}
+.memoato-packet-output {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--memoato-line);
+}
+.memoato-packet-title {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+.memoato-packet-query {
+  margin-top: 12px !important;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  font-size: 0.9375rem;
+}
+.memoato-packet-output > .memoato-context-muted {
+  margin-top: 8px;
+}
+.memoato-packet-diff {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 20px 0;
+  font-size: 0.8125rem;
+}
+.memoato-packet-diff > div {
+  display: flex;
+  gap: 6px;
+}
+.memoato-packet-diff dt {
+  color: var(--memoato-muted);
+}
+.memoato-packet-diff dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.memoato-packet-details {
+  padding-top: 24px;
+}
+.memoato-packet-details dl {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+}
+.memoato-packet-details dl > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+}
+.memoato-packet-details dt {
+  color: var(--memoato-muted);
+}
+.memoato-packet-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 639px) {
+  .memoato-context-page {
+    padding: 24px 16px 32px;
+  }
+  .memoato-context-page h1 {
+    font-size: 2rem;
+  }
+  .memoato-context-page h2 {
+    font-size: 1.25rem;
+  }
+  .memoato-context-heading {
+    margin-bottom: 24px;
+  }
+  .memoato-context-start {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    padding-top: 24px;
+  }
+  .memoato-context-tabs {
+    gap: 0 24px;
+  }
+  .memoato-context-summary {
+    gap: 8px;
+  }
+  .memoato-workspaces button {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .memoato-packet-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .memoato-packet-form button {
+    justify-self: start;
+  }
+  .memoato-context-source {
+    align-items: flex-start;
+  }
+  .memoato-packet-details dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
