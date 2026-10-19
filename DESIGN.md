@@ -78,3 +78,25 @@ editing a source or replacing evidence during refresh invalidates an earlier
 answer and its pending request. No confidence is implied by decorative metrics.
 Local/encrypted modes expose existing private views instead of enabling cloud
 review/search inputs. Keep all existing backend/auth contracts unchanged.
+
+## Context — step 04
+
+Context uses wrapping workspace choices and three visible tool destinations:
+Sources, Review and Build context. Keep source lists, claims and evidence in open
+rows. Source setup uses an inline, labeled form with explicit repository/team
+scope. Only Memoato administrators who also own/administer the workspace see
+connection and sync actions; claim review follows workspace owner/admin rights.
+Missing provider setup, pilot restrictions, failed imports and empty results
+must be explicit. Do not imply an open team signup or automatic member grants.
+
+Claims keep their source excerpt, link, version and freshness beside the review
+actions. Context packets are snapshots of accepted, fresh, authorized claims,
+not AI-generated answers. Show evidence, generation time, per-query changes and
+retrieval identifiers. Copy includes the exact evidence versions and provenance;
+expired output cannot be copied. Invalidate results and pending requests after
+source refreshes, query edits or workspace changes. Lock overlapping actions and
+workspace switching during a pending operation. Preserve failed drafts, and keep
+a successful save visible even if a subsequent overview refresh fails.
+
+No backend, membership, source-grant, credential or retrieval-policy changes are
+part of this visual revamp. Use synthetic data for connected-source QA.
