@@ -103,7 +103,8 @@ describe("raw capture durability", () => {
         "don’t need to save again",
       ),
     );
-    expect(mocks.save).toHaveBeenCalledExactlyOnceWith({
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+    expect(mocks.save).toHaveBeenCalledWith({
       text: "A note worth keeping",
     });
     expect((screen.getByLabelText("Note") as HTMLTextAreaElement).value).toBe(
