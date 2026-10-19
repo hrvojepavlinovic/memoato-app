@@ -467,3 +467,68 @@ a[href$="/auth/google/login"]::before {
 .memoato-auth .text-neutral-500 {
   color: var(--memoato-muted);
 }
+
+/* Today and the first visit share an open, writing-first workspace. */
+.memoato-today-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 32px; }
+.memoato-today-heading h1 { font-size: clamp(2rem, 5vw, 2.6rem); font-weight: 600; letter-spacing: -.035em; line-height: 1.15; }
+.memoato-today-heading > p, .memoato-muted { color: var(--memoato-muted); font-size: .875rem; }
+.memoato-today-memory { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 48px; margin-bottom: 48px; }
+.memoato-capture label, .memoato-private-capture h2 { display: block; font-size: 1.125rem; font-weight: 600; line-height: 1.4; }
+.memoato-capture > p:first-of-type { margin-top: 8px; color: var(--memoato-muted); font-size: .875rem; line-height: 1.6; }
+.memoato-capture textarea { width: 100%; min-height: 180px; margin-top: 20px; padding: 18px; border: 1px solid var(--memoato-line); border-radius: 10px; background: var(--memoato-panel); font-size: 1rem; line-height: 1.65; resize: vertical; caret-color: var(--memoato-accent); }
+.memoato-capture textarea::placeholder { color: var(--memoato-muted); opacity: 1; }
+.memoato-capture-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; }
+.memoato-capture-count { color: var(--memoato-muted); font-size: .75rem; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.memoato-capture-notice { margin-top: 12px; font-size: .8125rem; line-height: 1.6; color: var(--memoato-muted); }
+.memoato-capture-notice:empty { display: none; }
+.memoato-inline-error { margin-top: 12px; font-size: .875rem; line-height: 1.6; color: #9a3f29; }
+.dark .memoato-inline-error { color: #f0ad91; }
+.memoato-text-action { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; text-align: left; font-size: .8125rem; text-decoration: underline; text-underline-offset: 4px; }
+.memoato-capture > .memoato-text-action { margin-top: 14px; color: var(--memoato-muted); }
+.memoato-recent-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 20px; }
+.memoato-recent-heading h2 { font-weight: 600; font-size: 1rem; }
+.memoato-recent-heading a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: .8125rem; text-decoration: underline; text-underline-offset: 4px; }
+.memoato-recent-empty { max-width: 30ch; padding: 20px 0 32px; font-size: 1.125rem; line-height: 1.65; color: var(--memoato-muted); }
+.memoato-recent-entry { border-bottom: 1px solid var(--memoato-line); padding: 0 0 18px; margin-bottom: 18px; overflow-wrap: anywhere; }
+.memoato-recent-entry > p { font-size: .9375rem; line-height: 1.65; white-space: pre-wrap; }
+.memoato-entry-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: .75rem; line-height: 1.5; color: var(--memoato-muted); }
+.memoato-entry-meta time { font-variant-numeric: tabular-nums; }
+.memoato-memory-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 16px; font-size: .75rem; line-height: 1.6; color: var(--memoato-muted); }
+.memoato-memory-summary a { display: inline-flex; align-items: center; min-height: 44px; gap: 6px; text-decoration: underline; text-underline-offset: 4px; }
+.memoato-private-capture { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 40px; padding: 24px 0; border-block: 1px solid var(--memoato-line); }
+.memoato-private-capture p { margin-top: 8px; max-width: 50ch; font-size: .875rem; line-height: 1.6; color: var(--memoato-muted); }
+.memoato-private-capture > button { flex-shrink: 0; }
+.memoato-onboarding { width: 100%; max-width: 840px; margin: 0 auto; padding: 48px 24px 64px; }
+.memoato-onboarding h1 { max-width: 20ch; font-size: clamp(2rem, 5vw, 2.75rem); font-weight: 600; letter-spacing: -.035em; line-height: 1.15; text-wrap: balance; }
+.memoato-onboarding header p { max-width: 58ch; margin-top: 18px; color: var(--memoato-muted); line-height: 1.7; }
+.memoato-start-paths { margin-top: 32px; border-top: 1px solid var(--memoato-line); }
+.memoato-start-paths > button { display: grid; grid-template-columns: 24px minmax(0, 1fr) 20px; align-items: start; gap: 18px; width: 100%; padding: 24px 0; border-bottom: 1px solid var(--memoato-line); text-align: left; }
+.memoato-start-paths > button:hover { color: var(--memoato-accent); }
+.memoato-start-paths > button:disabled { opacity: .5; }
+.memoato-start-paths svg { margin-top: 4px; }
+.memoato-start-paths strong { display: block; font-size: 1.125rem; font-weight: 600; line-height: 1.5; }
+.memoato-start-paths strong + span { display: block; max-width: 55ch; margin-top: 6px; font-size: .875rem; line-height: 1.65; color: var(--memoato-muted); }
+.memoato-onboarding-privacy { margin-top: 16px; font-size: .8125rem; line-height: 1.6; color: var(--memoato-muted); }
+.memoato-optional-views { margin-top: 48px; }
+.memoato-optional-views h2 { font-size: 1.125rem; font-weight: 600; line-height: 1.5; }
+.memoato-optional-views > p { margin-top: 6px; font-size: .875rem; line-height: 1.6; color: var(--memoato-muted); }
+.memoato-template-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; margin-top: 20px; }
+.memoato-template-list label { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 12px 0; border-bottom: 1px solid var(--memoato-line); font-size: .875rem; cursor: pointer; }
+.memoato-template-list input { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--memoato-accent); }
+.memoato-template-list small { margin-left: auto; color: var(--memoato-muted); font-size: .75rem; }
+@media (max-width: 800px) {
+  .memoato-today-memory { grid-template-columns: minmax(0, 1fr); gap: 32px; margin-bottom: 40px; }
+  .memoato-recent { border-top: 1px solid var(--memoato-line); padding-top: 24px; }
+  .memoato-recent-empty { padding: 0 0 20px; }
+  .memoato-recent-heading { margin-bottom: 16px; }
+}
+@media (max-width: 480px) {
+  .memoato-today-heading { display: block; margin-bottom: 28px; }
+  .memoato-today-heading > p { margin-top: 8px; }
+  .memoato-capture-actions { gap: 12px; }
+  .memoato-capture textarea { padding: 14px; min-height: 168px; }
+  .memoato-private-capture { align-items: flex-start; flex-direction: column; }
+  .memoato-onboarding { padding: 32px 16px 48px; }
+  .memoato-start-paths > button { gap: 12px; }
+  .memoato-template-list { grid-template-columns: minmax(0, 1fr); }
+}

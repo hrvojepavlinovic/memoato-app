@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: [
       { find: "wasp/client/auth", replacement: "/src/test/waspClientAuth.ts" },
