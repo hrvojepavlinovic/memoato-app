@@ -55,3 +55,26 @@ rows. Optional views are unselected native checkboxes below those paths, with no
 mandatory tracker setup or disclosure. Completion has an in-memory fallback when
 browser storage is unavailable. Keep source/claim capabilities truthful and
 separate local/encrypted notes from Context's cloud sources.
+
+## Memory and Recall — step 03
+
+Memory uses open original-note rows with dates and source names. Extracted facts
+sit beneath their original, with their status, provenance and visible Keep/Edit/
+Dismiss actions. Imported entries are read-only. Inline editors retain failed
+drafts and distinguish a confirmed mutation from a failed list refresh. Preserve
+unchanged numeric/set data when editing labels or units. Clearing a value is an
+explicit correction, not a silent reset to the old number. Original deletion
+keeps its existing irreversible-action confirmation.
+
+Filters are wrapping text controls, with real counts only after loading. Failures
+must not appear as empty memory. Processing notes refresh until their status
+settles. The existing feed returns the latest 30 matches; when capped, state the
+limit and provide timeline and Recall links for older entries.
+
+Recall starts with a labeled search and personal/work examples. Word matches
+remain available if meaning search fails. AI answers are optional, identify the
+searched question and link to numbered, visible sources. Changing a question,
+editing a source or replacing evidence during refresh invalidates an earlier
+answer and its pending request. No confidence is implied by decorative metrics.
+Local/encrypted modes expose existing private views instead of enabling cloud
+review/search inputs. Keep all existing backend/auth contracts unchanged.

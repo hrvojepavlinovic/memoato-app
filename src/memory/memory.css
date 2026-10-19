@@ -1,0 +1,533 @@
+/* An open reader for originals, facts and source-backed recall. */
+.memoato-memory-page {
+  width: 100%;
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 40px 24px 48px;
+}
+.memoato-memory-page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+.memoato-memory-page h1 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+.memoato-memory-page-heading p {
+  max-width: 65ch;
+  margin-top: 12px;
+  color: var(--memoato-muted);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+.memoato-memory-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  font-size: 0.875rem;
+}
+.memoato-memory-links > a:not([class]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.memoato-memory-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  border-bottom: 1px solid var(--memoato-line);
+  margin-bottom: 8px;
+}
+.memoato-memory-filters button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 0;
+  color: var(--memoato-muted);
+  font-size: 0.875rem;
+}
+.memoato-memory-filters button[aria-pressed="true"] {
+  color: var(--memoato-ink);
+  text-decoration: underline;
+  text-underline-offset: 8px;
+  text-decoration-thickness: 2px;
+  font-weight: 600;
+}
+.memoato-filter-count {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.memoato-memory-warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-block: 20px;
+  color: var(--memoato-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.memoato-memory-loading {
+  padding: 32px 0;
+  color: var(--memoato-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.memoato-memory-loading > div {
+  max-width: 80%;
+  height: 16px;
+  background: var(--memoato-line);
+  margin-top: 20px;
+  opacity: 0.45;
+  border-radius: 3px;
+}
+.memoato-memory-loading > div + div {
+  max-width: 60%;
+  margin-top: 12px;
+}
+.memoato-memory-empty {
+  padding: 40px 0;
+  max-width: 60ch;
+}
+.memoato-memory-empty :is(h2, h3) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.memoato-memory-empty p {
+  margin-top: 12px;
+  color: var(--memoato-muted);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+.memoato-memory-empty > :is(a, button) {
+  margin-top: 20px;
+}
+.memoato-memory-older {
+  padding: 24px 0;
+  border-top: 1px solid var(--memoato-line);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--memoato-muted);
+}
+.memoato-memory-older a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.memoato-memory-mode {
+  padding-block: 16px;
+  max-width: 65ch;
+}
+.memoato-memory-mode h1 {
+  font-size: 2rem;
+  text-wrap: balance;
+}
+.memoato-memory-mode p {
+  margin-block: 20px;
+  line-height: 1.7;
+  color: var(--memoato-muted);
+}
+.memoato-memory-entry {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--memoato-line);
+  overflow-wrap: anywhere;
+}
+.memoato-entry-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  color: var(--memoato-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.memoato-entry-heading :is(h2, h3) {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--memoato-ink);
+}
+.memoato-entry-heading time {
+  font-variant-numeric: tabular-nums;
+}
+.memoato-original-text {
+  max-width: 72ch;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+.memoato-entry-status {
+  margin-top: 10px;
+  color: var(--memoato-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+.memoato-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  margin-top: 6px;
+}
+.memoato-entry-actions > button:not([class]) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 0;
+  font-size: 0.8125rem;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.memoato-entry-actions > button:hover {
+  color: var(--memoato-accent);
+}
+.memoato-entry-actions > button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.memoato-original-actions {
+  color: var(--memoato-muted);
+}
+.memoato-entry-facts {
+  margin-top: 24px;
+  max-width: 75ch;
+}
+.memoato-entry-facts > :is(h3, h4) {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.memoato-memory-fact {
+  padding: 16px 0 8px;
+}
+.memoato-memory-fact + .memoato-memory-fact {
+  border-top: 1px solid var(--memoato-line);
+}
+.memoato-fact-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.memoato-fact-summary strong {
+  font-weight: 600;
+}
+.memoato-fact-value {
+  font-variant-numeric: tabular-nums;
+}
+.memoato-fact-state,
+.memoato-fact-review {
+  font-size: 0.75rem;
+  color: var(--memoato-muted);
+}
+.memoato-fact-review {
+  color: #90521c;
+  font-weight: 600;
+}
+.dark .memoato-fact-review {
+  color: #e8b986;
+}
+.memoato-fact-origin {
+  margin-top: 4px;
+  color: var(--memoato-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+.memoato-original-editor {
+  margin-top: 16px;
+}
+.memoato-original-editor > label,
+.memoato-fact-editor label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.memoato-original-editor textarea,
+.memoato-fact-editor input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  min-height: 44px;
+  border: 1px solid var(--memoato-line);
+  border-radius: 7px;
+  background: var(--memoato-panel);
+  color: var(--memoato-ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 400;
+  caret-color: var(--memoato-accent);
+}
+.memoato-original-editor textarea {
+  min-height: 160px;
+  resize: vertical;
+  line-height: 1.7;
+}
+.memoato-original-editor > p {
+  margin-block: 12px;
+  font-size: 0.8125rem;
+  color: var(--memoato-muted);
+  line-height: 1.6;
+}
+.memoato-fact-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-block: 16px;
+}
+.memoato-fact-editor .memoato-entry-actions {
+  grid-column: 1/-1;
+  margin-top: 0;
+}
+.memoato-entry-retry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.memoato-memory-notice {
+  color: var(--memoato-muted);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  margin-top: 16px;
+}
+.memoato-memory-notice:empty {
+  display: none;
+}
+.memoato-recall-form {
+  margin-block: 28px 0;
+}
+.memoato-recall-form > label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.memoato-recall-form > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.memoato-recall-form input {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px solid var(--memoato-line);
+  border-radius: 7px;
+  background: var(--memoato-panel);
+  color: var(--memoato-ink);
+  font-size: 1rem;
+  line-height: 1.5;
+  caret-color: var(--memoato-accent);
+}
+.memoato-recall-form input::placeholder,
+.memoato-fact-editor input::placeholder {
+  color: var(--memoato-muted);
+  opacity: 1;
+}
+.memoato-recall-form button {
+  flex-shrink: 0;
+  min-height: 48px;
+}
+.memoato-recall-start {
+  margin-top: 32px;
+  color: var(--memoato-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.memoato-recall-suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 32px;
+  max-width: 680px;
+  margin-block: 12px 24px;
+}
+.memoato-recall-suggestions button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--memoato-line);
+  text-align: left;
+  color: var(--memoato-ink);
+}
+.memoato-recall-suggestions button:hover {
+  color: var(--memoato-accent);
+}
+.memoato-recall-results {
+  margin-top: 40px;
+}
+.memoato-recall-result-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--memoato-line);
+}
+.memoato-recall-result-heading h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.memoato-recall-result-heading p {
+  margin-top: 8px;
+  color: var(--memoato-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.memoato-recall-signal strong {
+  display: inline;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--memoato-ink);
+  font-variant-numeric: tabular-nums;
+}
+.memoato-recall-answer-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-block: 24px;
+}
+.memoato-recall-answer-action h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.memoato-recall-answer-action p {
+  margin-top: 6px;
+  color: var(--memoato-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.memoato-recall-answer {
+  padding: 24px;
+  margin-block: 24px 32px;
+  background: var(--memoato-panel);
+  border-radius: 12px;
+}
+.memoato-recall-answer h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.memoato-answer-confidence {
+  margin-top: 6px;
+  color: var(--memoato-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+.memoato-answer-text {
+  max-width: 70ch;
+  margin-top: 16px;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.memoato-answer-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-top: 12px;
+}
+.memoato-answer-citations a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.memoato-evidence-note {
+  scroll-margin-top: 6.5rem;
+}
+.memoato-evidence-label {
+  margin-top: 28px;
+  color: var(--memoato-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.memoato-memory-entry--compact {
+  padding-top: 12px;
+}
+@media (max-width: 640px) {
+  .memoato-memory-page {
+    padding: 24px 16px 32px;
+  }
+  .memoato-memory-page h1 {
+    font-size: 2rem;
+  }
+  .memoato-memory-page-heading {
+    margin-bottom: 24px;
+    gap: 16px;
+  }
+  .memoato-memory-filters {
+    gap: 0 20px;
+  }
+  .memoato-fact-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .memoato-fact-editor label:first-child {
+    grid-column: 1/-1;
+  }
+  .memoato-recall-suggestions {
+    column-gap: 24px;
+  }
+  .memoato-recall-answer {
+    padding: 20px 16px;
+  }
+  .memoato-memory-entry {
+    padding-block: 24px;
+  }
+  .memoato-memory-entry--compact {
+    padding-top: 12px;
+  }
+}
+@media (max-width: 360px) {
+  .memoato-recall-form > div {
+    flex-wrap: wrap;
+  }
+  .memoato-recall-form input {
+    flex-basis: 100%;
+  }
+  .memoato-recall-form button {
+    width: 100%;
+  }
+  .memoato-recall-suggestions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.memoato-evidence-note:target .memoato-evidence-label {
+  color: var(--memoato-accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
